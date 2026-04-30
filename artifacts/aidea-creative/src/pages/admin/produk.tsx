@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useListProduk, getListProdukQueryKey, useCreateProduk, useUpdateProduk, useDeleteProduk, useAiChat } from "@workspace/api-client-react";
+import { useListProduk, getListProdukQueryKey, useCreateProduk, useUpdateProduk, useDeleteProduk } from "@workspace/api-client-react";
+import { adminFetch } from "@/lib/admin-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Sparkles, Loader2, ImageOff } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
@@ -57,7 +58,7 @@ export default function AdminProduk() {
   const createM = useCreateProduk();
   const updateM = useUpdateProduk();
   const deleteM = useDeleteProduk();
-  const aiChat = useAiChat();
+  const [aiPending, setAiPending] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<ProdukForm>(emptyForm);
@@ -139,15 +140,32 @@ export default function AdminProduk() {
     );
   };
 
-  const generateDesc = () => {
+  const generateDesc = async () => {
     if (!form.namaProduk) {
       toast({ title: "Isi nama produk dulu", variant: "destructive" });
       return;
     }
-    aiChat.mutate(
-      { data: { message: `Buat deskripsi produk studio foto untuk "${form.namaProduk}" (kategori ${form.kategori}) dalam 2-3 kalimat bahasa Indonesia yang menarik, casual, & persuasif. Langsung deskripsi saja tanpa pembuka.` } },
-      { onSuccess: (r: any) => setForm((f) => ({ ...f, deskripsi: r?.reply ?? r?.message ?? f.deskripsi })) },
-    );
+    setAiPending(true);
+    try {
+      const res = await adminFetch<{ text: string }>("/ai/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          system: "Kamu copywriter studio foto. Tulis deskripsi produk yang singkat (2-3 kalimat), menarik, casual, dan persuasif dalam Bahasa Indonesia. Jawab langsung tanpa pembuka, tanpa tanda kutip.",
+          prompt: `Tulis deskripsi produk studio foto:\nNama: ${form.namaProduk}\nKategori: ${form.kategori || "umum"}${form.ukuran ? `\nUkuran: ${form.ukuran}` : ""}`,
+          maxTokens: 250,
+        }),
+      });
+      const text = (res?.text ?? "").trim();
+      if (!text) {
+        toast({ title: "AI belum berhasil membuat teks", description: "Coba sekali lagi.", variant: "destructive" });
+      } else {
+        setForm((f) => ({ ...f, deskripsi: text }));
+      }
+    } catch (err: any) {
+      toast({ title: "AI tidak tersedia", description: err?.message ?? "Coba lagi sebentar.", variant: "destructive" });
+    } finally {
+      setAiPending(false);
+    }
   };
 
   return (
@@ -305,8 +323,8 @@ export default function AdminProduk() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Deskripsi</Label>
-                <Button type="button" size="sm" variant="ghost" onClick={generateDesc} disabled={aiChat.isPending}>
-                  {aiChat.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                <Button type="button" size="sm" variant="ghost" onClick={generateDesc} disabled={aiPending}>
+                  {aiPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
                   AI Generate
                 </Button>
               </div>

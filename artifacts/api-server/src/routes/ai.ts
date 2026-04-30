@@ -1,21 +1,46 @@
 import { Router } from "express";
-import OpenAI from "openai";
 import { AiChatBody, AiRecommendBody } from "@workspace/api-zod";
 import { db } from "@workspace/db";
 import { chatHistoryTable, chatKbTable, chatSessionTable, paketLayananTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { attachAuth } from "../middlewares/auth";
 import { ensureSession } from "./chat";
 
 const router = Router();
 
-const client = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "placeholder",
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? undefined,
-});
-
-// Default model — pio.codes serves Qwen models. Override via AI_MODEL secret.
+// We deliberately use plain fetch (NOT the openai SDK) because some OpenAI-
+// compatible gateways (notably pio.codes, fronted by Cloudflare) WAF-block
+// requests carrying the `User-Agent: OpenAI/JS …` and `X-Stainless-*` headers
+// the SDK adds. With a generic UA the same payload returns 200.
+const AI_BASE_URL = (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
+const AI_API_KEY = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? "";
 const AI_MODEL = process.env.AI_MODEL ?? "qwen-turbo";
+
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
+async function chatComplete(messages: ChatMessage[], maxTokens = 500): Promise<string> {
+  if (!AI_API_KEY) throw new Error("AI_INTEGRATIONS_OPENAI_API_KEY missing");
+  const res = await fetch(`${AI_BASE_URL}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AI_API_KEY}`,
+      "User-Agent": "AideaCreative/1.0",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: maxTokens,
+      messages,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw Object.assign(new Error(`AI provider returned ${res.status}: ${text.slice(0, 200)}`), { status: res.status, body: text });
+  }
+  const json: any = await res.json();
+  return json?.choices?.[0]?.message?.content ?? "";
+}
 
 // Best-effort JSON extractor for models that don't support response_format.
 function extractJson(text: string): any {
@@ -45,7 +70,7 @@ async function buildSystemPrompt(): Promise<string> {
     if (paket.length > 0) {
       prompt += "\n\nPaket yang tersedia (data live):\n" +
         paket
-          .map((p) => `- ${p.namaPaket} (${p.kategori ?? "umum"}): Rp ${Number(p.harga).toLocaleString("id-ID")} — ${p.deskripsi ?? ""}`)
+          .map((p: any) => `- ${p.namaPaket} (${p.kategori ?? "umum"}): Rp ${Number(p.harga).toLocaleString("id-ID")} — ${p.deskripsi ?? ""}`)
           .join("\n");
     }
   } catch {}
@@ -54,7 +79,7 @@ async function buildSystemPrompt(): Promise<string> {
     const kb = await db.select().from(chatKbTable).where(eq(chatKbTable.isAktif, true));
     if (kb.length > 0) {
       prompt += "\n\nKnowledge Base (gunakan jika relevan):\n" +
-        kb.map((k) => `Q: ${k.pertanyaan}\nA: ${k.jawaban}`).join("\n\n");
+        kb.map((k: any) => `Q: ${k.pertanyaan}\nA: ${k.jawaban}`).join("\n\n");
     }
   } catch {}
 
@@ -83,26 +108,21 @@ router.post("/ai/chat", attachAuth, async (req, res) => {
         session.status === "menunggu_admin"
           ? "Pesan Anda sudah diteruskan ke admin. Mohon tunggu sebentar, admin akan segera membalas."
           : "Anda sedang terhubung dengan admin. Silakan tunggu balasan admin di chat ini.";
-      return res.json({ reply: note, sessionId, status: session.status });
+      res.json({ reply: note, sessionId, status: session.status });
+      return;
     }
 
     const systemPrompt = await buildSystemPrompt();
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
-      ...(body.history || []).map((h) => ({
+      ...(body.history || []).map((h: any) => ({
         role: h.role as "user" | "assistant",
         content: h.content,
       })),
       { role: "user", content: body.message },
     ];
 
-    const completion = await client.chat.completions.create({
-      model: AI_MODEL,
-      messages,
-      max_tokens: 500,
-    });
-
-    const reply = completion.choices[0]?.message?.content ?? "Maaf, saya tidak dapat menjawab saat ini.";
+    const reply = (await chatComplete(messages, 500)) || "Maaf, saya tidak dapat menjawab saat ini.";
 
     await db.insert(chatHistoryTable).values({
       sessionId,
@@ -117,12 +137,37 @@ router.post("/ai/chat", attachAuth, async (req, res) => {
   }
 });
 
+// Lightweight one-shot generation endpoint (no system prompt baggage).
+// Used by admin tools like product description generator.
+router.post("/ai/generate", async (req, res) => {
+  try {
+    const prompt = typeof req.body?.prompt === "string" ? req.body.prompt : "";
+    const system = typeof req.body?.system === "string" ? req.body.system : "Kamu adalah asisten yang membantu menulis teks pemasaran dalam Bahasa Indonesia. Jawab langsung tanpa pembuka.";
+    const maxTokens = Math.max(50, Math.min(1000, Number(req.body?.maxTokens) || 300));
+    if (!prompt.trim()) {
+      res.status(400).json({ error: "prompt required" });
+      return;
+    }
+    const text = await chatComplete(
+      [
+        { role: "system", content: system },
+        { role: "user", content: prompt },
+      ],
+      maxTokens,
+    );
+    res.json({ text: text.trim() });
+  } catch (err: any) {
+    req.log.error({ err }, "AI generate error");
+    res.status(502).json({ error: "ai_unavailable", text: "" });
+  }
+});
+
 router.post("/ai/recommend", async (req, res) => {
   try {
     const body = AiRecommendBody.parse(req.body);
     const paket = await db.select().from(paketLayananTable).catch(() => []);
     const paketList = paket
-      .map((p, i) => `${i + 1}. ${p.namaPaket} - Rp ${Number(p.harga).toLocaleString("id-ID")} (id: ${p.id})`)
+      .map((p: any, i: number) => `${i + 1}. ${p.namaPaket} - Rp ${Number(p.harga).toLocaleString("id-ID")} (id: ${p.id})`)
       .join("\n") || "1. Paket Prewedding\n2. Paket Wedding\n3. Paket Wisuda";
 
     const prompt = `Berikan rekomendasi paket foto AideaCreative Studio.
@@ -136,13 +181,7 @@ ${paketList}
 Balas HANYA dalam format JSON valid (tanpa pembuka, tanpa code fence). Contoh:
 {"rekomendasi": "Saran singkat...", "paketDisarankan": ["<id atau nomor>"]}`;
 
-    const completion = await client.chat.completions.create({
-      model: AI_MODEL,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 300,
-    });
-
-    const content = completion.choices[0]?.message?.content ?? "";
+    const content = await chatComplete([{ role: "user", content: prompt }], 300);
     const parsed = extractJson(content) ?? {};
     res.json({
       rekomendasi:

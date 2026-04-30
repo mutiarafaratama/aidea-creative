@@ -3,6 +3,8 @@
 ## Latest Updates (Apr 30, 2026 — pm)
 - **Upload limit raised to 20MB** in `<SupabaseMultiUploader />` and new single-image `<SupabaseUploader />`. Express body limit on `/api/upload/supabase` raised to 30MB; Supabase bucket file size limit set to 25MB. Existing buckets are auto-updated via `updateBucket` on first use.
 - **AI swapped to pio.codes / qwen-turbo.** `artifacts/api-server/src/routes/ai.ts` now uses `AI_INTEGRATIONS_OPENAI_BASE_URL` + `AI_INTEGRATIONS_OPENAI_API_KEY` + optional `AI_MODEL` (default `qwen-turbo`). Removed `response_format: json_object` (qwen doesn't support it) and added `extractJson()` helper for tolerant JSON parsing in `/api/ai/recommend`.
+  - **Bypassed the `openai` SDK and use plain `fetch` instead** because Cloudflare in front of pio.codes WAF-blocks the SDK's `User-Agent: OpenAI/JS …` + `X-Stainless-*` headers (returns `403 Your request was blocked.`). Same payload via plain fetch with a generic UA returns 200.
+  - **New endpoint `POST /api/ai/generate`** — lightweight one-shot text generation (no chat session, no paket/KB context). Used by the admin produk page's "AI Generate" button to write product descriptions reliably.
 - **Jadwal: per-date rows replaced with weekly recurring rules.** Stored as JSON in `pengaturan_situs` under key `jadwalAturan`. New endpoints:
   - `GET  /api/jadwal/aturan` — public read of weekly rules
   - `PUT  /api/admin/jadwal/aturan` — admin save
