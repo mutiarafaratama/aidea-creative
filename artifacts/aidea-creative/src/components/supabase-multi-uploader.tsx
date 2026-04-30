@@ -14,7 +14,7 @@ type Props = {
   className?: string;
 };
 
-const MAX_BYTES = 10 * 1024 * 1024;
+const MAX_BYTES = 20 * 1024 * 1024;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -84,7 +84,7 @@ export function SupabaseMultiUploader({
           throw new Error(`${file.name}: bukan gambar`);
         }
         if (file.size > MAX_BYTES) {
-          throw new Error(`${file.name}: lebih dari 10MB`);
+          throw new Error(`${file.name}: lebih dari 20MB`);
         }
         const dataBase64 = await fileToBase64(file);
         const result = await adminFetch<{ url: string; path: string }>(
@@ -227,7 +227,7 @@ export function SupabaseMultiUploader({
       />
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>PNG/JPG/WebP/GIF, maks. 10MB per foto.</span>
+        <span>PNG/JPG/WebP/GIF, maks. 20MB per foto.</span>
         {canAddMore && !uploading && (
           <Button
             type="button"

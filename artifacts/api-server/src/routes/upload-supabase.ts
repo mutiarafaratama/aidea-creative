@@ -18,20 +18,30 @@ const supabaseAdmin: SupabaseClient | null =
 const DEFAULT_BUCKET = "produk";
 const ensuredBuckets = new Set<string>();
 
+const BUCKET_OPTIONS = {
+  public: true,
+  fileSizeLimit: 25 * 1024 * 1024,
+  allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/gif"],
+};
+
 async function ensureBucket(bucket: string): Promise<{ ok: boolean; error?: string }> {
   if (!supabaseAdmin) return { ok: false, error: "Supabase service role tidak dikonfigurasi." };
   if (ensuredBuckets.has(bucket)) return { ok: true };
   try {
     const { data, error } = await supabaseAdmin.storage.getBucket(bucket);
     if (data && !error) {
+      // Sync the size limit & MIME types in case they're stale (e.g., bucket
+      // was created with the old 10MB cap before we raised it to 20MB).
+      if (
+        (data.file_size_limit && data.file_size_limit < BUCKET_OPTIONS.fileSizeLimit) ||
+        !data.public
+      ) {
+        await supabaseAdmin.storage.updateBucket(bucket, BUCKET_OPTIONS).catch(() => {});
+      }
       ensuredBuckets.add(bucket);
       return { ok: true };
     }
-    const { error: createErr } = await supabaseAdmin.storage.createBucket(bucket, {
-      public: true,
-      fileSizeLimit: 15 * 1024 * 1024,
-      allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/gif"],
-    });
+    const { error: createErr } = await supabaseAdmin.storage.createBucket(bucket, BUCKET_OPTIONS);
     if (createErr && !/already exists/i.test(createErr.message)) {
       return { ok: false, error: createErr.message };
     }
@@ -72,7 +82,7 @@ function pathFromPublicUrl(url: string, bucket: string): string | null {
 router.post(
   "/upload/supabase",
   requireAdmin,
-  json({ limit: "25mb" }),
+  json({ limit: "30mb" }),
   async (req: Request, res: Response) => {
     if (!supabaseAdmin) {
       res.status(500).json({ error: "Supabase service role tidak dikonfigurasi di server." });

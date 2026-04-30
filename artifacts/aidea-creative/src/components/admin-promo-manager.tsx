@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { CloudinaryUploader } from "@/components/cloudinary-uploader";
+import { SupabaseUploader } from "@/components/supabase-uploader";
 import { adminFetch } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -143,8 +143,12 @@ export function AdminPromoManager() {
         toast({ title: "Promo dihapus" });
         setConfirmDelete(null);
         invalidate();
-        if (oldImage && /cloudinary\.com/i.test(oldImage)) {
-          adminFetch("/upload/cloudinary/destroy", { method: "POST", body: JSON.stringify({ url: oldImage }) }).catch(() => {});
+        if (oldImage) {
+          if (/\/storage\/v1\/object\/public\//.test(oldImage)) {
+            adminFetch("/upload/supabase/destroy", { method: "POST", body: JSON.stringify({ url: oldImage, bucket: "promo" }) }).catch(() => {});
+          } else if (/cloudinary\.com/i.test(oldImage)) {
+            adminFetch("/upload/cloudinary/destroy", { method: "POST", body: JSON.stringify({ url: oldImage }) }).catch(() => {});
+          }
         }
       },
       onError: () => toast({ title: "Gagal menghapus", variant: "destructive" }),
@@ -258,8 +262,8 @@ export function AdminPromoManager() {
                 <Input id="urutan" type="number" value={form.urutan} onChange={(e) => setForm({ ...form, urutan: Number(e.target.value) })} />
               </div>
             </div>
-            <CloudinaryUploader
-              folder="aidea/promo"
+            <SupabaseUploader
+              bucket="promo"
               label="Gambar Promo"
               value={form.gambarUrl}
               onChange={(url) => setForm({ ...form, gambarUrl: url })}

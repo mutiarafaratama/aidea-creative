@@ -1,5 +1,19 @@
 # AideaCreative Studio Foto - Smart Web E-Commerce
 
+## Latest Updates (Apr 30, 2026 — pm)
+- **Upload limit raised to 20MB** in `<SupabaseMultiUploader />` and new single-image `<SupabaseUploader />`. Express body limit on `/api/upload/supabase` raised to 30MB; Supabase bucket file size limit set to 25MB. Existing buckets are auto-updated via `updateBucket` on first use.
+- **AI swapped to pio.codes / qwen-turbo.** `artifacts/api-server/src/routes/ai.ts` now uses `AI_INTEGRATIONS_OPENAI_BASE_URL` + `AI_INTEGRATIONS_OPENAI_API_KEY` + optional `AI_MODEL` (default `qwen-turbo`). Removed `response_format: json_object` (qwen doesn't support it) and added `extractJson()` helper for tolerant JSON parsing in `/api/ai/recommend`.
+- **Jadwal: per-date rows replaced with weekly recurring rules.** Stored as JSON in `pengaturan_situs` under key `jadwalAturan`. New endpoints:
+  - `GET  /api/jadwal/aturan` — public read of weekly rules
+  - `PUT  /api/admin/jadwal/aturan` — admin save
+  - `GET  /api/jadwal?tanggal=YYYY-MM-DD` — derives slots for a single date
+  - `GET  /api/jadwal` (no params) — derives next 30 days of slots (kept for backward-compat with the legacy `useListJadwal` hook on the booking page)
+  - `GET  /api/jadwal?all=true` — returns rows from the legacy `jadwal_tersedia` table
+  - Admin UI at `/admin/jadwal` rewritten as a 7-day rule editor with presets, switch toggles, and live slot preview.
+- **Toko produk: clickable cards open detail modal** with image carousel (prev/next + thumbnails + counter), description, stock badge, and "Pesan via WhatsApp" CTA. Whole card clicks; "Beli" button opens the same modal without bubbling. Mobile grid is now 2-column with compact paddings.
+- **Cloudinary uploads → Supabase Storage** for portfolio (`portfolio` bucket), landing hero/login bg (`landing` bucket, folders `hero`/`login`), and promo banners (`promo` bucket). Old Cloudinary URLs are still cleaned up via the legacy destroy endpoint.
+- **Responsiveness pass.** Smaller mobile typography (hero h1 4xl on phones), reduced section paddings on `/paket` and home final CTA, mobile-friendly toko grid, and disabled-day support on the booking calendar (off-days from rules grey out).
+
 ## Latest Updates (Apr 30, 2026)
 - **FIX: queries hanging forever on admin pages.** `customFetch` always awaited the auth token getter (which calls `supabase.auth.getSession()`); a stalled token-refresh would freeze every query indefinitely (skeleton never resolves). Wrapped the getter in a 1.5s timeout in `lib/api-client-react/src/custom-fetch.ts` and added similar timeouts around `getSession()` in `artifacts/aidea-creative/src/lib/auth.tsx` (loadProfile + bootstrap). Public endpoints proceed without a token; private ones now surface a real error.
 - **Better admin error UX.** Added `<QueryError />` with retry button, wired into admin produk / portfolio / bookings / beranda pages so failed loads are visible (no more endless skeletons).

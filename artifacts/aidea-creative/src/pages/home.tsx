@@ -147,7 +147,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[0.95] mb-6"
+              className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[0.95] mb-6"
             >
               Foto<br />
               <span className="text-primary italic font-serif">yang bicara.</span>
@@ -510,7 +510,7 @@ export default function Home() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="py-24 bg-white">
+      <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -518,7 +518,7 @@ export default function Home() {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <h2 className="text-5xl md:text-7xl font-bold font-serif italic mb-6 leading-tight">
+            <h2 className="text-4xl sm:text-5xl md:text-7xl font-bold font-serif italic mb-6 leading-tight">
               Siap diabadikan?
             </h2>
             <Link href="/booking">

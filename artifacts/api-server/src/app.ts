@@ -26,8 +26,9 @@ app.use(
   }),
 );
 app.use(cors());
-// 12mb limit accommodates base64-encoded image uploads (raw cap is 10MB).
-app.use(express.json({ limit: "12mb" }));
+// 30mb limit accommodates base64-encoded image uploads (raw cap is 20MB,
+// base64 inflates ~1.37x → ~28MB worst case).
+app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

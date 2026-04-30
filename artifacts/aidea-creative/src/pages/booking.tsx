@@ -102,6 +102,7 @@ export default function Booking() {
   const selectedPaket = Array.isArray(paketList) ? paketList.find(p => p.id === selectedPaketId) : undefined;
 
   const jadwalArray = Array.isArray(jadwalList) ? jadwalList : [];
+  const tanggalTersediaSet = new Set(jadwalArray.map((j) => j.tanggal));
   const jamTersedia = jadwalArray
     .filter(j => selectedTanggal && j.tanggal === format(selectedTanggal, "yyyy-MM-dd"))
     .map(j => `${j.jamMulai} - ${j.jamSelesai}`);
@@ -247,7 +248,18 @@ export default function Booking() {
                                 field.onChange(date);
                                 form.setValue('jamSesi', '');
                               }}
-                              disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                              disabled={(date) => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                if (date < today) return true;
+                                const yyyy = date.getFullYear();
+                                const mm = String(date.getMonth() + 1).padStart(2, "0");
+                                const dd = String(date.getDate()).padStart(2, "0");
+                                const key = `${yyyy}-${mm}-${dd}`;
+                                // If we already have rule-derived availability, only enable open dates.
+                                if (tanggalTersediaSet.size > 0 && !tanggalTersediaSet.has(key)) return true;
+                                return false;
+                              }}
                               initialFocus
                             />
                           </PopoverContent>

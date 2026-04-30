@@ -14,6 +14,24 @@ const client = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? undefined,
 });
 
+// Default model — pio.codes serves Qwen models. Override via AI_MODEL secret.
+const AI_MODEL = process.env.AI_MODEL ?? "qwen-turbo";
+
+// Best-effort JSON extractor for models that don't support response_format.
+function extractJson(text: string): any {
+  if (!text) return null;
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced ? fenced[1] : text;
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return null;
+  try {
+    return JSON.parse(candidate.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
 const BASE_PROMPT = `Kamu adalah asisten AI yang ramah dari AideaCreative Studio Foto, studio foto profesional di Pujodadi, Pringsewu, Lampung.
 
 Tugasmu: bantu calon pelanggan memilih paket foto, jawab pertanyaan layanan, beri info berguna.
@@ -79,7 +97,7 @@ router.post("/ai/chat", attachAuth, async (req, res) => {
     ];
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL,
       messages,
       max_tokens: 500,
     });
@@ -115,19 +133,22 @@ ${body.budget ? `Budget: Rp ${body.budget.toLocaleString("id-ID")}` : ""}
 Paket tersedia:
 ${paketList}
 
-Balas dalam JSON: { "rekomendasi": "...", "paketDisarankan": [<id atau nomor>, ...] }`;
+Balas HANYA dalam format JSON valid (tanpa pembuka, tanpa code fence). Contoh:
+{"rekomendasi": "Saran singkat...", "paketDisarankan": ["<id atau nomor>"]}`;
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: AI_MODEL,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 300,
-      response_format: { type: "json_object" },
     });
 
-    const content = completion.choices[0]?.message?.content ?? '{"rekomendasi":"","paketDisarankan":[]}';
-    const parsed = JSON.parse(content);
+    const content = completion.choices[0]?.message?.content ?? "";
+    const parsed = extractJson(content) ?? {};
     res.json({
-      rekomendasi: parsed.rekomendasi ?? "Kami merekomendasikan paket yang sesuai kebutuhan Anda.",
+      rekomendasi:
+        typeof parsed.rekomendasi === "string" && parsed.rekomendasi.trim()
+          ? parsed.rekomendasi
+          : content.trim() || "Kami merekomendasikan paket yang sesuai kebutuhan Anda.",
       paketDisarankan: Array.isArray(parsed.paketDisarankan) ? parsed.paketDisarankan : [],
     });
   } catch (err) {

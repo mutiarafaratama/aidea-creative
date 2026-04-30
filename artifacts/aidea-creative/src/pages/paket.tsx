@@ -55,16 +55,16 @@ export default function Paket() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <section className="bg-card py-20 border-b border-border">
+      <section className="bg-card py-10 sm:py-16 md:py-20 border-b border-border">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-6">Pilih <span className="text-primary italic">Paket</span> Anda</h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold mb-4 sm:mb-6">Pilih <span className="text-primary italic">Paket</span> Anda</h1>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
             Berbagai pilihan paket fotografi yang dirancang untuk memenuhi kebutuhan momen spesial Anda dengan harga transparan.
           </p>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-16 flex flex-col lg:flex-row gap-12 items-start">
+      <div className="container mx-auto px-4 py-8 sm:py-12 lg:py-16 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
         
         {/* Main Content - List Paket */}
         <div className="lg:w-2/3 order-2 lg:order-1">

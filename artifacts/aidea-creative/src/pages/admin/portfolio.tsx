@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CloudinaryUploader } from "@/components/cloudinary-uploader";
+import { SupabaseUploader } from "@/components/supabase-uploader";
 import { adminFetch } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 import { QueryError } from "@/components/query-error";
@@ -40,9 +40,12 @@ export default function AdminPortfolio() {
       onSuccess: () => {
         toast({ title: "Portfolio dihapus" });
         qc.invalidateQueries({ queryKey: getListPortfolioQueryKey() });
-        // Best-effort: drop the underlying Cloudinary assets too.
+        // Best-effort: drop the underlying storage assets too.
         urls.filter(Boolean).forEach((u) => {
-          if (/cloudinary\.com/i.test(u)) {
+          if (/\/storage\/v1\/object\/public\//.test(u)) {
+            adminFetch("/upload/supabase/destroy", { method: "POST", body: JSON.stringify({ url: u, bucket: "portfolio" }) }).catch(() => {});
+          } else if (/cloudinary\.com/i.test(u)) {
+            // Legacy assets uploaded to Cloudinary before migration.
             adminFetch("/upload/cloudinary/destroy", { method: "POST", body: JSON.stringify({ url: u }) }).catch(() => {});
           }
         });
@@ -84,8 +87,8 @@ export default function AdminPortfolio() {
           <div className="space-y-3">
             <div><Label>Judul</Label><Input value={form.judul} onChange={(e) => setForm({ ...form, judul: e.target.value })} /></div>
             <div><Label>Kategori</Label><Input value={form.kategori} onChange={(e) => setForm({ ...form, kategori: e.target.value })} placeholder="wedding, family, graduation, product..." /></div>
-            <CloudinaryUploader
-              folder="aidea/portfolio"
+            <SupabaseUploader
+              bucket="portfolio"
               label="Foto Portfolio"
               value={form.gambarUrl[0]}
               onChange={(url) => setForm({ ...form, gambarUrl: [url] })}

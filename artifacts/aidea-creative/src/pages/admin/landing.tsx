@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CloudinaryUploader } from "@/components/cloudinary-uploader";
+import { SupabaseUploader } from "@/components/supabase-uploader";
 import { useToast } from "@/hooks/use-toast";
 import { adminFetch } from "@/lib/admin-api";
 
@@ -70,8 +70,9 @@ export default function AdminLanding() {
               <strong className="text-foreground">Portfolio</strong>. Tambah/hapus foto di sana dan ditandai
               <strong className="text-foreground"> Featured</strong> agar tampil paling depan.
             </div>
-            <CloudinaryUploader
-              folder="aidea/landing"
+            <SupabaseUploader
+              bucket="landing"
+              folder="hero"
               label="Gambar Sampul Tambahan (opsional)"
               value={s.heroImage}
               onChange={(v) => upd("heroImage", v)}
@@ -87,8 +88,9 @@ export default function AdminLanding() {
         <Card>
           <CardHeader><CardTitle>Halaman Login</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <CloudinaryUploader
-              folder="aidea/login"
+            <SupabaseUploader
+              bucket="landing"
+              folder="login"
               label="Background panel kanan halaman login (akan menggantikan gallery default jika diisi)"
               value={s.loginBgImage}
               onChange={(v) => upd("loginBgImage", v)}
