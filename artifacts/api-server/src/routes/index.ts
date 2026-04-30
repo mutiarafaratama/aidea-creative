@@ -1,0 +1,44 @@
+import { Router, type IRouter } from "express";
+import healthRouter from "./health";
+import kategoriRouter from "./kategori";
+import paketRouter from "./paket";
+import produkRouter from "./produk";
+import bookingRouter from "./booking";
+import testimoniRouter from "./testimoni";
+import portfolioRouter from "./portfolio";
+import jadwalRouter from "./jadwal";
+import aiRouter from "./ai";
+import dashboardRouter from "./dashboard";
+import promoRouter from "./promo";
+import adminRouter from "./admin";
+import uploadRouter from "./upload";
+import uploadSupabaseRouter from "./upload-supabase";
+import settingsRouter from "./settings";
+import kbRouter from "./kb";
+import usersRouter from "./users";
+import chatRouter from "./chat";
+import meRouter from "./me";
+
+const router: IRouter = Router();
+
+router.use(healthRouter);
+router.use(kategoriRouter);
+router.use(paketRouter);
+router.use(produkRouter);
+router.use(bookingRouter);
+router.use(testimoniRouter);
+router.use(portfolioRouter);
+router.use(jadwalRouter);
+router.use(aiRouter);
+router.use(dashboardRouter);
+router.use(promoRouter);
+router.use(adminRouter);
+router.use(uploadRouter);
+router.use(uploadSupabaseRouter);
+router.use(settingsRouter);
+router.use(kbRouter);
+router.use(usersRouter);
+router.use(chatRouter);
+router.use(meRouter);
+
+export default router;

@@ -1,0 +1,47 @@
+modules = ["nodejs-24", "postgresql-16"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+
+[agent]
+stack = "BEST_EFFORT_FALLBACK"
+expertMode = true
+integrations = ["javascript_database:1.0.0"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 25636
+externalPort = 3000
+
+[[ports]]
+localPort = 25637
+externalPort = 3001
+
+[[ports]]
+localPort = 25638
+externalPort = 3002
+
+[[ports]]
+localPort = 25639
+externalPort = 3003
+
+[nix]
+channel = "stable-25_05"

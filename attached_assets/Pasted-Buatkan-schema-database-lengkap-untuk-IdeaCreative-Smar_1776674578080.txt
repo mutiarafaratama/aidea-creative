@@ -1,0 +1,126 @@
+Buatkan schema database lengkap untuk IdeaCreative Smart Web menggunakan Supabase (PostgreSQL). Buat file SQL migration dan juga setup Supabase client.
+
+TABEL YANG DIBUTUHKAN:
+
+1. TABEL: profiles
+   - id (uuid, FK ke auth.users)
+   - nama_lengkap (text)
+   - no_telepon (text)
+   - alamat (text)
+   - foto_profil (text, URL)
+   - role (enum: 'admin', 'pelanggan')
+   - created_at (timestamp)
+   - updated_at (timestamp)
+
+2. TABEL: kategori_layanan
+   - id (uuid, primary key)
+   - nama (text) → contoh: "Portrait", "Produk UMKM", "Wedding", "Event"
+   - deskripsi (text)
+   - icon (text)
+   - created_at (timestamp)
+
+3. TABEL: paket_layanan
+   - id (uuid, primary key)
+   - kategori_id (uuid, FK ke kategori_layanan)
+   - nama_paket (text)
+   - deskripsi (text)
+   - harga (integer, dalam rupiah)
+   - durasi_sesi (integer, dalam menit)
+   - jumlah_foto (integer)
+   - fasilitas (jsonb) → array of string
+   - is_populer (boolean)
+   - is_aktif (boolean)
+   - created_at (timestamp)
+
+4. TABEL: booking
+   - id (uuid, primary key)
+   - kode_booking (text, unique) → format: IDC-YYYYMMDD-XXXX
+   - pelanggan_id (uuid, FK ke profiles)
+   - paket_id (uuid, FK ke paket_layanan)
+   - tanggal_sesi (date)
+   - jam_sesi (time)
+   - catatan_pelanggan (text)
+   - konsep_foto (text)
+   - status (enum: 'menunggu', 'dikonfirmasi', 'selesai', 'dibatalkan')
+   - total_harga (integer)
+   - status_pembayaran (enum: 'belum_bayar', 'dp', 'lunas')
+   - midtrans_order_id (text)
+   - created_at (timestamp)
+   - updated_at (timestamp)
+
+5. TABEL: jadwal_tersedia
+   - id (uuid, primary key)
+   - tanggal (date)
+   - jam_mulai (time)
+   - jam_selesai (time)
+   - is_tersedia (boolean)
+   - created_at (timestamp)
+
+6. TABEL: produk
+   - id (uuid, primary key)
+   - nama_produk (text)
+   - deskripsi (text)
+   - harga (integer)
+   - stok (integer)
+   - kategori (enum: 'cetak_foto', 'frame', 'album', 'photobook', 'merchandise')
+   - ukuran (text) → contoh: "4R", "A4", "A3"
+   - gambar_url (text[]) → array URL gambar
+   - is_aktif (boolean)
+   - created_at (timestamp)
+
+7. TABEL: pesanan_produk
+   - id (uuid, primary key)
+   - kode_pesanan (text, unique)
+   - pelanggan_id (uuid, FK ke profiles)
+   - status (enum: 'diproses', 'dikerjakan', 'selesai', 'dikirim', 'dibatalkan')
+   - total_harga (integer)
+   - alamat_pengiriman (text)
+   - catatan (text)
+   - status_pembayaran (enum: 'belum_bayar', 'lunas')
+   - created_at (timestamp)
+
+8. TABEL: item_pesanan
+   - id (uuid, primary key)
+   - pesanan_id (uuid, FK ke pesanan_produk)
+   - produk_id (uuid, FK ke produk)
+   - jumlah (integer)
+   - harga_satuan (integer)
+   - subtotal (integer)
+
+9. TABEL: portfolio
+   - id (uuid, primary key)
+   - judul (text)
+   - deskripsi (text)
+   - kategori (text)
+   - gambar_url (text[])
+   - tags (text[])
+   - is_featured (boolean)
+   - created_at (timestamp)
+
+10. TABEL: testimoni
+    - id (uuid, primary key)
+    - pelanggan_id (uuid, FK ke profiles)
+    - booking_id (uuid, FK ke booking, nullable)
+    - rating (integer, 1-5)
+    - komentar (text)
+    - nama_tampil (text)
+    - foto_url (text)
+    - is_approved (boolean)
+    - created_at (timestamp)
+
+11. TABEL: chat_history
+    - id (uuid, primary key)
+    - session_id (text)
+    - user_id (uuid, nullable)
+    - pesan (text)
+    - pengirim (enum: 'user', 'bot')
+    - created_at (timestamp)
+
+YANG PERLU DIBUAT:
+1. File SQL migration lengkap (/supabase/migrations/001_initial_schema.sql)
+2. Row Level Security (RLS) policies untuk setiap tabel
+3. Supabase client setup (/lib/supabase.ts) untuk client-side dan server-side
+4. TypeScript types berdasarkan schema (/types/database.ts)
+5. Seed data awal (paket layanan, kategori, produk contoh, portfolio contoh)
+
+Buat juga file /supabase/seed.sql berisi data awal yang realistis untuk IdeaCreative Prabumulih.

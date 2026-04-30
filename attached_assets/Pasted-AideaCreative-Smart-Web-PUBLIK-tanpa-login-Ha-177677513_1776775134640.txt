@@ -1,0 +1,70 @@
+AideaCreative Smart Web
+│
+├── PUBLIK (tanpa login)
+│   ├── / ................................. Halaman Home
+│   │   ├── Hero Section (animasi)
+│   │   ├── Layanan Unggulan (dari DB)
+│   │   ├── Kenapa AideaCreative
+│   │   ├── Portfolio Preview (6 featured)
+│   │   ├── Paket Terpopuler (3 paket)
+│   │   ├── Testimoni Slider
+│   │   ├── CTA Booking Banner
+│   │   └── Lokasi & Kontak
+│   │
+│   ├── /portfolio ........................ Galeri Portfolio
+│   │   ├── Filter kategori
+│   │   ├── Masonry grid + Lightbox
+│   │   └── Smart Search (client-side)
+│   │
+│   ├── /paket ........................... Katalog Paket
+│   │   ├── Filter per kategori layanan
+│   │   └── Kartu paket detail
+│   │
+│   ├── /toko ............................ Toko Produk
+│   │   ├── Filter kategori + sort
+│   │   ├── Grid produk
+│   │   ├── Keranjang (Zustand)
+│   │   └── /toko/[id] — Detail Produk + AI Rekomendasi
+│   │
+│   ├── /booking ......................... Sistem Booking
+│   │   ├── Step 1: Pilih Paket
+│   │   ├── Step 2: Pilih Jadwal + AI Waktu Terbaik
+│   │   ├── Step 3: Data Pelanggan + AI Saran Konsep
+│   │   ├── Step 4: Konfirmasi + Midtrans Sandbox
+│   │   └── /booking/cek — Cek Status Booking
+│   │
+│   └── /testimoni ....................... Testimoni
+│       ├── AI Review Summarizer
+│       ├── Grid testimoni + filter rating
+│       └── Form tulis testimoni (jika login + booking selesai)
+│
+├── AUTH
+│   ├── /login ........................... Login (email / Google OAuth)
+│   └── /register ........................ Register
+│
+├── USER (login required)
+│   └── /profil .......................... Profil Pengguna
+│       ├── Edit data diri + upload foto
+│       ├── Tab: Riwayat Booking
+│       ├── Tab: Pesanan Produk
+│       └── Tab: Testimoni Saya
+│
+├── ADMIN (role: admin)
+│   └── /dashboard ....................... Admin Dashboard
+│       ├── Beranda (statistik + AI Insight + grafik)
+│       ├── /booking — Manajemen Booking
+│       ├── /produk — Manajemen Produk (+ AI desc generator)
+│       ├── /portfolio — Manajemen Portfolio
+│       ├── /jadwal — Pengaturan Jadwal Studio
+│       ├── /testimoni — Moderasi Testimoni
+│       └── /laporan — Laporan + AI Narasi Bulanan
+│
+└── API (internal)
+    ├── /api/ai/chat ..................... Qwen Chatbot
+    ├── /api/ai/recommend ................ Qwen Rekomendasi Produk
+    ├── /api/ai/saran-konsep ............. Qwen Saran Konsep Foto
+    ├── /api/ai/summarize-review ......... Qwen Review Summarizer
+    ├── /api/booking ..................... CRUD Booking
+    ├── /api/produk ...................... CRUD Produk
+    ├── /api/testimoni ................... CRUD Testimoni
+    └── /api/health ...................... Health Check Railway

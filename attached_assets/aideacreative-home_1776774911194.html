@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AideaCreative – Smart Photo Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #004aad;
+    --primary-light: #1a61c2;
+    --primary-dark: #003585;
+    --primary-50: #e6eef8;
+    --primary-100: #b3ccea;
+    --accent: #f0a500;
+    --accent-light: #ffb92a;
+    --white: #ffffff;
+    --bg: #f8f9fc;
+    --surface: #ffffff;
+    --text: #0e1b2e;
+    --text-muted: #5a6a82;
+    --text-light: #8fa3bc;
+    --border: #dde4ef;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+    --radius-xl: 32px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* ─── NAVBAR ─── */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1000;
+    padding: 0 5vw;
+    height: 72px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(0,74,173,0.08);
+    transition: box-shadow 0.3s;
+  }
+  .navbar.scrolled { box-shadow: 0 4px 32px rgba(0,74,173,0.10); }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: var(--primary);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; }
+  .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+  .logo-text span:first-child { font-size: 16px; font-weight: 700; color: var(--primary); letter-spacing: -0.3px; }
+  .logo-text span:last-child { font-size: 10px; font-weight: 400; color: var(--text-muted); letter-spacing: 0.5px; }
+  .nav-links { display: flex; align-items: center; gap: 2px; }
+  .nav-links a {
+    padding: 7px 14px;
+    font-size: 13.5px; font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s, background 0.2s;
+  }
+  .nav-links a:hover { color: var(--primary); background: var(--primary-50); }
+  .nav-links a.active { color: var(--primary); font-weight: 600; }
+  .nav-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-ghost {
+    padding: 8px 18px;
+    font-size: 13.5px; font-weight: 500; font-family: 'Poppins', sans-serif;
+    color: var(--primary);
+    background: transparent;
+    border: 1.5px solid var(--primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { background: var(--primary-50); }
+  .btn-primary {
+    padding: 8px 20px;
+    font-size: 13.5px; font-weight: 600; font-family: 'Poppins', sans-serif;
+    color: white;
+    background: var(--primary);
+    border: none; border-radius: var(--radius-sm);
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    padding: 0 5vw;
+    display: flex; align-items: center;
+    position: relative;
+    overflow: hidden;
+    background: #0e1b2e;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 70% 50%, rgba(0,74,173,0.35) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 20% 80%, rgba(0,74,173,0.15) 0%, transparent 60%);
+  }
+  .hero-grid-overlay {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.5;
+  }
+  .hero-content {
+    position: relative; z-index: 2;
+    max-width: 640px;
+    animation: heroFadeUp 0.9s ease both;
+  }
+  @keyframes heroFadeUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(0,74,173,0.25);
+    border: 1px solid rgba(0,74,173,0.5);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-size: 12px; font-weight: 500;
+    color: #7eb5f5;
+    margin-bottom: 24px;
+    animation: heroFadeUp 0.9s 0.1s ease both;
+  }
+  .hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #7eb5f5; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 58px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: white;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+    animation: heroFadeUp 0.9s 0.15s ease both;
+  }
+  .hero h1 span { color: var(--accent-light); }
+  .hero p {
+    font-size: clamp(14px, 1.6vw, 17px);
+    line-height: 1.75;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 36px;
+    max-width: 520px;
+    animation: heroFadeUp 0.9s 0.25s ease both;
+  }
+  .hero-actions {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    animation: heroFadeUp 0.9s 0.35s ease both;
+  }
+  .btn-hero-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px;
+    font-size: 15px; font-weight: 600; font-family: 'Poppins', sans-serif;
+    color: white;
+    background: var(--primary);
+    border: none; border-radius: var(--radius-md);
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-hero-primary:hover { background: var(--primary-light); transform: translateY(-2px); }
+  .btn-hero-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 28px;
+    font-size: 15px; font-weight: 500; font-family: 'Poppins', sans-serif;
+    color: white;
+    background: rgba(255,255,255,0.08);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius-md);
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-hero-ghost:hover { background: rgba(255,255,255,0.15); }
+  .hero-stats {
+    display: flex; gap: 32px; flex-wrap: wrap;
+    margin-top: 52px;
+    padding-top: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    animation: heroFadeUp 0.9s 0.45s ease both;
+  }
+  .hero-stat-item { display: flex; flex-direction: column; gap: 2px; }
+  .hero-stat-num { font-size: 26px; font-weight: 700; color: white; }
+  .hero-stat-num span { color: var(--accent-light); }
+  .hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); }
+  /* floating cards */
+  .hero-float-card {
+    position: absolute; right: 5vw; top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    display: flex; flex-direction: column; gap: 14px;
+    animation: heroFadeUp 0.9s 0.5s ease both;
+  }
+  .float-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(16px);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    min-width: 220px;
+  }
+  .float-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .float-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; }
+  .float-card-top-text { display: flex; flex-direction: column; gap: 1px; }
+  .float-card-top-text span:first-child { font-size: 13px; font-weight: 600; color: white; }
+  .float-card-top-text span:last-child { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .stars { color: var(--accent-light); font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
+  .float-card-quote { font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+  .float-card-booking {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .booking-info { display: flex; flex-direction: column; gap: 2px; }
+  .booking-info span:first-child { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .booking-info span:last-child { font-size: 14px; font-weight: 600; color: white; }
+  .booking-status { background: rgba(0,220,130,0.2); border: 1px solid rgba(0,220,130,0.35); border-radius: 100px; padding: 4px 10px; font-size: 11px; font-weight: 500; color: #6ff5c0; }
+
+  /* ─── SECTION BASE ─── */
+  section { padding: 88px 5vw; }
+  .section-tag {
+    display: inline-block;
+    font-size: 12px; font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-50);
+    border: 1px solid var(--primary-100);
+    border-radius: 100px;
+    padding: 4px 14px;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .section-title {
+    font-size: clamp(22px, 3.5vw, 38px);
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .section-sub {
+    font-size: 15px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 520px;
+    margin-bottom: 48px;
+  }
+  .section-header-row {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    flex-wrap: wrap; gap: 16px;
+    margin-bottom: 40px;
+  }
+  .link-more {
+    font-size: 14px; font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .link-more:hover { text-decoration: underline; }
+
+  /* ─── LAYANAN ─── */
+  .layanan-section { background: var(--bg); }
+  .layanan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 20px;
+  }
+  .layanan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    cursor: pointer;
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .layanan-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .layanan-card:hover::before { transform: scaleX(1); }
+  .layanan-card:hover {
+    border-color: var(--primary-100);
+    box-shadow: 0 8px 32px rgba(0,74,173,0.10);
+    transform: translateY(-3px);
+  }
+  .layanan-icon {
+    width: 52px; height: 52px;
+    background: var(--primary-50);
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .layanan-icon svg { width: 26px; height: 26px; }
+  .layanan-card h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .layanan-card p { font-size: 13px; color: var(--text-muted); line-height: 1.65; margin-bottom: 18px; }
+  .layanan-card-footer {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .price-from { font-size: 12px; color: var(--text-light); }
+  .price-val { font-size: 16px; font-weight: 700; color: var(--primary); }
+  .btn-link {
+    font-size: 12px; font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    border: 1px solid var(--primary-100);
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    transition: background 0.2s;
+  }
+  .btn-link:hover { background: var(--primary-50); }
+
+  /* ─── KEUNGGULAN ─── */
+  .keunggulan-section { background: var(--primary); }
+  .keunggulan-section .section-title { color: white; }
+  .keunggulan-section .section-sub { color: rgba(255,255,255,0.7); }
+  .keunggulan-section .section-tag { background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.25); }
+  .keunggulan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+  .keunggulan-card {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    transition: background 0.25s;
+  }
+  .keunggulan-card:hover { background: rgba(255,255,255,0.14); }
+  .keunggulan-num {
+    font-size: 38px; font-weight: 800;
+    color: white; letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .keunggulan-num span { color: var(--accent-light); }
+  .keunggulan-label { font-size: 13px; color: rgba(255,255,255,0.65); margin-bottom: 14px; }
+  .keunggulan-card h3 { font-size: 15px; font-weight: 600; color: white; margin-bottom: 8px; }
+  .keunggulan-card p { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+  /* ─── PORTFOLIO ─── */
+  .portfolio-section { background: var(--bg); }
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto;
+    gap: 16px;
+  }
+  .portfolio-item {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    background: var(--border);
+  }
+  .portfolio-item:first-child { grid-column: span 2; }
+  .portfolio-item-inner {
+    width: 100%; padding-top: 68%;
+    position: relative;
+    overflow: hidden;
+  }
+  .portfolio-item:first-child .portfolio-item-inner { padding-top: 48%; }
+  .portfolio-placeholder {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px;
+    color: var(--text-light);
+    font-size: 13px;
+  }
+  .portfolio-ph-icon { width: 36px; height: 36px; opacity: 0.4; }
+  .portfolio-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(14,27,46,0.88) 100%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex; align-items: flex-end; padding: 20px;
+  }
+  .portfolio-item:hover .portfolio-overlay { opacity: 1; }
+  .portfolio-overlay-text h4 { font-size: 15px; font-weight: 600; color: white; }
+  .portfolio-overlay-text span { font-size: 12px; color: rgba(255,255,255,0.6); }
+  .portfolio-badge {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(14,27,46,0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 100px;
+    padding: 3px 10px;
+    font-size: 11px; color: white; font-weight: 500;
+  }
+
+  /* ─── PAKET ─── */
+  .paket-section { background: #f2f6ff; }
+  .paket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+  }
+  .paket-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 26px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .paket-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,74,173,0.10); }
+  .paket-card.popular {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(0,74,173,0.07);
+  }
+  .paket-popular-badge {
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    background: var(--primary);
+    color: white;
+    font-size: 11px; font-weight: 600;
+    border-radius: 100px;
+    padding: 4px 14px;
+    white-space: nowrap;
+  }
+  .paket-kategori { font-size: 11px; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .paket-nama { font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .paket-desc { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin-bottom: 20px; }
+  .paket-harga { margin-bottom: 20px; }
+  .paket-harga-label { font-size: 12px; color: var(--text-light); }
+  .paket-harga-val { font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+  .paket-harga-val span { font-size: 14px; font-weight: 400; color: var(--text-muted); }
+  .paket-features { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 24px; }
+  .paket-features li {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 13px; color: var(--text-muted);
+  }
+  .paket-features li::before {
+    content: '';
+    width: 16px; height: 16px; flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--primary-50);
+    border: 1.5px solid var(--primary-100);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23004aad' stroke-width='2.5'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+    background-size: 10px; background-repeat: no-repeat; background-position: center;
+  }
+  .btn-booking-paket {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px; font-weight: 600; font-family: 'Poppins', sans-serif;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .btn-booking-paket.primary { background: var(--primary); color: white; border: none; }
+  .btn-booking-paket.primary:hover { background: var(--primary-light); }
+  .btn-booking-paket.outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn-booking-paket.outline:hover { background: var(--primary-50); }
+
+  /* ─── TESTIMONI ─── */
+  .testimoni-section { background: var(--bg); }
+  .testimoni-track {
+    display: flex; gap: 20px;
+    overflow-x: auto; padding-bottom: 12px;
+    scrollbar-width: none;
+  }
+  .testimoni-track::-webkit-scrollbar { display: none; }
+  .testimoni-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 22px;
+    min-width: 300px; flex-shrink: 0;
+    transition: border-color 0.25s;
+  }
+  .testimoni-card:hover { border-color: var(--primary-100); }
+  .testimoni-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .testimoni-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-50); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: var(--primary); flex-shrink: 0; }
+  .testimoni-meta { display: flex; flex-direction: column; gap: 1px; }
+  .testimoni-meta strong { font-size: 14px; font-weight: 600; color: var(--text); }
+  .testimoni-meta span { font-size: 12px; color: var(--text-muted); }
+  .testimoni-stars { color: var(--accent); font-size: 14px; letter-spacing: 1px; margin-bottom: 10px; }
+  .testimoni-text { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
+  .testimoni-paket { margin-top: 14px; display: inline-block; font-size: 11px; font-weight: 500; background: var(--primary-50); color: var(--primary); border-radius: 100px; padding: 3px 10px; }
+
+  /* ─── CTA BOOKING ─── */
+  .cta-section {
+    background: linear-gradient(135deg, #0e1b2e 0%, var(--primary-dark) 50%, #0e1b2e 100%);
+    position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 80% 50%, rgba(0,74,173,0.4) 0%, transparent 60%);
+  }
+  .cta-inner {
+    position: relative; z-index: 2;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 32px;
+  }
+  .cta-text h2 { font-size: clamp(22px, 3vw, 36px); font-weight: 700; color: white; margin-bottom: 10px; letter-spacing: -0.3px; }
+  .cta-text p { font-size: 15px; color: rgba(255,255,255,0.65); max-width: 480px; }
+  .cta-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn-cta-white {
+    padding: 14px 30px;
+    font-size: 15px; font-weight: 600; font-family: 'Poppins', sans-serif;
+    background: white; color: var(--primary);
+    border: none; border-radius: var(--radius-md);
+    cursor: pointer; text-decoration: none;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .btn-cta-white:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,255,255,0.25); }
+  .btn-cta-outline {
+    padding: 14px 30px;
+    font-size: 15px; font-weight: 500; font-family: 'Poppins', sans-serif;
+    background: transparent; color: white;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    border-radius: var(--radius-md);
+    cursor: pointer; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-cta-outline:hover { background: rgba(255,255,255,0.1); }
+
+  /* ─── KONTAK ─── */
+  .kontak-section { background: var(--bg); }
+  .kontak-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  }
+  .kontak-map-placeholder {
+    border-radius: var(--radius-lg);
+    background: var(--border);
+    min-height: 280px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+    border: 2px dashed var(--primary-100);
+  }
+  .kontak-info { display: flex; flex-direction: column; gap: 20px; }
+  .kontak-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .kontak-item-icon {
+    width: 42px; height: 42px; flex-shrink: 0;
+    background: var(--primary-50);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kontak-item-icon svg { width: 20px; height: 20px; }
+  .kontak-item-text h4 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .kontak-item-text p { font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+
+  /* ─── FOOTER ─── */
+  footer {
+    background: var(--text);
+    color: rgba(255,255,255,0.7);
+    padding: 60px 5vw 32px;
+  }
+  .footer-top {
+    display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 40px;
+    margin-bottom: 48px;
+  }
+  .footer-brand .logo { margin-bottom: 16px; }
+  .footer-brand .logo-text span:first-child { color: white; }
+  .footer-brand .logo-text span:last-child { color: rgba(255,255,255,0.5); }
+  .footer-desc { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.55); margin-bottom: 20px; }
+  .footer-socials { display: flex; gap: 10px; }
+  .footer-social-btn {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .footer-social-btn:hover { background: rgba(255,255,255,0.15); }
+  .footer-social-btn svg { width: 16px; height: 16px; }
+  .footer-col h4 { font-size: 14px; font-weight: 600; color: white; margin-bottom: 18px; }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .footer-col ul li a { font-size: 13px; color: rgba(255,255,255,0.55); text-decoration: none; transition: color 0.2s; }
+  .footer-col ul li a:hover { color: white; }
+  .footer-operasional { margin-top: 6px; }
+  .footer-ops-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .footer-ops-row:last-child { border-bottom: none; }
+  .footer-ops-row span:first-child { color: rgba(255,255,255,0.5); }
+  .footer-ops-row span:last-child { color: rgba(255,255,255,0.8); font-weight: 500; }
+  .footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 24px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .footer-bottom p { font-size: 12.5px; color: rgba(255,255,255,0.4); }
+  .footer-bottom-links { display: flex; gap: 20px; }
+  .footer-bottom-links a { font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; }
+  .footer-bottom-links a:hover { color: rgba(255,255,255,0.7); }
+
+  /* ─── BOTTOM NAV (MOBILE) ─── */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(18px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav-inner {
+    display: flex; justify-content: space-around; align-items: center;
+  }
+  .bottom-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; padding: 4px 14px; border-radius: var(--radius-sm);
+    text-decoration: none; border: none; background: none; font-family: 'Poppins', sans-serif;
+  }
+  .bottom-nav-item svg { width: 22px; height: 22px; color: var(--text-light); transition: color 0.2s; }
+  .bottom-nav-item span { font-size: 10px; font-weight: 500; color: var(--text-light); transition: color 0.2s; }
+  .bottom-nav-item.active svg, .bottom-nav-item.active span { color: var(--primary); }
+  .bottom-nav-book {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    text-decoration: none; border: none; background: none; font-family: 'Poppins', sans-serif;
+  }
+  .bottom-nav-book-icon {
+    width: 46px; height: 46px;
+    background: var(--primary);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: -16px;
+    box-shadow: 0 6px 18px rgba(0,74,173,0.35);
+  }
+  .bottom-nav-book-icon svg { width: 22px; height: 22px; color: white; }
+  .bottom-nav-book span { font-size: 10px; font-weight: 600; color: var(--primary); }
+
+  /* ─── AI CHATBOT WIDGET ─── */
+  .chatbot-fab {
+    position: fixed; bottom: 86px; right: 20px; z-index: 998;
+    width: 52px; height: 52px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none;
+    box-shadow: 0 6px 22px rgba(0,74,173,0.35);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fabIn 0.4s 1s ease both;
+  }
+  @keyframes fabIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .chatbot-fab:hover { transform: scale(1.08); }
+  .chatbot-fab svg { width: 24px; height: 24px; color: white; }
+  .chatbot-badge {
+    position: absolute; top: -2px; right: -2px;
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 2px solid white;
+    animation: pulse 2s infinite;
+  }
+  /* chatbot panel */
+  .chatbot-panel {
+    position: fixed; bottom: 150px; right: 20px; z-index: 997;
+    width: 320px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 16px 48px rgba(0,74,173,0.15);
+    display: none; flex-direction: column;
+    overflow: hidden;
+    max-height: 460px;
+  }
+  .chatbot-panel.open { display: flex; animation: panelIn 0.3s ease; }
+  @keyframes panelIn { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .chatbot-header {
+    background: var(--primary);
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .chatbot-dot { width: 8px; height: 8px; border-radius: 50%; background: #6ff5c0; animation: pulse 1.5s infinite; }
+  .chatbot-header-text h4 { font-size: 14px; font-weight: 600; color: white; }
+  .chatbot-header-text span { font-size: 11px; color: rgba(255,255,255,0.7); }
+  .chatbot-body { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+  .chat-bubble-bot {
+    align-self: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0 12px 12px 12px;
+    padding: 10px 14px;
+    font-size: 13px; color: var(--text-muted);
+    line-height: 1.55;
+    max-width: 85%;
+  }
+  .chat-bubble-user {
+    align-self: flex-end;
+    background: var(--primary);
+    border-radius: 12px 12px 0 12px;
+    padding: 10px 14px;
+    font-size: 13px; color: white;
+    max-width: 85%;
+  }
+  .chat-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chat-quick-btn {
+    font-size: 11px; font-weight: 500; font-family: 'Poppins', sans-serif;
+    color: var(--primary);
+    background: var(--primary-50);
+    border: 1px solid var(--primary-100);
+    border-radius: 100px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .chat-quick-btn:hover { background: var(--primary-100); }
+  .chatbot-input-row {
+    padding: 12px 14px;
+    display: flex; gap: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .chatbot-input {
+    flex: 1; font-size: 13px; font-family: 'Poppins', sans-serif;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chatbot-input:focus { border-color: var(--primary-100); }
+  .chatbot-send {
+    width: 36px; height: 36px;
+    background: var(--primary); color: white;
+    border: none; border-radius: var(--radius-sm);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .chatbot-send svg { width: 16px; height: 16px; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1024px) {
+    .hero-float-card { display: none; }
+    .footer-top { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    .navbar { padding: 0 4vw; }
+    .nav-links, .nav-actions .btn-ghost { display: none; }
+    .btn-primary.desktop-only { display: none; }
+    section { padding: 64px 5vw; }
+    .portfolio-grid { grid-template-columns: 1fr 1fr; }
+    .portfolio-item:first-child { grid-column: span 2; }
+    .kontak-grid { grid-template-columns: 1fr; }
+    .footer-top { grid-template-columns: 1fr 1fr; gap: 28px; }
+    .cta-inner { flex-direction: column; }
+    .bottom-nav { display: block; }
+    .chatbot-fab { bottom: 90px; }
+    .chatbot-panel { bottom: 155px; }
+    body { padding-bottom: 70px; }
+  }
+  @media (max-width: 480px) {
+    .hero h1 { font-size: 30px; }
+    .paket-grid { grid-template-columns: 1fr; }
+    .footer-top { grid-template-columns: 1fr; }
+    .portfolio-grid { grid-template-columns: 1fr; }
+    .portfolio-item:first-child { grid-column: span 1; }
+    .hero-stats { gap: 20px; }
+    .chatbot-panel { right: 10px; width: calc(100vw - 20px); }
+  }
+
+  /* ─── SCROLL ANIMATIONS ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─── -->
+<nav class="navbar" id="navbar">
+  <a href="/" class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <span>AideaCreative</span>
+      <span>Smart Photo Studio</span>
+    </div>
+  </a>
+  <div class="nav-links">
+    <a href="/" class="active">Beranda</a>
+    <a href="/portfolio">Portfolio</a>
+    <a href="/paket">Paket</a>
+    <a href="/toko">Toko</a>
+    <a href="/booking">Booking</a>
+    <a href="/testimoni">Testimoni</a>
+  </div>
+  <div class="nav-actions">
+    <a href="/login" class="btn-ghost">Masuk</a>
+    <a href="/booking" class="btn-primary">Booking Sekarang</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-overlay"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      Studio Foto Profesional — Pujodadi, Pringsewu
+    </div>
+    <h1>Abadikan Momen<br><span>Terbaik</span> Anda</h1>
+    <p>AideaCreative menghadirkan layanan fotografi profesional untuk portrait, produk UMKM, wedding, dan event di Pringsewu, Lampung. Dilengkapi teknologi Smart Web berbasis AI.</p>
+    <div class="hero-actions">
+      <a href="/booking" class="btn-hero-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Booking Sekarang
+      </a>
+      <a href="/portfolio" class="btn-hero-ghost">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Lihat Portfolio
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat-item">
+        <div class="hero-stat-num">500<span>+</span></div>
+        <div class="hero-stat-label">Pelanggan Puas</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-num">5<span>+</span></div>
+        <div class="hero-stat-label">Tahun Pengalaman</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-num">1K<span>+</span></div>
+        <div class="hero-stat-label">Foto Dihasilkan</div>
+      </div>
+      <div class="hero-stat-item">
+        <div class="hero-stat-num">4.9<span>/5</span></div>
+        <div class="hero-stat-label">Rating Pelanggan</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Cards -->
+  <div class="hero-float-card">
+    <div class="float-card">
+      <div class="float-card-top">
+        <div class="float-avatar">R</div>
+        <div class="float-card-top-text">
+          <span>Rini Susanti</span>
+          <span>Foto Wisuda</span>
+        </div>
+      </div>
+      <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div class="float-card-quote">"Hasilnya luar biasa, foto terlihat sangat profesional dan natural!"</div>
+    </div>
+    <div class="float-card">
+      <div class="float-card-booking">
+        <div class="booking-info">
+          <span>Booking Terbaru</span>
+          <span>Foto Produk UMKM</span>
+        </div>
+        <div class="booking-status">Dikonfirmasi</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── LAYANAN ─── -->
+<section class="layanan-section">
+  <div class="section-tag">Layanan Kami</div>
+  <div class="section-header-row">
+    <div>
+      <div class="section-title">Pilihan Layanan<br>Fotografi Profesional</div>
+      <div class="section-sub">Dari foto portrait keluarga hingga dokumentasi wedding dan event, kami hadir dengan paket yang sesuai kebutuhan dan anggaran Anda.</div>
+    </div>
+    <a href="/paket" class="link-more">Lihat Semua Paket &rarr;</a>
+  </div>
+  <div class="layanan-grid reveal">
+    <div class="layanan-card">
+      <div class="layanan-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h3>Portrait &amp; Keluarga</h3>
+      <p>Sesi foto portrait individu, pasangan, dan keluarga dengan konsep yang personal dan berkesan.</p>
+      <div class="layanan-card-footer">
+        <div>
+          <div class="price-from">Mulai dari</div>
+          <div class="price-val">Rp 150.000</div>
+        </div>
+        <a href="/paket" class="btn-link">Lihat Paket</a>
+      </div>
+    </div>
+    <div class="layanan-card">
+      <div class="layanan-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+          <path d="M16 10a4 4 0 0 1-8 0"/>
+        </svg>
+      </div>
+      <h3>Foto Produk UMKM</h3>
+      <p>Tampilkan produk usaha Anda secara profesional untuk katalog online, marketplace, dan media sosial.</p>
+      <div class="layanan-card-footer">
+        <div>
+          <div class="price-from">Mulai dari</div>
+          <div class="price-val">Rp 200.000</div>
+        </div>
+        <a href="/paket" class="btn-link">Lihat Paket</a>
+      </div>
+    </div>
+    <div class="layanan-card">
+      <div class="layanan-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <h3>Wedding &amp; Engagement</h3>
+      <p>Dokumentasi hari istimewa Anda dengan sentuhan artistik yang akan dikenang seumur hidup.</p>
+      <div class="layanan-card-footer">
+        <div>
+          <div class="price-from">Mulai dari</div>
+          <div class="price-val">Rp 1.500.000</div>
+        </div>
+        <a href="/paket" class="btn-link">Lihat Paket</a>
+      </div>
+    </div>
+    <div class="layanan-card">
+      <div class="layanan-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </svg>
+      </div>
+      <h3>Event &amp; Corporate</h3>
+      <p>Dokumentasi acara, seminar, gathering, dan event perusahaan dengan hasil cepat dan berkualitas.</p>
+      <div class="layanan-card-footer">
+        <div>
+          <div class="price-from">Mulai dari</div>
+          <div class="price-val">Rp 500.000</div>
+        </div>
+        <a href="/paket" class="btn-link">Lihat Paket</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── KEUNGGULAN ─── -->
+<section class="keunggulan-section">
+  <div class="section-tag">Kenapa Kami</div>
+  <div class="section-title" style="color:white;">Kenapa Memilih<br>AideaCreative?</div>
+  <div class="section-sub" style="color:rgba(255,255,255,0.65);margin-bottom:48px;">Kami berkomitmen memberikan pengalaman terbaik dengan kualitas profesional yang terjangkau untuk semua kalangan di Pringsewu dan sekitarnya.</div>
+  <div class="keunggulan-grid reveal">
+    <div class="keunggulan-card">
+      <div class="keunggulan-num">500<span>+</span></div>
+      <div class="keunggulan-label">Pelanggan puas sejak 2019</div>
+      <h3>Fotografer Berpengalaman</h3>
+      <p>Tim fotografer profesional berpengalaman 5+ tahun di bidangnya dengan portofolio yang kaya.</p>
+    </div>
+    <div class="keunggulan-card">
+      <div class="keunggulan-num">4K<span>+</span></div>
+      <div class="keunggulan-label">Resolusi kamera yang digunakan</div>
+      <h3>Peralatan Profesional</h3>
+      <p>Kamera DSLR full-frame, lensa premium, dan lighting studio yang menghasilkan foto terbaik.</p>
+    </div>
+    <div class="keunggulan-card">
+      <div class="keunggulan-num">24<span>jam</span></div>
+      <div class="keunggulan-label">Waktu pengiriman hasil foto</div>
+      <h3>Hasil Cepat &amp; Berkualitas</h3>
+      <p>Foto sudah jadi dalam 24 jam dengan editing profesional, siap untuk dicetak atau diunggah.</p>
+    </div>
+    <div class="keunggulan-card">
+      <div class="keunggulan-num">AI<span>+</span></div>
+      <div class="keunggulan-label">Teknologi Smart Web</div>
+      <h3>Smart Web dengan AI</h3>
+      <p>Chatbot AI, saran konsep foto cerdas, dan rekomendasi produk personal hanya di AideaCreative.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PORTFOLIO ─── -->
+<section class="portfolio-section">
+  <div class="section-tag">Portfolio</div>
+  <div class="section-header-row">
+    <div>
+      <div class="section-title">Karya Pilihan Kami</div>
+      <div class="section-sub">Setiap foto menceritakan sebuah kisah. Lihat hasil terbaik dari sesi foto kami bersama pelanggan di Pringsewu dan sekitarnya.</div>
+    </div>
+    <a href="/portfolio" class="link-more">Lihat Semua &rarr;</a>
+  </div>
+  <div class="portfolio-grid reveal">
+    <div class="portfolio-item">
+      <div class="portfolio-item-inner">
+        <div class="portfolio-placeholder">
+          <svg class="portfolio-ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Foto Portfolio
+        </div>
+        <div class="portfolio-overlay">
+          <div class="portfolio-overlay-text">
+            <h4>Wedding Outdoor</h4>
+            <span>Wedding & Engagement</span>
+          </div>
+        </div>
+        <div class="portfolio-badge">Wedding</div>
+      </div>
+    </div>
+    <div class="portfolio-item">
+      <div class="portfolio-item-inner">
+        <div class="portfolio-placeholder"><svg class="portfolio-ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Foto Portfolio</div>
+        <div class="portfolio-overlay"><div class="portfolio-overlay-text"><h4>Portrait Studio</h4><span>Portrait & Keluarga</span></div></div>
+        <div class="portfolio-badge">Portrait</div>
+      </div>
+    </div>
+    <div class="portfolio-item">
+      <div class="portfolio-item-inner">
+        <div class="portfolio-placeholder"><svg class="portfolio-ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Foto Portfolio</div>
+        <div class="portfolio-overlay"><div class="portfolio-overlay-text"><h4>Produk Makanan</h4><span>Foto Produk UMKM</span></div></div>
+        <div class="portfolio-badge">Produk</div>
+      </div>
+    </div>
+    <div class="portfolio-item">
+      <div class="portfolio-item-inner">
+        <div class="portfolio-placeholder"><svg class="portfolio-ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Foto Portfolio</div>
+        <div class="portfolio-overlay"><div class="portfolio-overlay-text"><h4>Foto Keluarga</h4><span>Portrait & Keluarga</span></div></div>
+        <div class="portfolio-badge">Keluarga</div>
+      </div>
+    </div>
+    <div class="portfolio-item">
+      <div class="portfolio-item-inner">
+        <div class="portfolio-placeholder"><svg class="portfolio-ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Foto Portfolio</div>
+        <div class="portfolio-overlay"><div class="portfolio-overlay-text"><h4>Event Seminar</h4><span>Event & Corporate</span></div></div>
+        <div class="portfolio-badge">Event</div>
+      </div>
+    </div>
+    <div class="portfolio-item">
+      <div class="portfolio-item-inner">
+        <div class="portfolio-placeholder"><svg class="portfolio-ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Foto Portfolio</div>
+        <div class="portfolio-overlay"><div class="portfolio-overlay-text"><h4>Engagement Session</h4><span>Wedding & Engagement</span></div></div>
+        <div class="portfolio-badge">Engagement</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PAKET POPULER ─── -->
+<section class="paket-section">
+  <div class="section-tag">Paket Populer</div>
+  <div class="section-header-row">
+    <div>
+      <div class="section-title">Pilih Paket yang<br>Sesuai Kebutuhan</div>
+    </div>
+    <a href="/paket" class="link-more">Semua Paket &rarr;</a>
+  </div>
+  <div class="paket-grid reveal">
+    <div class="paket-card">
+      <div class="paket-kategori">Portrait</div>
+      <div class="paket-nama">Paket Starter</div>
+      <div class="paket-desc">Cocok untuk foto individu atau pasangan dengan sesi singkat yang berkualitas.</div>
+      <div class="paket-harga">
+        <div class="paket-harga-label">Harga</div>
+        <div class="paket-harga-val">Rp 150.000 <span>/ sesi</span></div>
+      </div>
+      <ul class="paket-features">
+        <li>60 menit sesi foto</li>
+        <li>10 foto hasil editing</li>
+        <li>1 konsep/background</li>
+        <li>File digital resolusi tinggi</li>
+      </ul>
+      <button class="btn-booking-paket outline">Pilih Paket</button>
+    </div>
+    <div class="paket-card popular">
+      <div class="paket-popular-badge">Paling Populer</div>
+      <div class="paket-kategori">Produk UMKM</div>
+      <div class="paket-nama">Paket Bisnis</div>
+      <div class="paket-desc">Ideal untuk pemilik UMKM yang ingin foto produk profesional untuk marketplace.</div>
+      <div class="paket-harga">
+        <div class="paket-harga-label">Harga</div>
+        <div class="paket-harga-val">Rp 350.000 <span>/ sesi</span></div>
+      </div>
+      <ul class="paket-features">
+        <li>10 produk dalam 1 sesi</li>
+        <li>3 angle per produk</li>
+        <li>Background putih + lifestyle</li>
+        <li>Editing profesional</li>
+        <li>File siap upload marketplace</li>
+      </ul>
+      <button class="btn-booking-paket primary">Booking Sekarang</button>
+    </div>
+    <div class="paket-card">
+      <div class="paket-kategori">Wedding</div>
+      <div class="paket-nama">Paket Wedding Basic</div>
+      <div class="paket-desc">Dokumentasi pernikahan lengkap dari akad hingga resepsi dengan tim fotografer.</div>
+      <div class="paket-harga">
+        <div class="paket-harga-label">Harga</div>
+        <div class="paket-harga-val">Rp 1.500.000 <span>/ hari</span></div>
+      </div>
+      <ul class="paket-features">
+        <li>8 jam dokumentasi</li>
+        <li>2 fotografer profesional</li>
+        <li>300+ foto hasil editing</li>
+        <li>Album digital + cetak 4R</li>
+        <li>Pengiriman dalam 3 hari</li>
+      </ul>
+      <button class="btn-booking-paket outline">Pilih Paket</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TESTIMONI ─── -->
+<section class="testimoni-section">
+  <div class="section-tag">Testimoni</div>
+  <div class="section-header-row">
+    <div>
+      <div class="section-title">Apa Kata Pelanggan Kami?</div>
+      <div class="section-sub">Kepercayaan pelanggan adalah prioritas utama kami. Berikut pengalaman nyata mereka bersama AideaCreative.</div>
+    </div>
+    <a href="/testimoni" class="link-more">Lihat Semua &rarr;</a>
+  </div>
+  <div class="testimoni-track reveal">
+    <div class="testimoni-card">
+      <div class="testimoni-top">
+        <div class="testimoni-avatar">A</div>
+        <div class="testimoni-meta"><strong>Anisa Putri</strong><span>Pelanggan Setia</span></div>
+      </div>
+      <div class="testimoni-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div class="testimoni-text">Sangat puas dengan hasil foto wisuda saya. Fotografernya sabar dan kreatif, hasilnya jauh melebihi ekspektasi. Pasti akan kembali lagi!</div>
+      <span class="testimoni-paket">Foto Portrait</span>
+    </div>
+    <div class="testimoni-card">
+      <div class="testimoni-top">
+        <div class="testimoni-avatar">B</div>
+        <div class="testimoni-meta"><strong>Budi Santoso</strong><span>Pemilik UMKM</span></div>
+      </div>
+      <div class="testimoni-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div class="testimoni-text">Foto produk saya jadi jauh lebih menarik setelah difoto di sini. Penjualan online meningkat signifikan. Pelayanannya juga ramah dan profesional.</div>
+      <span class="testimoni-paket">Foto Produk UMKM</span>
+    </div>
+    <div class="testimoni-card">
+      <div class="testimoni-top">
+        <div class="testimoni-avatar">R</div>
+        <div class="testimoni-meta"><strong>Rini &amp; Doni</strong><span>Pasangan Pengantin</span></div>
+      </div>
+      <div class="testimoni-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div class="testimoni-text">Dokumentasi wedding kami sangat luar biasa. Setiap momen berhasil diabadikan dengan indah. Album fotonya jadi kenangan tak ternilai untuk kami.</div>
+      <span class="testimoni-paket">Wedding</span>
+    </div>
+    <div class="testimoni-card">
+      <div class="testimoni-top">
+        <div class="testimoni-avatar">S</div>
+        <div class="testimoni-meta"><strong>Sari Dewi</strong><span>Pelanggan Baru</span></div>
+      </div>
+      <div class="testimoni-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div class="testimoni-text">Pertama kali booking lewat website, prosesnya sangat mudah. Chatbot AI-nya membantu saya memilih paket yang tepat. Hasilnya memuaskan!</div>
+      <span class="testimoni-paket">Portrait</span>
+    </div>
+    <div class="testimoni-card">
+      <div class="testimoni-top">
+        <div class="testimoni-avatar">H</div>
+        <div class="testimoni-meta"><strong>Hendra Wijaya</strong><span>EO Pringsewu</span></div>
+      </div>
+      <div class="testimoni-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <div class="testimoni-text">Kami sudah berkali-kali menggunakan jasa AideaCreative untuk dokumentasi event. Selalu konsisten dalam kualitas dan pengiriman tepat waktu.</div>
+      <span class="testimoni-paket">Event & Corporate</span>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA BOOKING ─── -->
+<section class="cta-section">
+  <div class="cta-inner">
+    <div class="cta-text">
+      <h2>Siap Mengabadikan<br>Momen Spesial Anda?</h2>
+      <p>Hubungi kami sekarang dan dapatkan konsultasi gratis dari Idea Assistant AI kami untuk menentukan paket terbaik sesuai kebutuhan Anda.</p>
+    </div>
+    <div class="cta-actions">
+      <a href="/booking" class="btn-cta-white">Booking Sekarang</a>
+      <a href="https://wa.me/628xxxxxxxxxx" class="btn-cta-outline">Hubungi via WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── KONTAK ─── -->
+<section class="kontak-section">
+  <div class="section-tag">Lokasi &amp; Kontak</div>
+  <div class="section-title">Temukan Kami di Pringsewu</div>
+  <div class="section-sub">Kunjungi studio kami atau hubungi melalui WhatsApp dan media sosial.</div>
+  <div class="kontak-grid reveal">
+    <div class="kontak-map-placeholder">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="1.5" opacity="0.5">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+      </svg>
+      <span style="font-size:14px;color:#5a6a82;">Peta akan ditampilkan di sini</span>
+      <span style="font-size:12px;color:#8fa3bc;">Google Maps Embed</span>
+    </div>
+    <div class="kontak-info">
+      <div class="kontak-item">
+        <div class="kontak-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+        <div class="kontak-item-text">
+          <h4>Alamat Studio</h4>
+          <p>Jl. Pujodadi, Kec. Gadingrejo, Kabupaten Pringsewu, Lampung</p>
+        </div>
+      </div>
+      <div class="kontak-item">
+        <div class="kontak-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.14h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l.75-.75a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.72 16.92z"/>
+          </svg>
+        </div>
+        <div class="kontak-item-text">
+          <h4>WhatsApp</h4>
+          <p>+62 812-XXXX-XXXX (Respon cepat hari kerja)</p>
+        </div>
+      </div>
+      <div class="kontak-item">
+        <div class="kontak-item-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#004aad" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="kontak-item-text">
+          <h4>Jam Operasional</h4>
+          <p>Senin–Sabtu: 09.00–17.00 WIB<br>Minggu: 10.00–15.00 WIB</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a href="/" class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span>AideaCreative</span>
+          <span>Smart Photo Studio</span>
+        </div>
+      </a>
+      <p class="footer-desc">Studio foto profesional di Pujodadi, Pringsewu, Lampung. Mengabadikan setiap momen dengan sentuhan seni dan teknologi AI terkini.</p>
+      <div class="footer-socials">
+        <div class="footer-social-btn" title="Instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </div>
+        <div class="footer-social-btn" title="Facebook">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+          </svg>
+        </div>
+        <div class="footer-social-btn" title="TikTok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2">
+            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+          </svg>
+        </div>
+        <div class="footer-social-btn" title="YouTube">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2">
+            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.54C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
+            <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Layanan</h4>
+      <ul>
+        <li><a href="/paket">Portrait & Keluarga</a></li>
+        <li><a href="/paket">Foto Produk UMKM</a></li>
+        <li><a href="/paket">Wedding & Engagement</a></li>
+        <li><a href="/paket">Event & Corporate</a></li>
+        <li><a href="/toko">Cetak & Produk Foto</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Halaman</h4>
+      <ul>
+        <li><a href="/">Beranda</a></li>
+        <li><a href="/portfolio">Portfolio</a></li>
+        <li><a href="/booking">Booking Online</a></li>
+        <li><a href="/testimoni">Testimoni</a></li>
+        <li><a href="/login">Masuk / Daftar</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Jam Operasional</h4>
+      <div class="footer-operasional">
+        <div class="footer-ops-row"><span>Senin – Jumat</span><span>09.00 – 17.00</span></div>
+        <div class="footer-ops-row"><span>Sabtu</span><span>09.00 – 17.00</span></div>
+        <div class="footer-ops-row"><span>Minggu</span><span>10.00 – 15.00</span></div>
+      </div>
+      <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.06);border-radius:10px;border:1px solid rgba(255,255,255,0.1);">
+        <p style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Butuh booking cepat?</p>
+        <a href="https://wa.me/628xxxxxxxxxx" style="font-size:13px;font-weight:600;color:#7eb5f5;text-decoration:none;">Chat via WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; 2025 AideaCreative. Hak cipta dilindungi undang-undang.</p>
+    <div class="footer-bottom-links">
+      <a href="/kebijakan-privasi">Kebijakan Privasi</a>
+      <a href="/syarat-ketentuan">Syarat & Ketentuan</a>
+      <a href="/peta-situs">Peta Situs</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── BOTTOM NAV (MOBILE) ─── -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="/" class="bottom-nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Beranda</span>
+    </a>
+    <a href="/portfolio" class="bottom-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Portfolio</span>
+    </a>
+    <a href="/booking" class="bottom-nav-book">
+      <div class="bottom-nav-book-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/>
+        </svg>
+      </div>
+      <span>Booking</span>
+    </a>
+    <a href="/toko" class="bottom-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span>Toko</span>
+    </a>
+    <a href="/profil" class="bottom-nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Profil</span>
+    </a>
+  </div>
+</nav>
+
+<!-- ─── AI CHATBOT WIDGET ─── -->
+<button class="chatbot-fab" id="chatbotFab" onclick="toggleChatbot()" title="Idea Assistant AI">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+  <div class="chatbot-badge"></div>
+</button>
+<div class="chatbot-panel" id="chatbotPanel">
+  <div class="chatbot-header">
+    <div class="chatbot-dot"></div>
+    <div class="chatbot-header-text">
+      <h4>Idea Assistant</h4>
+      <span>Online — AI Powered by Qwen</span>
+    </div>
+  </div>
+  <div class="chatbot-body" id="chatbotBody">
+    <div class="chat-bubble-bot">
+      Halo Kak! Saya Idea Assistant, asisten AI AideaCreative. Saya siap membantu Kak memilih paket foto, info booking, dan produk cetak.
+    </div>
+    <div class="chat-quick">
+      <button class="chat-quick-btn" onclick="sendQuick('Berapa harga paket portrait?')">Harga portrait?</button>
+      <button class="chat-quick-btn" onclick="sendQuick('Cara booking sesi foto?')">Cara booking?</button>
+      <button class="chat-quick-btn" onclick="sendQuick('Ada paket wedding?')">Paket wedding?</button>
+      <button class="chat-quick-btn" onclick="sendQuick('Produk cetak apa saja?')">Produk cetak?</button>
+    </div>
+  </div>
+  <div class="chatbot-input-row">
+    <input class="chatbot-input" id="chatInput" type="text" placeholder="Ketik pesan..." onkeydown="if(event.key==='Enter')sendMsg()">
+    <button class="chatbot-send" onclick="sendMsg()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  // Navbar scroll effect
+  window.addEventListener('scroll', () => {
+    const nb = document.getElementById('navbar');
+    nb.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Chatbot
+  function toggleChatbot() {
+    const panel = document.getElementById('chatbotPanel');
+    panel.classList.toggle('open');
+  }
+
+  function addBubble(text, type) {
+    const body = document.getElementById('chatbotBody');
+    const div = document.createElement('div');
+    div.className = type === 'user' ? 'chat-bubble-user' : 'chat-bubble-bot';
+    div.textContent = text;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function sendQuick(text) {
+    addBubble(text, 'user');
+    setTimeout(() => {
+      const replies = {
+        'Berapa harga paket portrait?': 'Paket Portrait Starter mulai Rp 150.000 untuk 60 menit sesi dan 10 foto hasil editing. Ada juga Paket Portrait Premium Rp 300.000 dengan 2 konsep dan 25 foto. Kak tertarik yang mana?',
+        'Cara booking sesi foto?': 'Gampang banget Kak! Klik tombol "Booking Sekarang", pilih paket, pilih tanggal & jam, isi data, lalu konfirmasi pembayaran. Selesai dalam 5 menit. Kode booking langsung dikirim via email!',
+        'Ada paket wedding?': 'Ada Kak! Paket Wedding Basic mulai Rp 1.500.000 sudah termasuk 8 jam dokumentasi, 2 fotografer, dan 300+ foto hasil editing. Tersedia juga Paket Wedding Premium dan Honeymoon. Mau saya jelaskan detailnya?',
+        'Produk cetak apa saja?': 'Kami menyediakan cetak foto (4R hingga A2), frame foto, album foto, photobook premium, dan merchandise foto seperti mug dan kalender. Bisa dilihat lengkap di halaman Toko Kak!'
+      };
+      addBubble(replies[text] || 'Terima kasih pertanyaannya Kak! Untuk info lebih lanjut silakan hubungi kami via WhatsApp.', 'bot');
+    }, 800);
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    addBubble(text, 'user');
+    input.value = '';
+    setTimeout(() => {
+      addBubble('Baik Kak, pertanyaan Kak sudah saya terima. Untuk respons lebih detail, chatbot AI kami sedang diproses. Sementara itu Kak bisa menghubungi kami via WhatsApp ya!', 'bot');
+    }, 900);
+  }
+</script>
+</body>
+</html>

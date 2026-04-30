@@ -1,0 +1,1131 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.2.0
+  description: AideaCreative Studio Foto API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: kategori
+    description: Kategori layanan operations
+  - name: paket
+    description: Paket layanan operations
+  - name: produk
+    description: Produk toko operations
+  - name: booking
+    description: Booking operations
+  - name: testimoni
+    description: Testimoni operations
+  - name: portfolio
+    description: Portfolio operations
+  - name: jadwal
+    description: Jadwal tersedia operations
+  - name: ai
+    description: AI operations
+  - name: dashboard
+    description: Dashboard operations
+  - name: promo
+    description: Promo banner operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /kategori:
+    get:
+      operationId: listKategori
+      tags: [kategori]
+      summary: Daftar kategori layanan
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KategoriLayanan"
+
+  /paket:
+    get:
+      operationId: listPaket
+      tags: [paket]
+      summary: Daftar paket layanan
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Paket"
+    post:
+      operationId: createPaket
+      tags: [paket]
+      summary: Buat paket baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaketBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paket"
+
+  /paket/{id}:
+    get:
+      operationId: getPaket
+      tags: [paket]
+      summary: Detail paket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paket"
+    put:
+      operationId: updatePaket
+      tags: [paket]
+      summary: Update paket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaketBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paket"
+    delete:
+      operationId: deletePaket
+      tags: [paket]
+      summary: Hapus paket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /produk:
+    get:
+      operationId: listProduk
+      tags: [produk]
+      summary: Daftar produk toko
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Produk"
+    post:
+      operationId: createProduk
+      tags: [produk]
+      summary: Buat produk baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProdukBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Produk"
+
+  /produk/{id}:
+    get:
+      operationId: getProduk
+      tags: [produk]
+      summary: Detail produk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Produk"
+    put:
+      operationId: updateProduk
+      tags: [produk]
+      summary: Update produk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProdukBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Produk"
+    delete:
+      operationId: deleteProduk
+      tags: [produk]
+      summary: Hapus produk
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /promo:
+    get:
+      operationId: listPromo
+      tags: [promo]
+      summary: Daftar promo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Promo"
+    post:
+      operationId: createPromo
+      tags: [promo]
+      summary: Buat promo baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePromoBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Promo"
+
+  /promo/{id}:
+    put:
+      operationId: updatePromo
+      tags: [promo]
+      summary: Update promo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePromoBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Promo"
+    delete:
+      operationId: deletePromo
+      tags: [promo]
+      summary: Hapus promo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /booking:
+    get:
+      operationId: listBooking
+      tags: [booking]
+      summary: Daftar booking
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+    post:
+      operationId: createBooking
+      tags: [booking]
+      summary: Buat booking baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /booking/{id}:
+    get:
+      operationId: getBooking
+      tags: [booking]
+      summary: Detail booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+    put:
+      operationId: updateBookingStatus
+      tags: [booking]
+      summary: Update status booking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookingStatusBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /testimoni:
+    get:
+      operationId: listTestimoni
+      tags: [testimoni]
+      summary: Daftar testimoni yang disetujui
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testimoni"
+    post:
+      operationId: createTestimoni
+      tags: [testimoni]
+      summary: Tambah testimoni baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestimoniBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Testimoni"
+
+  /testimoni/{id}:
+    delete:
+      operationId: deleteTestimoni
+      tags: [testimoni]
+      summary: Hapus testimoni
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /portfolio:
+    get:
+      operationId: listPortfolio
+      tags: [portfolio]
+      summary: Daftar portfolio
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Portfolio"
+    post:
+      operationId: createPortfolio
+      tags: [portfolio]
+      summary: Tambah portfolio baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePortfolioBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+
+  /portfolio/{id}:
+    delete:
+      operationId: deletePortfolio
+      tags: [portfolio]
+      summary: Hapus portfolio
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /jadwal:
+    get:
+      operationId: listJadwal
+      tags: [jadwal]
+      summary: Daftar jadwal tersedia
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JadwalTersedia"
+
+  /ai/chat:
+    post:
+      operationId: aiChat
+      tags: [ai]
+      summary: AI Chatbot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+
+  /ai/recommend:
+    post:
+      operationId: aiRecommend
+      tags: [ai]
+      summary: AI Rekomendasi paket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiRecommendBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiRecommendResponse"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Statistik dashboard admin
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent-bookings:
+    get:
+      operationId: getRecentBookings
+      tags: [dashboard]
+      summary: Booking terbaru
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+
+  /dashboard/booking-by-status:
+    get:
+      operationId: getBookingByStatus
+      tags: [dashboard]
+      summary: Jumlah booking per status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingStatusCount"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    KategoriLayanan:
+      type: object
+      properties:
+        id:
+          type: string
+        nama:
+          type: string
+        deskripsi:
+          type: string
+        icon:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - nama
+        - createdAt
+
+    Paket:
+      type: object
+      properties:
+        id:
+          type: string
+        kategoriId:
+          type: string
+        namaPaket:
+          type: string
+        deskripsi:
+          type: string
+        harga:
+          type: integer
+        durasiSesi:
+          type: integer
+        jumlahFoto:
+          type: integer
+        fasilitas:
+          type: array
+          items:
+            type: string
+        isPopuler:
+          type: boolean
+        isAktif:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - namaPaket
+        - deskripsi
+        - harga
+        - durasiSesi
+        - jumlahFoto
+        - fasilitas
+        - isPopuler
+        - isAktif
+        - createdAt
+
+    CreatePaketBody:
+      type: object
+      properties:
+        kategoriId:
+          type: string
+        namaPaket:
+          type: string
+        deskripsi:
+          type: string
+        harga:
+          type: integer
+        durasiSesi:
+          type: integer
+        jumlahFoto:
+          type: integer
+        fasilitas:
+          type: array
+          items:
+            type: string
+        isPopuler:
+          type: boolean
+        isAktif:
+          type: boolean
+      required:
+        - namaPaket
+        - deskripsi
+        - harga
+        - durasiSesi
+        - jumlahFoto
+        - fasilitas
+        - isPopuler
+        - isAktif
+
+    Produk:
+      type: object
+      properties:
+        id:
+          type: string
+        namaProduk:
+          type: string
+        deskripsi:
+          type: string
+        harga:
+          type: integer
+        stok:
+          type: integer
+        kategori:
+          type: string
+          enum: [cetak_foto, frame, album, photobook, merchandise]
+        ukuran:
+          type: string
+        gambarUrl:
+          type: array
+          items:
+            type: string
+        isAktif:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - namaProduk
+        - deskripsi
+        - harga
+        - stok
+        - kategori
+        - gambarUrl
+        - isAktif
+        - createdAt
+
+    CreateProdukBody:
+      type: object
+      properties:
+        namaProduk:
+          type: string
+        deskripsi:
+          type: string
+        harga:
+          type: integer
+        stok:
+          type: integer
+        kategori:
+          type: string
+          enum: [cetak_foto, frame, album, photobook, merchandise]
+        ukuran:
+          type: string
+        gambarUrl:
+          type: array
+          items:
+            type: string
+        isAktif:
+          type: boolean
+      required:
+        - namaProduk
+        - deskripsi
+        - harga
+        - stok
+        - kategori
+        - isAktif
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+        kodeBooking:
+          type: string
+        pelangganId:
+          type: string
+        paketId:
+          type: string
+        namaPemesan:
+          type: string
+        email:
+          type: string
+        telepon:
+          type: string
+        tanggalSesi:
+          type: string
+        jamSesi:
+          type: string
+        catatanPelanggan:
+          type: string
+        konsepFoto:
+          type: string
+        status:
+          type: string
+          enum: [menunggu, dikonfirmasi, selesai, dibatalkan]
+        totalHarga:
+          type: integer
+        statusPembayaran:
+          type: string
+          enum: [belum_bayar, dp, lunas]
+        createdAt:
+          type: string
+      required:
+        - id
+        - kodeBooking
+        - paketId
+        - namaPemesan
+        - email
+        - telepon
+        - tanggalSesi
+        - jamSesi
+        - status
+        - totalHarga
+        - statusPembayaran
+        - createdAt
+
+    CreateBookingBody:
+      type: object
+      properties:
+        paketId:
+          type: string
+        namaPemesan:
+          type: string
+        email:
+          type: string
+        telepon:
+          type: string
+        tanggalSesi:
+          type: string
+        jamSesi:
+          type: string
+        catatanPelanggan:
+          type: string
+        konsepFoto:
+          type: string
+      required:
+        - paketId
+        - namaPemesan
+        - email
+        - telepon
+        - tanggalSesi
+        - jamSesi
+
+    UpdateBookingStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [menunggu, dikonfirmasi, selesai, dibatalkan]
+        statusPembayaran:
+          type: string
+          enum: [belum_bayar, dp, lunas]
+      required:
+        - status
+
+    Testimoni:
+      type: object
+      properties:
+        id:
+          type: string
+        pelangganId:
+          type: string
+        bookingId:
+          type: string
+        rating:
+          type: integer
+        komentar:
+          type: string
+        namaTampil:
+          type: string
+        fotoUrl:
+          type: string
+        isApproved:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - rating
+        - komentar
+        - namaTampil
+        - isApproved
+        - createdAt
+
+    CreateTestimoniBody:
+      type: object
+      properties:
+        namaTampil:
+          type: string
+        rating:
+          type: integer
+        komentar:
+          type: string
+        fotoUrl:
+          type: string
+        bookingId:
+          type: string
+      required:
+        - namaTampil
+        - rating
+        - komentar
+
+    Portfolio:
+      type: object
+      properties:
+        id:
+          type: string
+        judul:
+          type: string
+        deskripsi:
+          type: string
+        kategori:
+          type: string
+        gambarUrl:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        isFeatured:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - judul
+        - kategori
+        - gambarUrl
+        - tags
+        - isFeatured
+        - createdAt
+
+    CreatePortfolioBody:
+      type: object
+      properties:
+        judul:
+          type: string
+        deskripsi:
+          type: string
+        kategori:
+          type: string
+        gambarUrl:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        isFeatured:
+          type: boolean
+      required:
+        - judul
+        - kategori
+        - gambarUrl
+        - tags
+        - isFeatured
+
+    JadwalTersedia:
+      type: object
+      properties:
+        id:
+          type: string
+        tanggal:
+          type: string
+        jamMulai:
+          type: string
+        jamSelesai:
+          type: string
+        isTersedia:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - tanggal
+        - jamMulai
+        - jamSelesai
+        - isTersedia
+        - createdAt
+
+    AiChatBody:
+      type: object
+      properties:
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+            required:
+              - role
+              - content
+      required:
+        - message
+
+    AiChatResponse:
+      type: object
+      properties:
+        reply:
+          type: string
+      required:
+        - reply
+
+    AiRecommendBody:
+      type: object
+      properties:
+        kebutuhan:
+          type: string
+        budget:
+          type: number
+        acara:
+          type: string
+      required:
+        - kebutuhan
+
+    AiRecommendResponse:
+      type: object
+      properties:
+        rekomendasi:
+          type: string
+        paketDisarankan:
+          type: array
+          items:
+            type: string
+      required:
+        - rekomendasi
+        - paketDisarankan
+
+    DashboardStats:
+      type: object
+      properties:
+        totalBooking:
+          type: integer
+        bookingBulanIni:
+          type: integer
+        totalPendapatan:
+          type: number
+        pendapatanBulanIni:
+          type: number
+        totalProduk:
+          type: integer
+        ratingRataRata:
+          type: number
+        totalTestimoni:
+          type: integer
+      required:
+        - totalBooking
+        - bookingBulanIni
+        - totalPendapatan
+        - pendapatanBulanIni
+        - totalProduk
+        - ratingRataRata
+        - totalTestimoni
+
+    BookingStatusCount:
+      type: object
+      properties:
+        status:
+          type: string
+        count:
+          type: integer
+      required:
+        - status
+        - count
+
+    Promo:
+      type: object
+      properties:
+        id:
+          type: string
+        judul:
+          type: string
+        deskripsi:
+          type: string
+        badge:
+          type: string
+          nullable: true
+        gambarUrl:
+          type: string
+          nullable: true
+        link:
+          type: string
+          nullable: true
+        ctaLabel:
+          type: string
+          nullable: true
+        warna:
+          type: string
+          nullable: true
+        tampilMarquee:
+          type: boolean
+        tampilCard:
+          type: boolean
+        tanggalMulai:
+          type: string
+          nullable: true
+        tanggalBerakhir:
+          type: string
+          nullable: true
+        isAktif:
+          type: boolean
+        urutan:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - judul
+        - deskripsi
+        - tampilMarquee
+        - tampilCard
+        - isAktif
+        - urutan
+        - createdAt
+
+    CreatePromoBody:
+      type: object
+      properties:
+        judul:
+          type: string
+        deskripsi:
+          type: string
+        badge:
+          type: string
+          nullable: true
+        gambarUrl:
+          type: string
+          nullable: true
+        link:
+          type: string
+          nullable: true
+        ctaLabel:
+          type: string
+          nullable: true
+        warna:
+          type: string
+        tampilMarquee:
+          type: boolean
+        tampilCard:
+          type: boolean
+        tanggalMulai:
+          type: string
+          nullable: true
+        tanggalBerakhir:
+          type: string
+          nullable: true
+        isAktif:
+          type: boolean
+        urutan:
+          type: integer
+      required:
+        - judul
+        - deskripsi
+        - isAktif

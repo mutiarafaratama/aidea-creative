@@ -1,0 +1,44 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "FteobaUDND3MsTevJFm5x"
+uri = "file://artifacts/aidea-creative/public/images/portfolio-wedding.png"
+type = "image"
+title = "Cinematic wedding photography"
+
+[[generated]]
+id = "qa8kGFmTm8o1bCpWguY4l"
+uri = "file://artifacts/aidea-creative/public/images/portfolio-family.png"
+type = "image"
+title = "Family portrait photography"
+
+[[generated]]
+id = "MHUDZEv6F4RJmLpq-5eez"
+uri = "file://artifacts/aidea-creative/public/images/portfolio-graduation.png"
+type = "image"
+title = "Graduation photography"
+
+[[generated]]
+id = "ycVfKssjTMkB9r6r0u6Tm"
+uri = "file://artifacts/aidea-creative/public/images/portfolio-product.png"
+type = "image"
+title = "Product photography"
+
+[[generated]]
+id = "u0EO-Rykek37oGe32Gn5o"
+uri = "file://artifacts/aidea-creative/public/images/hero-bg.png"
+type = "image"
+title = "Hero studio background"
+
+[[generated]]
+id = "waXDdDOKmKxS8J6IB8uBD"
+uri = "file://artifacts/aidea-creative/public/images/product-frame.png"
+type = "image"
+title = "Wooden photo frame"
+
+[[generated]]
+id = "M1-28wRo1Rv21nO5XGLsC"
+uri = "file://artifacts/aidea-creative/public/images/product-album.png"
+type = "image"
+title = "Premium photo album"

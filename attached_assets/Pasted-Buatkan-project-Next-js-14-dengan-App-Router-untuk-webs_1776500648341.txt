@@ -1,0 +1,65 @@
+Buatkan project Next.js 14 dengan App Router untuk website studio foto bernama "AideaCreative" yang berlokasi di Pujodadi, Pringsewu. Website ini adalah Smart Web E-Commerce yang menggabungkan sistem booking jasa foto dan toko produk foto online, dilengkapi fitur kecerdasan buatan (AI).
+
+STACK YANG DIGUNAKAN:
+- Framework: Next.js 14 (App Router)
+- Database: Supabase (PostgreSQL)
+- ORM: Prisma atau Supabase JS Client
+- Styling: Tailwind CSS
+- UI Component: shadcn/ui
+- Auth: Supabase Auth
+- Payment: Midtrans (mode sandbox)
+- AI: Qwen API (qwen-turbo-latest)
+- Hosting Target: Railway
+- State Management: Zustand
+- Form: React Hook Form + Zod
+
+STRUKTUR FOLDER YANG DIBUAT:
+/app
+  /page.tsx                    → Halaman Home
+  /(auth)
+    /login/page.tsx
+    /register/page.tsx
+  /(public)
+    /portfolio/page.tsx
+    /paket/page.tsx
+    /toko/page.tsx
+    /booking/page.tsx
+    /testimoni/page.tsx
+  /(dashboard)
+    /dashboard/page.tsx        → Admin dashboard
+  /api
+    /ai/chat/route.ts          → AI Chatbot endpoint
+    /ai/recommend/route.ts     → AI Recommendation endpoint
+    /booking/route.ts
+    /produk/route.ts
+    /testimoni/route.ts
+/components
+  /ui/                         → shadcn components
+  /shared/                     → Navbar, Footer, dll
+  /home/                       → Komponen halaman home
+  /booking/                    → Komponen booking
+  /toko/                       → Komponen toko
+  /dashboard/                  → Komponen admin
+/lib
+  /supabase.ts                 → Supabase client
+  /qwen.ts                     → Qwen AI client
+  /utils.ts
+/types
+  /index.ts                    → TypeScript types
+
+SETUP YANG DILAKUKAN:
+1. Inisialisasi Next.js 14 dengan TypeScript
+2. Install semua dependencies yang dibutuhkan
+3. Setup Tailwind CSS dan shadcn/ui
+4. Buat file .env.local dengan variabel berikut:
+   - NEXT_PUBLIC_SUPABASE_URL=
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY=
+   - SUPABASE_SERVICE_ROLE_KEY=
+   - QWEN_API_KEY=
+   - MIDTRANS_SERVER_KEY=
+   - MIDTRANS_CLIENT_KEY=
+   - NEXT_PUBLIC_APP_URL=
+5. Buat file README.md dengan panduan setup
+6. Buat konfigurasi Railway (railway.json dan Procfile)
+
+Setelah selesai, tampilkan struktur folder yang telah dibuat.
