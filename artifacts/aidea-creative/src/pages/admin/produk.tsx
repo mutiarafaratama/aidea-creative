@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { SupabaseMultiUploader } from "@/components/supabase-multi-uploader";
-import { adminFetch } from "@/lib/admin-api";
 import { QueryError } from "@/components/query-error";
 
 const kategoriOptions = ["album", "frame", "cetak", "aksesoris", "lainnya"];
