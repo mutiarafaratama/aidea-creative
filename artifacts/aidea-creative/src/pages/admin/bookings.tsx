@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGetRecentBookings, getGetRecentBookingsQueryKey, useUpdateBookingStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Clock, X, Search, Eye, MessageCircle, CalendarDays, Phone, Mail, FileText, Package, Banknote, Lightbulb, Wallet, Trash2, AlertTriangle, Eye as EyeIcon, EyeOff } from "lucide-react";
@@ -51,6 +51,25 @@ export default function AdminBookings() {
   const [detailBooking, setDetailBooking] = useState<any>(null);
   const [rejectDialog, setRejectDialog] = useState<{ booking: any; alasan: string } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ booking: any; password: string; showPassword: boolean; isLoading: boolean } | null>(null);
+
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase
+      .channel("admin-bookings-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "booking" }, () => {
+        qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setRealtimeStatus("connected");
+        else if (status === "CLOSED" || status === "CHANNEL_ERROR") setRealtimeStatus("disconnected");
+        else setRealtimeStatus("connecting");
+      });
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteDialog || !supabase || !user?.email) return;
@@ -153,17 +172,39 @@ export default function AdminBookings() {
   const cancelledByLabel = (dibatalkanOleh: string | null | undefined) =>
     dibatalkanOleh === "pelanggan" ? "Dibatalkan oleh Pelanggan" : "Dibatalkan oleh Studio";
 
+  const liveIndicator = (
+    <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border ${
+      realtimeStatus === "connected"
+        ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+        : realtimeStatus === "connecting"
+        ? "text-amber-600 bg-amber-50 border-amber-200"
+        : "text-red-600 bg-red-50 border-red-200"
+    }`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${
+        realtimeStatus === "connected"
+          ? "bg-emerald-500 animate-pulse"
+          : realtimeStatus === "connecting"
+          ? "bg-amber-400 animate-pulse"
+          : "bg-red-500"
+      }`} />
+      {realtimeStatus === "connected" ? "Live" : realtimeStatus === "connecting" ? "Connecting…" : "Offline"}
+    </span>
+  );
+
   return (
     <AdminLayout title="Manajemen Booking" subtitle="Setujui, tinjau, dan kelola semua reservasi pelanggan.">
       <Card className="mb-4">
         <CardContent className="p-4 flex flex-col md:flex-row gap-3 md:items-center justify-between">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-            <TabsList>
-              {statuses.map((s) => (
-                <TabsTrigger key={s} value={s} className="capitalize">{s}</TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+              <TabsList>
+                {statuses.map((s) => (
+                  <TabsTrigger key={s} value={s} className="capitalize">{s}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            {liveIndicator}
+          </div>
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
