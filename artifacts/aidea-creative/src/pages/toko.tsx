@@ -156,7 +156,7 @@ export default function Toko() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {isLoading ? (
           Array(8).fill(0).map((_, i) => (
             <Card key={i} className="overflow-hidden border-border">
