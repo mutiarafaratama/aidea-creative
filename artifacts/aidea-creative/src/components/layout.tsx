@@ -53,7 +53,6 @@ export function Layout({ children }: { children: ReactNode }) {
 
   const navLinks = [
     { name: "Beranda", href: "/" },
-    { name: "Layanan", href: "/layanan" },
     { name: "Portfolio", href: "/portfolio" },
     { name: "Paket", href: "/paket" },
     { name: "Toko", href: "/toko" },

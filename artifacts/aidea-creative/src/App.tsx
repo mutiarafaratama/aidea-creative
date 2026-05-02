@@ -28,8 +28,6 @@ import AdminPromo from "@/pages/admin/promo";
 // Public pages — lazy loaded so they don't bloat the initial bundle
 const Portfolio = lazy(() => import("@/pages/portfolio"));
 const Paket = lazy(() => import("@/pages/paket"));
-const Layanan = lazy(() => import("@/pages/layanan"));
-const LayananDetail = lazy(() => import("@/pages/layanan-detail"));
 const Toko = lazy(() => import("@/pages/toko"));
 const Booking = lazy(() => import("@/pages/booking"));
 const Testimoni = lazy(() => import("@/pages/testimoni"));
@@ -69,8 +67,6 @@ function MainRoutes() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/portfolio" component={Portfolio} />
-          <Route path="/layanan" component={Layanan} />
-          <Route path="/layanan/:slug" component={LayananDetail} />
           <Route path="/paket" component={Paket} />
           <Route path="/toko" component={Toko} />
           <Route path="/booking">

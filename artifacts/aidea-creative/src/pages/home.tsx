@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Camera,
-  Heart,
   ShoppingBag,
   CalendarDays,
   Sparkles,
@@ -42,7 +41,6 @@ const galleryImages = [
 const categories = [
   { href: "/portfolio", label: "Portfolio", icon: Camera, color: "bg-rose-100 text-rose-600" },
   { href: "/paket", label: "Paket Foto", icon: Sparkles, color: "bg-amber-100 text-amber-600" },
-  { href: "/layanan", label: "Layanan", icon: Heart, color: "bg-pink-100 text-pink-600" },
   { href: "/toko", label: "Toko Cetak", icon: ShoppingBag, color: "bg-emerald-100 text-emerald-600" },
   { href: "/booking", label: "Booking", icon: CalendarDays, color: "bg-blue-100 text-blue-600" },
   { href: "/testimoni", label: "Testimoni", icon: Star, color: "bg-violet-100 text-violet-600" },
