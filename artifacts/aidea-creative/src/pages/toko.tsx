@@ -160,11 +160,11 @@ export default function Toko() {
         {isLoading ? (
           Array(8).fill(0).map((_, i) => (
             <Card key={i} className="overflow-hidden border-border">
-              <Skeleton className="h-40 sm:h-64 w-full rounded-none" />
-              <CardContent className="p-3 sm:p-5">
-                <Skeleton className="h-5 w-3/4 mb-2" />
-                <Skeleton className="h-3 w-1/4 mb-3" />
-                <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-36 w-full rounded-none" />
+              <CardContent className="p-3">
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2 mb-3" />
+                <Skeleton className="h-8 w-full" />
               </CardContent>
             </Card>
           ))
@@ -181,44 +181,61 @@ export default function Toko() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(produk); }
                 }}
-                className="overflow-hidden border-border hover:border-primary/50 hover:shadow-md transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="overflow-hidden border-border hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 group"
               >
-                <div className="h-40 sm:h-64 bg-muted relative p-3 sm:p-4 flex items-center justify-center">
+                {/* Product image */}
+                <div className="h-36 sm:h-44 bg-muted relative flex items-center justify-center overflow-hidden">
                   {gambarPertama ? (
-                    <img src={gambarPertama} alt={produk.namaProduk} className="max-w-full max-h-full object-contain mix-blend-multiply drop-shadow-sm" />
+                    <img
+                      src={gambarPertama}
+                      alt={produk.namaProduk}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   ) : (
-                    <ShoppingBag className="text-muted-foreground opacity-20" size={48} />
+                    <ShoppingBag className="text-muted-foreground/30" size={36} />
                   )}
+
+                  {/* Category badge — top left */}
+                  <span className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm text-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full border border-border/50 leading-tight">
+                    {kategoriLabel[produk.kategori] ?? produk.kategori}
+                  </span>
+
+                  {/* Extra photos badge */}
                   {totalGambar > 1 && (
-                    <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur text-foreground border border-border px-1.5 py-0.5 text-[10px] font-medium rounded">
-                      +{totalGambar - 1} foto
-                    </div>
+                    <span className="absolute bottom-2 right-2 bg-background/80 backdrop-blur text-foreground border border-border/50 px-1.5 py-0.5 text-[10px] font-medium rounded-full">
+                      +{totalGambar - 1}
+                    </span>
                   )}
+
+                  {/* Low stock */}
                   {produk.stok < 5 && produk.stok > 0 && (
-                    <div className="absolute top-2 left-2 bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] sm:text-xs font-bold rounded">
+                    <span className="absolute top-2 right-2 bg-destructive/90 text-white px-2 py-0.5 text-[10px] font-bold rounded-full">
                       Sisa {produk.stok}
-                    </div>
+                    </span>
                   )}
+
+                  {/* Out of stock overlay */}
                   {produk.stok === 0 && (
                     <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-10">
-                      <span className="bg-destructive text-destructive-foreground px-2 py-1 text-xs font-bold rounded">Habis</span>
+                      <span className="bg-destructive text-destructive-foreground px-2.5 py-1 text-xs font-bold rounded-full">Habis</span>
                     </div>
                   )}
                 </div>
-                <CardContent className="p-3 sm:p-5 flex flex-col flex-1">
-                  <div className="text-[10px] sm:text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                    {kategoriLabel[produk.kategori] ?? produk.kategori}
-                    {produk.ukuran && ` · ${produk.ukuran}`}
-                  </div>
-                  <h3 className="font-bold text-sm sm:text-lg mb-1 leading-tight line-clamp-2">{produk.namaProduk}</h3>
-                  <p className="hidden sm:block text-sm text-muted-foreground line-clamp-2 mb-4">{produk.deskripsi}</p>
-                  <div className="mt-auto pt-2 sm:pt-4 flex items-center justify-between gap-2">
-                    <div className="font-bold text-sm sm:text-lg">Rp {produk.harga.toLocaleString('id-ID')}</div>
+
+                {/* Card body */}
+                <CardContent className="p-2.5 sm:p-3 flex flex-col flex-1">
+                  <h3 className="font-semibold text-xs sm:text-sm leading-snug line-clamp-2 mb-2">
+                    {produk.namaProduk}
+                  </h3>
+                  <div className="mt-auto flex items-center justify-between gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm text-primary">
+                      Rp {produk.harga.toLocaleString('id-ID')}
+                    </span>
                     <Button
                       size="sm"
                       disabled={produk.stok === 0}
                       onClick={(e) => { e.stopPropagation(); setSelected(produk); }}
-                      className="px-3"
+                      className="h-7 px-2.5 text-xs rounded-full"
                     >
                       Beli
                     </Button>
