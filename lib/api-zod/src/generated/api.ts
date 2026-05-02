@@ -399,6 +399,7 @@ export const UpdateBookingStatusParams = zod.object({
 export const UpdateBookingStatusBody = zod.object({
   status: zod.enum(["menunggu", "dikonfirmasi", "selesai", "dibatalkan"]),
   statusPembayaran: zod.enum(["belum_bayar", "dp", "lunas"]).optional(),
+  alasanPembatalan: zod.string().optional(),
 });
 
 export const UpdateBookingStatusResponse = zod.object({

@@ -939,13 +939,11 @@ export default function Profil() {
                         ? "Dibatalkan oleh Anda"
                         : "Dibatalkan oleh Studio"}
                     </p>
-                    {selectedBooking.alasan_pembatalan && (
-                      <p className={`text-sm ${
-                        selectedBooking.dibatalkan_oleh === "pelanggan" ? "text-orange-700" : "text-red-700"
-                      }`}>
-                        {selectedBooking.alasan_pembatalan}
-                      </p>
-                    )}
+                    <p className={`text-sm ${
+                      selectedBooking.dibatalkan_oleh === "pelanggan" ? "text-orange-700" : "text-red-700"
+                    }`}>
+                      {selectedBooking.alasan_pembatalan || <span className="italic opacity-60">Tidak ada alasan yang diberikan</span>}
+                    </p>
                   </div>
                 </div>
               )}

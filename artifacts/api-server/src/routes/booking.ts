@@ -107,7 +107,10 @@ router.put("/booking/:id", requireAdmin, async (req, res) => {
     const updateData: Record<string, unknown> = {};
     if (body.status) updateData.status = body.status;
     if (body.statusPembayaran) updateData.statusPembayaran = body.statusPembayaran;
-    if (body.status === "dibatalkan") updateData.dibatalkanOleh = "admin";
+    if (body.status === "dibatalkan") {
+      updateData.dibatalkanOleh = "admin";
+      updateData.alasanPembatalan = body.alasanPembatalan ?? null;
+    }
 
     const [row] = await db
       .update(bookingTable)

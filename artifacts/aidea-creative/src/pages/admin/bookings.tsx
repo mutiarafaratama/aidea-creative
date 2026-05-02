@@ -56,14 +56,14 @@ export default function AdminBookings() {
       (b.namaPaket ?? "").toLowerCase().includes(search.toLowerCase()))
   );
 
-  const setStatus = (id: string, status: "dikonfirmasi" | "selesai" | "dibatalkan") => {
+  const setStatus = (id: string, status: "dikonfirmasi" | "selesai" | "dibatalkan", alasanPembatalan?: string) => {
     const curStatusBayar = detailBooking?.statusPembayaran ?? "belum_bayar";
-    mutate.mutate({ id, data: { status, statusPembayaran: curStatusBayar } }, {
+    mutate.mutate({ id, data: { status, statusPembayaran: curStatusBayar, ...(alasanPembatalan ? { alasanPembatalan } : {}) } }, {
       onSuccess: () => {
         toast({ title: "Status diperbarui" });
         qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
         if (detailBooking?.id === id) {
-          setDetailBooking((prev: any) => prev ? { ...prev, status } : prev);
+          setDetailBooking((prev: any) => prev ? { ...prev, status, ...(alasanPembatalan !== undefined ? { alasanPembatalan, dibatalkanOleh: "admin" } : {}) } : prev);
         }
         setRejectDialog(null);
       },
@@ -95,7 +95,7 @@ export default function AdminBookings() {
 
   const confirmReject = (openWA: boolean) => {
     if (!rejectDialog) return;
-    setStatus(rejectDialog.booking.id, "dibatalkan");
+    setStatus(rejectDialog.booking.id, "dibatalkan", rejectDialog.alasan || undefined);
     if (openWA && rejectDialog.booking.telepon) {
       const msg = encodeURIComponent(
         `Halo ${rejectDialog.booking.namaPemesan}, mohon maaf booking Anda dengan kode *${rejectDialog.booking.kodeBooking}* tidak dapat kami konfirmasi.${rejectDialog.alasan ? `\n\nAlasan: ${rejectDialog.alasan}` : ""}\n\nSilakan hubungi kami untuk jadwal alternatif. Terima kasih.`
@@ -287,7 +287,7 @@ export default function AdminBookings() {
                   <span className="text-sm text-muted-foreground">Status Pembayaran</span>
                   {bayarBadge(detailBooking.statusPembayaran)}
                 </div>
-                {detailBooking.status === "dibatalkan" && detailBooking.alasanPembatalan && (
+                {detailBooking.status === "dibatalkan" && (
                   <div className={`rounded-lg border px-3 py-2.5 flex gap-2 ${
                     detailBooking.dibatalkanOleh === "pelanggan"
                       ? "border-orange-200 bg-orange-50"
@@ -302,7 +302,9 @@ export default function AdminBookings() {
                       }`}>Alasan Pembatalan</p>
                       <p className={`text-xs ${
                         detailBooking.dibatalkanOleh === "pelanggan" ? "text-orange-700" : "text-red-700"
-                      }`}>{detailBooking.alasanPembatalan}</p>
+                      }`}>
+                        {detailBooking.alasanPembatalan || <span className="italic opacity-60">Tidak ada alasan yang diberikan</span>}
+                      </p>
                     </div>
                   </div>
                 )}
