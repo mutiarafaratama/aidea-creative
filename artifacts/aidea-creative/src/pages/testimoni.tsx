@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useListTestimoni, useCreateTestimoni } from "@workspace/api-client-react";
-import { Star, Loader2, Quote, BadgeCheck, PenLine } from "lucide-react";
+import { Star, Loader2, Quote, BadgeCheck, PenLine, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -63,6 +63,7 @@ export default function Testimoni() {
   const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [statsOpen, setStatsOpen] = useState(false);
   const { data: testimoniList, isLoading, refetch } = useListTestimoni();
 
   const createTestimoni = useCreateTestimoni();
@@ -106,35 +107,7 @@ export default function Testimoni() {
       <div className="container mx-auto px-4 py-8">
 
         {/* Top bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-
-          {/* Stats */}
-          {!isLoading && avgRating && (
-            <div className="flex items-center gap-4">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-foreground leading-none">{avgRating}</div>
-                <StarRow rating={Math.round(Number(avgRating))} size={16} />
-                <div className="text-xs text-muted-foreground mt-1">{allList.length} ulasan</div>
-              </div>
-              <div className="hidden sm:flex flex-col gap-1">
-                {ratingCounts.map(({ star, count }) => (
-                  <div key={star} className="flex items-center gap-2">
-                    <span className="text-xs w-4 text-muted-foreground">{star}</span>
-                    <Star size={10} fill="currentColor" className="text-amber-400" />
-                    <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-400 rounded-full"
-                        style={{ width: allList.length ? `${(count / allList.length) * 100}%` : "0%" }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground w-4">{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {isLoading && <Skeleton className="h-16 w-48" />}
-
+        <div className="flex items-center justify-end gap-3 mb-8">
           {/* Write review button */}
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -192,7 +165,7 @@ export default function Testimoni() {
           </Dialog>
         </div>
 
-        {/* Filter by star */}
+        {/* Filter by star + stats icon */}
         {!isLoading && allList.length > 0 && (
           <div className="flex items-center gap-2 mb-6 flex-wrap">
             <button
@@ -211,8 +184,51 @@ export default function Testimoni() {
                 <span className="ml-0.5 opacity-70">({ratingCounts.find(rc => rc.star === r)!.count})</span>
               </button>
             ))}
+
+            {/* Stats icon button */}
+            <button
+              onClick={() => setStatsOpen(true)}
+              className="ml-1 w-7 h-7 rounded-full border border-border bg-background flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+              aria-label="Lihat statistik rating"
+            >
+              <BarChart2 size={14} />
+            </button>
           </div>
         )}
+
+        {/* Stats modal */}
+        <Dialog open={statsOpen} onOpenChange={setStatsOpen}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="font-serif">Statistik Rating</DialogTitle>
+              <DialogDescription>Ringkasan penilaian dari seluruh pelanggan AideaCreative.</DialogDescription>
+            </DialogHeader>
+            {avgRating && (
+              <div className="flex items-center gap-6 pt-2">
+                <div className="text-center shrink-0">
+                  <div className="text-5xl font-bold text-foreground leading-none mb-1">{avgRating}</div>
+                  <StarRow rating={Math.round(Number(avgRating))} size={16} />
+                  <div className="text-xs text-muted-foreground mt-2">{allList.length} ulasan</div>
+                </div>
+                <div className="flex flex-col gap-2 flex-1">
+                  {ratingCounts.map(({ star, count }) => (
+                    <div key={star} className="flex items-center gap-2">
+                      <span className="text-xs w-3 text-right text-muted-foreground">{star}</span>
+                      <Star size={10} fill="currentColor" className="text-amber-400 shrink-0" />
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                          style={{ width: allList.length ? `${(count / allList.length) * 100}%` : "0%" }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-4 text-right">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Cards */}
         <div className="columns-1 md:columns-2 lg:columns-3 gap-5 space-y-5">
