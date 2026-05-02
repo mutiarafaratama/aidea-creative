@@ -240,7 +240,7 @@ export default function Booking() {
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
+                          <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-border" align="start">
                             <Calendar
                               mode="single"
                               selected={field.value}
