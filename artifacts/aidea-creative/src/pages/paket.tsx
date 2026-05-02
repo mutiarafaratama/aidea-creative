@@ -278,25 +278,6 @@ export default function Paket() {
                 )}
               </CardContent>
             </Card>
-
-            {/* CTA card */}
-            <Card className="mt-4 bg-primary text-primary-foreground border-0 overflow-hidden">
-              <CardContent className="p-5">
-                <h4 className="font-semibold text-sm mb-1">Bingung pilih paket?</h4>
-                <p className="text-xs text-primary-foreground/75 mb-4 leading-relaxed">
-                  Hubungi kami via WhatsApp dan konsultasikan kebutuhan foto Anda secara langsung.
-                </p>
-                <a
-                  href="https://wa.me/6281234567890"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="secondary" className="w-full rounded-full text-sm">
-                    Chat WhatsApp
-                  </Button>
-                </a>
-              </CardContent>
-            </Card>
           </div>
 
         </div>
