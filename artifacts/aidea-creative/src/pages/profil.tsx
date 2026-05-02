@@ -585,7 +585,7 @@ export default function Profil() {
 
       {/* ── Booking Detail Dialog ── */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl max-h-[85vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {selectedBooking && (
             <>
               <DialogHeader>
