@@ -4,7 +4,7 @@ import { Camera, Menu, X, Instagram, Facebook, MapPin, Phone, User, LogOut, Layo
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { PromoMarquee } from "@/components/promo-marquee";
+
 
 function BrandLogo() {
   const [errored, setErrored] = useState(false);
@@ -61,7 +61,6 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-white">
-      <PromoMarquee />
       <header
         className={`sticky top-0 z-50 transition-all duration-300 pt-2`}
       >
