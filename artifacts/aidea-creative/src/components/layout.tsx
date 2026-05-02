@@ -252,7 +252,8 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {location === "/" && <footer className="bg-card border-t border-border pt-16 pb-8">
+      {location === "/" && (
+      <footer className="bg-card border-t border-border pt-16 pb-8">
         <div className="container mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-1">
@@ -320,7 +321,8 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
-      </footer>}
+      </footer>
+      )}
     </div>
   );
 }
