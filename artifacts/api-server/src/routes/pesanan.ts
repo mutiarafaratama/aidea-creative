@@ -243,6 +243,34 @@ router.get("/pesanan", requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE /pesanan/:id — pelanggan menghapus pesanan miliknya
+// Hanya boleh jika status masih "diproses" atau "dibatalkan"
+router.delete("/pesanan/:id", attachAuth, async (req, res) => {
+  try {
+    if (!req.authUser) return res.status(401).json({ error: "Login diperlukan" });
+
+    const [pesanan] = await db.select().from(pesananProdukTable)
+      .where(eq(pesananProdukTable.id, req.params.id));
+    if (!pesanan) return res.status(404).json({ error: "Pesanan tidak ditemukan" });
+    if (pesanan.pelangganId !== req.authUser.id) return res.status(403).json({ error: "Forbidden" });
+
+    const statusBolehHapus = ["diproses", "dibatalkan"];
+    if (!statusBolehHapus.includes(pesanan.status)) {
+      return res.status(400).json({
+        error: `Pesanan tidak bisa dihapus karena statusnya "${pesanan.status}". Hubungi admin untuk info lebih lanjut.`,
+      });
+    }
+
+    await db.delete(itemPesananTable).where(eq(itemPesananTable.pesananId, pesanan.id));
+    await db.delete(pesananProdukTable).where(eq(pesananProdukTable.id, pesanan.id));
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to delete pesanan");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.put("/pesanan/:id/status", requireAdmin, async (req, res) => {
   try {
     const { status, statusPembayaran } = req.body;

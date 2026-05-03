@@ -15,6 +15,7 @@ import {
   Printer,
   Save,
   Star,
+  Trash2,
   Upload,
   User,
   Wallet,
@@ -342,6 +343,9 @@ export default function Profil() {
   const [cancelDialog, setCancelDialog] = useState<{ booking: BookingRow; alasan: string } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const [hapusPesananDialog, setHapusPesananDialog] = useState<{ pesanan: PesananRow; password: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -516,6 +520,41 @@ export default function Profil() {
       toast({ title: "Gagal membatalkan", description: e.message, variant: "destructive" });
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const hapusPesanan = async () => {
+    if (!hapusPesananDialog || !supabase || !user) return;
+    setIsDeleting(true);
+    try {
+      // Verifikasi password akun dulu sebelum hapus
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: hapusPesananDialog.password,
+      });
+      if (authError) {
+        toast({ title: "Password salah", description: "Masukkan password akun Anda yang benar.", variant: "destructive" });
+        setIsDeleting(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`/api/pesanan/${hapusPesananDialog.pesanan.id}`, {
+        method: "DELETE",
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Gagal menghapus pesanan");
+      }
+      setPesanan((prev) => prev.filter((p) => p.id !== hapusPesananDialog.pesanan.id));
+      setHapusPesananDialog(null);
+      toast({ title: "Pesanan dihapus", description: `#${hapusPesananDialog.pesanan.kode_pesanan} telah dihapus dari riwayat.` });
+    } catch (e: any) {
+      toast({ title: "Gagal menghapus", description: e.message, variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -776,7 +815,7 @@ export default function Profil() {
                         key={item.id}
                         className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                       >
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm font-mono">
                               {item.kode_pesanan}
@@ -790,10 +829,21 @@ export default function Profil() {
                             })}
                           </p>
                         </div>
-                        <div className="shrink-0 text-right">
+                        <div className="shrink-0 flex items-center gap-3">
                           <p className="font-bold text-base">
                             Rp {item.total_harga.toLocaleString("id-ID")}
                           </p>
+                          {(item.status === "diproses" || item.status === "dibatalkan") && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                              title="Hapus pesanan"
+                              onClick={() => setHapusPesananDialog({ pesanan: item, password: "" })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </li>
                     ))}
@@ -1012,6 +1062,73 @@ export default function Profil() {
                   onClick={() => setSelectedBooking(null)}
                 >
                   Tutup
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Hapus Pesanan Dialog ── */}
+      <Dialog open={!!hapusPesananDialog} onOpenChange={(open) => !open && setHapusPesananDialog(null)}>
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl">
+          {hapusPesananDialog && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <Trash2 className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <DialogTitle>Hapus Pesanan?</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {hapusPesananDialog.pesanan.kode_pesanan}
+                    </p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <p className="text-sm text-muted-foreground -mt-1">
+                Pesanan ini akan dihapus permanen dari riwayat Anda. Tindakan ini tidak dapat dibatalkan.
+              </p>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="passwordHapus" className="text-sm">
+                  Konfirmasi Password Akun
+                </Label>
+                <Input
+                  id="passwordHapus"
+                  type="password"
+                  placeholder="Masukkan password akun Anda"
+                  autoComplete="current-password"
+                  value={hapusPesananDialog.password}
+                  onChange={(e) =>
+                    setHapusPesananDialog((prev) => prev ? { ...prev, password: e.target.value } : prev)
+                  }
+                  onKeyDown={(e) => e.key === "Enter" && !isDeleting && hapusPesanan()}
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setHapusPesananDialog(null)}
+                  disabled={isDeleting}
+                >
+                  Batal
+                </Button>
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700 gap-2"
+                  onClick={hapusPesanan}
+                  disabled={isDeleting || !hapusPesananDialog.password}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Ya, Hapus Pesanan
                 </Button>
               </div>
             </>
