@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Camera, Download, RefreshCw } from "lucide-react";
+import { Camera, Download, RefreshCw, ChevronLeft } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,8 +13,6 @@ type Theme = {
   borderColor: string;
   footerBg: string;
   footerText: string;
-  accentColor: string;
-  accentText: string;
   dot: string;
 };
 
@@ -28,8 +26,6 @@ const THEMES: Theme[] = [
     borderColor: "#1e3a8a",
     footerBg: "#1e3a8a",
     footerText: "#FFFFFF",
-    accentColor: "#1e3a8a",
-    accentText: "#FFFFFF",
     dot: "bg-blue-800",
   },
   {
@@ -41,8 +37,6 @@ const THEMES: Theme[] = [
     borderColor: "#db2777",
     footerBg: "#db2777",
     footerText: "#FFFFFF",
-    accentColor: "#db2777",
-    accentText: "#FFFFFF",
     dot: "bg-pink-600",
   },
   {
@@ -54,8 +48,6 @@ const THEMES: Theme[] = [
     borderColor: "#15803d",
     footerBg: "#15803d",
     footerText: "#FFFFFF",
-    accentColor: "#15803d",
-    accentText: "#FFFFFF",
     dot: "bg-green-700",
   },
   {
@@ -67,8 +59,6 @@ const THEMES: Theme[] = [
     borderColor: "#b45309",
     footerBg: "#92400e",
     footerText: "#FDE68A",
-    accentColor: "#92400e",
-    accentText: "#FDE68A",
     dot: "bg-amber-800",
   },
   {
@@ -80,8 +70,6 @@ const THEMES: Theme[] = [
     borderColor: "#0f766e",
     footerBg: "#0f766e",
     footerText: "#FFFFFF",
-    accentColor: "#0f766e",
-    accentText: "#FFFFFF",
     dot: "bg-teal-700",
   },
   {
@@ -93,8 +81,6 @@ const THEMES: Theme[] = [
     borderColor: "#6d28d9",
     footerBg: "#6d28d9",
     footerText: "#FFFFFF",
-    accentColor: "#6d28d9",
-    accentText: "#FFFFFF",
     dot: "bg-violet-700",
   },
 ];
@@ -110,7 +96,7 @@ const STRIP_W = PHOTO_W + STRIP_PAD_X * 2;
 const STRIP_H =
   STRIP_HEADER_H + TOTAL_SHOTS * PHOTO_H + (TOTAL_SHOTS - 1) * STRIP_GAP + STRIP_FOOTER_H;
 
-type Step = "setup" | "preview" | "ready" | "countdown" | "flash" | "between" | "done" | "result";
+type Step = "preview" | "countdown" | "flash" | "between" | "processing" | "edit";
 
 function drawRoundRect(
   ctx: CanvasRenderingContext2D,
@@ -143,6 +129,7 @@ function generateStrip(photos: string[], theme: Theme): Promise<string> {
     ctx.fillRect(0, 0, 6, STRIP_H);
     ctx.fillRect(STRIP_W - 6, 0, 6, STRIP_H);
 
+    // Header
     ctx.fillStyle = theme.headerBg;
     ctx.fillRect(0, 0, STRIP_W, STRIP_HEADER_H);
     ctx.fillStyle = theme.headerText;
@@ -154,9 +141,7 @@ function generateStrip(photos: string[], theme: Theme): Promise<string> {
     ctx.fillStyle = theme.headerText + "BB";
     ctx.fillText(
       `${theme.name}  -  ${new Date().toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
+        day: "2-digit", month: "long", year: "numeric",
       })}`,
       STRIP_W / 2,
       STRIP_HEADER_H / 2 + 12
@@ -174,20 +159,15 @@ function generateStrip(photos: string[], theme: Theme): Promise<string> {
             ctx.save();
             drawRoundRect(ctx, x, y, PHOTO_W, PHOTO_H, 2);
             ctx.clip();
-            const sw = img.naturalWidth,
-              sh = img.naturalHeight;
+            const sw = img.naturalWidth, sh = img.naturalHeight;
             const targetRatio = PHOTO_W / PHOTO_H;
             const srcRatio = sw / sh;
             let sx = 0, sy = 0, sW = sw, sH = sh;
-            if (srcRatio > targetRatio) {
-              sW = sh * targetRatio;
-              sx = (sw - sW) / 2;
-            } else {
-              sH = sw / targetRatio;
-              sy = (sh - sH) / 2;
-            }
+            if (srcRatio > targetRatio) { sW = sh * targetRatio; sx = (sw - sW) / 2; }
+            else { sH = sw / targetRatio; sy = (sh - sH) / 2; }
             ctx.drawImage(img, sx, sy, sW, sH, x, y, PHOTO_W, PHOTO_H);
             ctx.restore();
+            // Numbering badge
             ctx.fillStyle = theme.borderColor;
             ctx.beginPath();
             ctx.arc(x + 18, y + 18, 13, 0, Math.PI * 2);
@@ -203,6 +183,7 @@ function generateStrip(photos: string[], theme: Theme): Promise<string> {
         });
       }
 
+      // Footer
       const fy = STRIP_H - STRIP_FOOTER_H;
       ctx.fillStyle = theme.footerBg;
       ctx.fillRect(0, fy, STRIP_W, STRIP_FOOTER_H);
@@ -223,12 +204,13 @@ function generateStrip(photos: string[], theme: Theme): Promise<string> {
 }
 
 export default function Photobooth() {
-  const [step, setStep] = useState<Step>("setup");
+  const [step, setStep] = useState<Step>("preview");
   const [theme, setTheme] = useState<Theme>(THEMES[0]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [shotIdx, setShotIdx] = useState(0);
   const [countdown, setCountdown] = useState(3);
   const [stripUrl, setStripUrl] = useState<string | null>(null);
+  const [stripLoading, setStripLoading] = useState(false);
   const [mirror, setMirror] = useState(true);
   const [camError, setCamError] = useState<string | null>(null);
 
@@ -239,6 +221,7 @@ export default function Photobooth() {
   const photosRef = useRef<string[]>([]);
   photosRef.current = photos;
 
+  // ── Camera management ──
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -258,12 +241,17 @@ export default function Photobooth() {
         await videoRef.current.play();
       }
     } catch {
-      setCamError(
-        "Kamera tidak bisa diakses. Pastikan izin kamera sudah diberikan di browser."
-      );
+      setCamError("Kamera tidak bisa diakses. Berikan izin kamera di browser lalu muat ulang halaman.");
     }
   }, []);
 
+  // Start camera on mount
+  useEffect(() => {
+    startCamera();
+    return () => stopCamera();
+  }, [startCamera, stopCamera]);
+
+  // ── Capture ──
   const captureFrame = useCallback((): string | null => {
     const video = videoRef.current;
     const canvas = captureCanvasRef.current;
@@ -271,84 +259,84 @@ export default function Photobooth() {
     canvas.width = PHOTO_W * 2;
     canvas.height = PHOTO_H * 2;
     const ctx = canvas.getContext("2d")!;
-    const vw = video.videoWidth,
-      vh = video.videoHeight;
+    const vw = video.videoWidth, vh = video.videoHeight;
     const targetRatio = PHOTO_W / PHOTO_H;
     const srcRatio = vw / vh;
     let sx = 0, sy = 0, sw = vw, sh = vh;
-    if (srcRatio > targetRatio) {
-      sw = vh * targetRatio;
-      sx = (vw - sw) / 2;
-    } else {
-      sh = vw / targetRatio;
-      sy = (vh - sh) / 2;
-    }
-    if (mirror) {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
+    if (srcRatio > targetRatio) { sw = vh * targetRatio; sx = (vw - sw) / 2; }
+    else { sh = vw / targetRatio; sy = (vh - sh) / 2; }
+    if (mirror) { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/jpeg", 0.92);
   }, [mirror]);
 
-  const runCountdown = useCallback(
-    (idx: number) => {
-      setStep("countdown");
-      setShotIdx(idx);
-      setCountdown(3);
-      let c = 3;
-      const tick = () => {
-        c--;
-        if (c > 0) {
-          setCountdown(c);
-          timerRef.current = setTimeout(tick, 1000);
-        } else {
-          setStep("flash");
-          timerRef.current = setTimeout(() => {
-            const dataUrl = captureFrame();
-            if (dataUrl) {
-              const next = [...photosRef.current, dataUrl];
-              setPhotos(next);
-              if (next.length < TOTAL_SHOTS) {
-                setStep("between");
-                timerRef.current = setTimeout(() => runCountdown(next.length), 1800);
-              } else {
-                setStep("done");
-                generateStrip(next, theme).then((url) => {
-                  setStripUrl(url);
-                  stopCamera();
-                  setStep("result");
-                });
-              }
+  const runCountdown = useCallback((idx: number) => {
+    setStep("countdown");
+    setShotIdx(idx);
+    setCountdown(3);
+    let c = 3;
+    const tick = () => {
+      c--;
+      if (c > 0) {
+        setCountdown(c);
+        timerRef.current = setTimeout(tick, 1000);
+      } else {
+        setStep("flash");
+        timerRef.current = setTimeout(() => {
+          const dataUrl = captureFrame();
+          if (dataUrl) {
+            const next = [...photosRef.current, dataUrl];
+            setPhotos(next);
+            if (next.length < TOTAL_SHOTS) {
+              setStep("between");
+              timerRef.current = setTimeout(() => runCountdown(next.length), 1800);
+            } else {
+              setStep("processing");
             }
-          }, 200);
-        }
-      };
-      timerRef.current = setTimeout(tick, 1000);
-    },
-    [captureFrame, stopCamera, theme]
-  );
+          }
+        }, 200);
+      }
+    };
+    timerRef.current = setTimeout(tick, 1000);
+  }, [captureFrame]);
 
-  const openCamera = useCallback(async () => {
+  const startCapture = useCallback(() => {
+    setPhotos([]);
+    setStripUrl(null);
+    setShotIdx(0);
+    timerRef.current = setTimeout(() => runCountdown(0), 300);
+  }, [runCountdown]);
+
+  // ── Strip generation — auto-regenerates when theme changes in edit mode ──
+  useEffect(() => {
+    if (step === "processing" && photosRef.current.length === TOTAL_SHOTS) {
+      setStripLoading(true);
+      generateStrip(photosRef.current, theme).then((url) => {
+        setStripUrl(url);
+        setStripLoading(false);
+        stopCamera();
+        setStep("edit");
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== "edit" || photos.length < TOTAL_SHOTS) return;
+    setStripLoading(true);
+    generateStrip(photos, theme).then((url) => {
+      setStripUrl(url);
+      setStripLoading(false);
+    });
+  }, [theme, step, photos]);
+
+  const retake = useCallback(async () => {
     setPhotos([]);
     setStripUrl(null);
     setShotIdx(0);
     setStep("preview");
     await startCamera();
   }, [startCamera]);
-
-  const startCapture = useCallback(() => {
-    setStep("ready");
-    timerRef.current = setTimeout(() => runCountdown(0), 500);
-  }, [runCountdown]);
-
-  const retake = useCallback(() => {
-    stopCamera();
-    setPhotos([]);
-    setStripUrl(null);
-    setShotIdx(0);
-    setStep("setup");
-  }, [stopCamera]);
 
   const downloadStrip = () => {
     if (!stripUrl) return;
@@ -358,15 +346,8 @@ export default function Photobooth() {
     a.click();
   };
 
-  useEffect(() => () => stopCamera(), [stopCamera]);
-
   const isCapturing =
-    step === "ready" ||
-    step === "countdown" ||
-    step === "flash" ||
-    step === "between" ||
-    step === "done";
-
+    step === "countdown" || step === "flash" || step === "between" || step === "processing";
   const showCamera = step === "preview" || isCapturing;
 
   return (
@@ -383,195 +364,21 @@ export default function Photobooth() {
             Photobooth Virtual
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-xl">
-            Pilih tema frame, klik Mulai — countdown otomatis 3-2-1 dan 4 foto diambil
-            berturut-turut. Download hasilnya sebagai photo strip.
+            {step === "preview" || isCapturing
+              ? "Posisikan diri kamu, lalu klik Mulai Foto — countdown 3-2-1 otomatis dimulai."
+              : "Foto berhasil diambil! Pilih tema frame dan download photo strip kamu."}
           </p>
         </div>
 
-        {/* ── SETUP SCREEN ── */}
-        {step === "setup" && (
-          <div className="flex flex-col lg:flex-row gap-8 items-start">
-            <div className="flex-1 min-w-0 space-y-5">
-
-              {/* Theme picker */}
-              <div className="bg-background rounded-2xl border border-border p-5 shadow-sm">
-                <p className="text-sm font-semibold mb-4">Pilih Tema Frame</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {THEMES.map((t) => {
-                    const selected = theme.id === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => setTheme(t)}
-                        className={`relative rounded-xl p-3 text-left border-2 transition-all ${
-                          selected
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-border bg-muted/40 hover:bg-muted"
-                        }`}
-                      >
-                        {selected && (
-                          <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                            <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-white">
-                              <path
-                                d="M2 6l3 3 5-5"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                fill="none"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
-                        )}
-
-                        {/* Mini strip preview — always light outer, colored accents */}
-                        <div className="w-full h-14 rounded-md mb-2.5 overflow-hidden bg-white border border-border relative">
-                          <div
-                            className="absolute inset-x-0 top-0 h-3"
-                            style={{ background: t.headerBg }}
-                          />
-                          <div
-                            className="absolute inset-x-0 bottom-0 h-3"
-                            style={{ background: t.footerBg }}
-                          />
-                          <div className="absolute inset-x-2 top-3 bottom-3 flex flex-col gap-0.5">
-                            {[...Array(4)].map((_, i) => (
-                              <div
-                                key={i}
-                                className="flex-1 rounded-sm"
-                                style={{ background: t.borderColor + "20" }}
-                              />
-                            ))}
-                          </div>
-                          <div
-                            className="absolute left-0 top-0 bottom-0 w-1.5"
-                            style={{ background: t.borderColor }}
-                          />
-                          <div
-                            className="absolute right-0 top-0 bottom-0 w-1.5"
-                            style={{ background: t.borderColor }}
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full shrink-0 ${t.dot}`}
-                          />
-                          <p className="text-xs font-semibold text-foreground truncate">
-                            {t.name}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Mirror toggle */}
-              <div className="bg-background rounded-2xl border border-border p-5 shadow-sm flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold">Mode Mirror</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Flip kamera horizontal seperti selfie
-                  </p>
-                </div>
-                <button
-                  onClick={() => setMirror(!mirror)}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition-all border ${
-                    mirror
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted text-muted-foreground border-border hover:bg-muted/80"
-                  }`}
-                >
-                  {mirror ? "Aktif" : "Nonaktif"}
-                </button>
-              </div>
-
-              {camError && (
-                <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
-                  {camError}
-                </p>
-              )}
-
-              <Button
-                onClick={openCamera}
-                className="w-full h-12 rounded-2xl text-base font-semibold gap-2"
-                size="lg"
-              >
-                <Camera className="h-4 w-4" />
-                Lanjut
-              </Button>
-            </div>
-
-            {/* Preview strip sidebar */}
-            <div className="lg:w-[190px] shrink-0">
-              <div className="bg-background rounded-2xl border border-border p-4 shadow-sm">
-                <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-                  Preview Strip
-                </p>
-                <div
-                  className="rounded-xl overflow-hidden shadow-md"
-                  style={{ border: `3px solid ${theme.borderColor}` }}
-                >
-                  <div
-                    className="py-2 px-2 text-center"
-                    style={{ background: theme.headerBg }}
-                  >
-                    <p
-                      className="text-[9px] font-bold leading-tight"
-                      style={{ color: theme.headerText }}
-                    >
-                      AideaCreative Studio
-                    </p>
-                    <p
-                      className="text-[8px] opacity-80"
-                      style={{ color: theme.headerText }}
-                    >
-                      {theme.name}
-                    </p>
-                  </div>
-                  <div
-                    className="px-2 py-2 flex flex-col gap-1"
-                    style={{ background: theme.stripBg }}
-                  >
-                    {[...Array(TOTAL_SHOTS)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-full rounded flex items-center justify-center"
-                        style={{
-                          aspectRatio: "4/3",
-                          background: theme.borderColor + "15",
-                          border: `1.5px solid ${theme.borderColor}`,
-                        }}
-                      >
-                        <Camera
-                          className="h-3.5 w-3.5 opacity-20"
-                          style={{ color: theme.borderColor }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div
-                    className="py-2 px-2 text-center"
-                    style={{ background: theme.footerBg }}
-                  >
-                    <p className="text-[8px]" style={{ color: theme.footerText }}>
-                      Web Photobooth
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* ── CAMERA SCREEN (preview + capture) ── */}
         {showCamera && (
-          <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-5">
             <div className="relative w-full max-w-2xl">
+
+              {/* Video frame */}
               <div
-                className="relative rounded-2xl overflow-hidden shadow-xl"
-                style={{ aspectRatio: "4/3", border: `5px solid ${theme.accentColor}` }}
+                className="relative rounded-2xl overflow-hidden shadow-xl bg-muted"
+                style={{ aspectRatio: "4/3", border: "4px solid hsl(var(--border))" }}
               >
                 <video
                   ref={videoRef}
@@ -582,23 +389,10 @@ export default function Photobooth() {
                   style={{ transform: mirror ? "scaleX(-1)" : "none" }}
                 />
 
-                {/* Preview mode: show "Mulai Foto" button + back */}
-                {step === "preview" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 gap-3">
-                    <Button
-                      onClick={startCapture}
-                      size="lg"
-                      className="h-12 px-8 rounded-full font-semibold shadow-lg text-base"
-                      style={{ background: theme.accentColor, color: theme.accentText }}
-                    >
-                      Mulai Foto
-                    </Button>
-                    <button
-                      onClick={retake}
-                      className="text-xs text-white/80 hover:text-white underline underline-offset-2"
-                    >
-                      Kembali pilih tema
-                    </button>
+                {/* Camera error */}
+                {camError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/90 px-6">
+                    <p className="text-sm text-center text-muted-foreground">{camError}</p>
                   </div>
                 )}
 
@@ -621,7 +415,7 @@ export default function Photobooth() {
                     <motion.div
                       key={countdown}
                       className="absolute inset-0 flex flex-col items-center justify-center"
-                      style={{ background: "rgba(0,0,0,0.45)" }}
+                      style={{ background: "rgba(0,0,0,0.4)" }}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -647,63 +441,80 @@ export default function Photobooth() {
                 {step === "between" && (
                   <div
                     className="absolute inset-0 flex items-center justify-center"
-                    style={{ background: "rgba(0,0,0,0.45)" }}
+                    style={{ background: "rgba(0,0,0,0.4)" }}
                   >
                     <div className="text-center">
                       <p className="text-white font-bold text-xl drop-shadow">
                         Foto {photos.length} selesai
                       </p>
                       <p className="text-white/70 text-sm mt-1">
-                        Bersiap untuk foto {photos.length + 1}...
+                        Bersiap foto {photos.length + 1}...
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Processing */}
-                {step === "done" && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                {step === "processing" && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                     <p className="text-white font-semibold">Membuat photo strip...</p>
                   </div>
                 )}
 
-                {/* Shot counter — only during capture */}
-                {isCapturing && step !== "done" && (
-                  <div
-                    className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold shadow"
-                    style={{ background: theme.accentColor, color: theme.accentText }}
-                  >
+                {/* Shot counter */}
+                {isCapturing && step !== "processing" && (
+                  <div className="absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold bg-white/90 text-foreground shadow">
                     {photos.length} / {TOTAL_SHOTS}
                   </div>
                 )}
 
-                {/* Theme label */}
-                <div className="absolute bottom-3 left-3 rounded-full px-3 py-1 text-[11px] font-medium bg-black/40 text-white">
-                  {theme.name}
-                </div>
+                {/* Preview controls overlay */}
+                {step === "preview" && (
+                  <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pb-5 gap-2 bg-gradient-to-t from-black/30 to-transparent pt-8">
+                    <Button
+                      onClick={startCapture}
+                      size="lg"
+                      className="h-12 px-10 rounded-full font-semibold shadow-lg"
+                    >
+                      Mulai Foto
+                    </Button>
+                  </div>
+                )}
               </div>
 
-              {/* Thumbnail row — only during capture */}
-              {isCapturing && (
+              {/* Mirror toggle + instructions below camera */}
+              {step === "preview" && (
+                <div className="mt-3 flex items-center justify-between px-1">
+                  <p className="text-xs text-muted-foreground">
+                    4 foto akan diambil otomatis secara berurutan
+                  </p>
+                  <button
+                    onClick={() => setMirror(!mirror)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
+                      mirror
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    Mirror {mirror ? "On" : "Off"}
+                  </button>
+                </div>
+              )}
+
+              {/* Thumbnail row during capture */}
+              {isCapturing && step !== "processing" && (
                 <div className="mt-4 flex gap-2 justify-center">
                   {[...Array(TOTAL_SHOTS)].map((_, i) => (
                     <div
                       key={i}
                       className="rounded-lg overflow-hidden bg-muted"
                       style={{
-                        width: 72,
-                        height: 54,
-                        border: `2px solid ${
-                          i < photos.length ? theme.accentColor : "hsl(var(--border))"
-                        }`,
+                        width: 72, height: 54,
+                        border: `2px solid ${i < photos.length ? "hsl(var(--primary))" : "hsl(var(--border))"}`,
                       }}
                     >
                       {photos[i] ? (
-                        <img
-                          src={photos[i]}
-                          className="w-full h-full object-cover"
-                          alt={`foto ${i + 1}`}
-                        />
+                        <img src={photos[i]} className="w-full h-full object-cover" alt={`foto ${i + 1}`} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[11px] text-muted-foreground font-semibold">
                           {i + 1}
@@ -719,94 +530,133 @@ export default function Photobooth() {
           </div>
         )}
 
-        {/* ── RESULT SCREEN ── */}
-        {step === "result" && stripUrl && (
+        {/* ── EDIT SCREEN ── */}
+        {step === "edit" && (
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col lg:flex-row gap-10 items-start"
+            className="flex flex-col lg:flex-row gap-8 items-start"
           >
-            {/* Strip image */}
-            <div className="flex flex-col items-center gap-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Photo Strip
-              </p>
-              <div
-                className="rounded-2xl overflow-hidden shadow-lg"
-                style={{ border: `3px solid ${theme.borderColor}` }}
-              >
-                <img
-                  src={stripUrl}
-                  alt="photo strip"
-                  className="block w-auto"
-                  style={{ maxHeight: "68vh", maxWidth: "min(380px, 88vw)" }}
-                />
-              </div>
-            </div>
+            {/* Left: captured photos + theme picker */}
+            <div className="flex-1 min-w-0 space-y-5">
 
-            {/* Actions */}
-            <div className="flex-1 max-w-sm space-y-5">
-              <div>
-                <span className="inline-block rounded-full bg-green-100 text-green-700 border border-green-200 px-3 py-1 text-xs font-semibold mb-3">
-                  Sesi selesai
-                </span>
-                <h2 className="text-2xl font-bold mb-1">Strip siap didownload</h2>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  4 foto sudah digabung jadi satu strip dengan tema{" "}
-                  <span className="font-semibold text-foreground">{theme.name}</span>.
-                  Download dan bagikan ke media sosial!
-                </p>
+              {/* 4 captured thumbnails */}
+              <div className="bg-background rounded-2xl border border-border p-5 shadow-sm">
+                <p className="text-sm font-semibold mb-3">Hasil Foto</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {photos.map((p, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl overflow-hidden aspect-[4/3] bg-muted ring-1 ring-border"
+                    >
+                      <img src={p} className="w-full h-full object-cover" alt={`foto ${i + 1}`} />
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Thumbnails */}
-              <div className="grid grid-cols-4 gap-2">
-                {photos.map((p, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg overflow-hidden aspect-[4/3]"
-                    style={{ border: `2px solid ${theme.borderColor}` }}
-                  >
-                    <img
-                      src={p}
-                      className="w-full h-full object-cover"
-                      alt={`foto ${i + 1}`}
-                    />
-                  </div>
-                ))}
+              {/* Theme picker */}
+              <div className="bg-background rounded-2xl border border-border p-5 shadow-sm">
+                <p className="text-sm font-semibold mb-4">Pilih Tema Frame</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {THEMES.map((t) => {
+                    const selected = theme.id === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setTheme(t)}
+                        className={`relative rounded-xl p-3 text-left border-2 transition-all ${
+                          selected
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "border-border bg-muted/40 hover:bg-muted"
+                        }`}
+                      >
+                        {selected && (
+                          <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                            <svg viewBox="0 0 12 12" className="h-2.5 w-2.5 text-white">
+                              <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                        )}
+                        {/* Mini strip preview */}
+                        <div className="w-full h-14 rounded-md mb-2.5 overflow-hidden bg-white border border-border relative">
+                          <div className="absolute inset-x-0 top-0 h-3" style={{ background: t.headerBg }} />
+                          <div className="absolute inset-x-0 bottom-0 h-3" style={{ background: t.footerBg }} />
+                          <div className="absolute inset-x-2 top-3 bottom-3 flex flex-col gap-0.5">
+                            {[...Array(4)].map((_, i) => (
+                              <div key={i} className="flex-1 rounded-sm" style={{ background: t.borderColor + "20" }} />
+                            ))}
+                          </div>
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: t.borderColor }} />
+                          <div className="absolute right-0 top-0 bottom-0 w-1.5" style={{ background: t.borderColor }} />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${t.dot}`} />
+                          <p className="text-xs font-semibold text-foreground truncate">{t.name}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="space-y-2.5">
+              {/* Actions */}
+              <div className="flex gap-3">
                 <Button
                   onClick={downloadStrip}
-                  className="w-full h-11 rounded-xl font-semibold gap-2"
-                  size="lg"
+                  disabled={stripLoading || !stripUrl}
+                  className="flex-1 h-11 rounded-xl font-semibold gap-2"
                 >
                   <Download className="h-4 w-4" />
-                  Download Strip PNG
+                  {stripLoading ? "Memproses..." : "Download Strip PNG"}
                 </Button>
                 <Button
                   onClick={retake}
                   variant="outline"
-                  className="w-full h-11 rounded-xl font-semibold gap-2"
-                  size="lg"
+                  className="h-11 rounded-xl font-semibold gap-2 px-5"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Sesi Baru / Ganti Tema
+                  Foto Ulang
                 </Button>
+              </div>
 
-                <div className="pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground text-center mb-3">
-                    Suka hasilnya? Yuk booking sesi foto sungguhan!
-                  </p>
-                  <Link href="/booking">
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                    >
-                      Booking Studio Sekarang
-                    </Button>
-                  </Link>
-                </div>
+              <div className="border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Suka hasilnya? Yuk booking sesi foto sungguhan di studio kami!
+                </p>
+                <Link href="/booking">
+                  <Button variant="outline" className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors">
+                    Booking Studio Sekarang
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: strip preview */}
+            <div className="lg:w-[220px] shrink-0 sticky top-24">
+              <div className="bg-background rounded-2xl border border-border p-4 shadow-sm">
+                <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+                  Preview Strip
+                </p>
+                {stripLoading ? (
+                  <div className="flex flex-col gap-1.5">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="w-full aspect-[4/3] rounded-lg bg-muted animate-pulse" />
+                    ))}
+                    <p className="text-[10px] text-muted-foreground text-center mt-1">Memproses...</p>
+                  </div>
+                ) : stripUrl ? (
+                  <div
+                    className="rounded-xl overflow-hidden shadow-md"
+                    style={{ border: `3px solid ${theme.borderColor}` }}
+                  >
+                    <img
+                      src={stripUrl}
+                      alt="photo strip preview"
+                      className="block w-full"
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           </motion.div>
