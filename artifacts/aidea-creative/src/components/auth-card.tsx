@@ -40,12 +40,13 @@ const registerSchema = z
 type RegisterValues = z.infer<typeof registerSchema>;
 
 export function AuthCard({ initialMode }: { initialMode: "login" | "register" }) {
-  const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [location, setLocation] = useLocation();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const { data: settings } = useSiteSettings();
   const customLoginBg = settings?.loginBgImage;
+  const isLogin = location.startsWith("/login");
+  const isRegister = location.startsWith("/register");
 
   const explicitRedirect = useMemo(() => {
     const query = location.split("?")[1] ?? "";
@@ -175,11 +176,9 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
       return;
     }
     toast({ title: "Registrasi berhasil", description: "Cek email Anda untuk verifikasi." });
-    setMode("login");
   };
 
   const switchTo = (next: "login" | "register") => {
-    setMode(next);
     const newPath = next === "login" ? "/login" : "/register";
     const query = redirectTo !== "/profil" ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
     window.history.replaceState(null, "", `${import.meta.env.BASE_URL.replace(/\/$/, "")}${newPath}${query}`);
@@ -201,35 +200,6 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
             </div>
           </Link>
 
-          {/* Tab switcher */}
-          <div className="relative inline-flex p-1 mb-8 bg-muted rounded-full">
-            <motion.div
-              layout
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute inset-y-1 bg-foreground rounded-full"
-              style={{
-                width: "calc(50% - 4px)",
-                left: mode === "login" ? 4 : "calc(50% + 0px)",
-              }}
-            />
-            <button
-              onClick={() => switchTo("login")}
-              className={`relative z-10 px-6 py-2 text-sm font-semibold rounded-full transition-colors ${
-                mode === "login" ? "text-background" : "text-foreground"
-              }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={() => switchTo("register")}
-              className={`relative z-10 px-6 py-2 text-sm font-semibold rounded-full transition-colors ${
-                mode === "register" ? "text-background" : "text-foreground"
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-
           {!isSupabaseConfigured && (
             <Alert variant="destructive" className="mb-6">
               <AlertTitle>Konfigurasi dibutuhkan</AlertTitle>
@@ -238,7 +208,7 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
           )}
 
           <AnimatePresence mode="wait">
-            {mode === "login" ? (
+            {isLogin ? (
               <motion.div
                 key="login"
                 initial={{ opacity: 0, x: -20 }}
@@ -374,6 +344,15 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                     </Button>
                   </form>
                 </Form>
+
+                <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  atau
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <Button type="button" variant="outline" className="w-full rounded-full h-11" onClick={handleGoogle} disabled={!isSupabaseConfigured}>
+                  Daftar dengan Google
+                </Button>
 
                 <p className="mt-8 text-sm text-muted-foreground text-center">
                   Sudah punya akun?{" "}
