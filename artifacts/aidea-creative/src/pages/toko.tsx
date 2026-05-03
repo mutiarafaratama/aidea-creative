@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useListProduk } from "@workspace/api-client-react";
-import { ShoppingBag, Search, ChevronLeft, ChevronRight, X, Phone } from "lucide-react";
+import { ShoppingBag, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useCart } from "@/contexts/cart-context";
+import { CartButton, CartDrawer } from "@/components/cart-drawer";
 
 const kategoriLabel: Record<string, string> = {
   cetak_foto: "Cetak Foto",
@@ -27,16 +29,27 @@ type Produk = {
 };
 
 function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => void }) {
+  const { addToCart, items } = useCart();
   const images = (produk.gambarUrl ?? []).filter(Boolean);
   const [idx, setIdx] = useState(0);
+  const [qty, setQty] = useState(1);
   const total = images.length;
   const current = images[idx];
+  const inCart = items.find((i) => i.produkId === produk.id);
 
   const prev = () => setIdx((i) => (i - 1 + total) % total);
   const next = () => setIdx((i) => (i + 1) % total);
 
-  const waText = encodeURIComponent(`Halo, saya tertarik dengan produk *${produk.namaProduk}* (Rp ${produk.harga.toLocaleString("id-ID")}). Apakah masih tersedia?`);
-  const waHref = `https://wa.me/?text=${waText}`;
+  const handleAddToCart = () => {
+    addToCart({
+      produkId: produk.id,
+      namaProduk: produk.namaProduk,
+      harga: produk.harga,
+      stok: produk.stok,
+      gambarUrl: images[0] ?? null,
+    }, qty);
+    onClose();
+  };
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -82,9 +95,8 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
           <div className="p-6 flex flex-col">
             <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider flex items-center gap-2 flex-wrap">
               <span>{kategoriLabel[produk.kategori] ?? produk.kategori}</span>
-              {produk.ukuran && ["cetak", "album", "frame"].includes(produk.kategori) && (
+              {produk.ukuran && (
                 <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold normal-case text-[11px]">
-                  {produk.kategori === "cetak" ? "Ukuran " : produk.kategori === "album" ? "Album " : "Bingkai "}
                   {produk.ukuran}
                 </span>
               )}
@@ -113,14 +125,45 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
               </div>
             )}
 
+            {produk.stok > 0 && (
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm text-muted-foreground">Jumlah:</span>
+                <div className="flex items-center border border-border rounded-lg">
+                  <button
+                    type="button"
+                    className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    disabled={qty <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="w-10 text-center font-semibold text-sm">{qty}</span>
+                  <button
+                    type="button"
+                    className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
+                    onClick={() => setQty((q) => Math.min(produk.stok, q + 1))}
+                    disabled={qty >= produk.stok}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <span className="text-sm font-bold text-primary ml-auto">
+                  Rp {(produk.harga * qty).toLocaleString("id-ID")}
+                </span>
+              </div>
+            )}
+
             <div className="mt-auto flex gap-2 pt-4 border-t border-border">
-              <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
+              <Button variant="outline" onClick={onClose} className="flex-none">
                 <X className="h-4 w-4 mr-1" /> Tutup
               </Button>
-              <Button asChild className="flex-1" disabled={produk.stok === 0}>
-                <a href={waHref} target="_blank" rel="noreferrer">
-                  <Phone className="h-4 w-4 mr-1" /> Pesan via WhatsApp
-                </a>
+              <Button
+                className="flex-1"
+                disabled={produk.stok === 0}
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-4 w-4 mr-1.5" />
+                {inCart ? "Tambah Lagi" : "Tambah ke Keranjang"}
               </Button>
             </div>
           </div>
@@ -132,6 +175,7 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
 
 export default function Toko() {
   const { data: produkList, isLoading } = useListProduk();
+  const { addToCart } = useCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<Produk | null>(null);
 
@@ -143,8 +187,8 @@ export default function Toko() {
 
   return (
     <div className="min-h-screen container mx-auto px-4 py-8 sm:py-10">
-      <div className="flex justify-end mb-6">
-        <div className="relative w-full md:w-72">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 md:max-w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input
             placeholder="Cari produk..."
@@ -152,6 +196,9 @@ export default function Toko() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        <div className="shrink-0">
+          <CartButton />
         </div>
       </div>
 
@@ -182,7 +229,6 @@ export default function Toko() {
                 }}
                 className="overflow-hidden border-border hover:border-primary/40 hover:shadow-lg transition-all duration-200 flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 group"
               >
-                {/* Product image */}
                 <div className="h-36 sm:h-44 bg-muted relative flex items-center justify-center overflow-hidden">
                   {gambarPertama ? (
                     <img
@@ -194,26 +240,22 @@ export default function Toko() {
                     <ShoppingBag className="text-muted-foreground/30" size={36} />
                   )}
 
-                  {/* Category badge — top left */}
                   <span className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm text-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full border border-border/50 leading-tight">
                     {kategoriLabel[produk.kategori] ?? produk.kategori}
                   </span>
 
-                  {/* Extra photos badge */}
                   {totalGambar > 1 && (
                     <span className="absolute bottom-2 right-2 bg-background/80 backdrop-blur text-foreground border border-border/50 px-1.5 py-0.5 text-[10px] font-medium rounded-full">
                       +{totalGambar - 1}
                     </span>
                   )}
 
-                  {/* Low stock */}
                   {produk.stok < 5 && produk.stok > 0 && (
                     <span className="absolute top-2 right-2 bg-destructive/90 text-white px-2 py-0.5 text-[10px] font-bold rounded-full">
                       Sisa {produk.stok}
                     </span>
                   )}
 
-                  {/* Out of stock overlay */}
                   {produk.stok === 0 && (
                     <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-10">
                       <span className="bg-destructive text-destructive-foreground px-2.5 py-1 text-xs font-bold rounded-full">Habis</span>
@@ -221,22 +263,31 @@ export default function Toko() {
                   )}
                 </div>
 
-                {/* Card body */}
                 <CardContent className="p-2.5 sm:p-3 flex flex-col flex-1">
                   <h3 className="font-semibold text-xs sm:text-sm leading-snug line-clamp-2 mb-2">
                     {produk.namaProduk}
                   </h3>
                   <div className="mt-auto flex items-center justify-between gap-1.5">
                     <span className="font-bold text-xs sm:text-sm text-primary">
-                      Rp {produk.harga.toLocaleString('id-ID')}
+                      Rp {produk.harga.toLocaleString("id-ID")}
                     </span>
                     <Button
                       size="sm"
                       disabled={produk.stok === 0}
-                      onClick={(e) => { e.stopPropagation(); setSelected(produk); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart({
+                          produkId: produk.id,
+                          namaProduk: produk.namaProduk,
+                          harga: produk.harga,
+                          stok: produk.stok,
+                          gambarUrl: gambarPertama ?? null,
+                        });
+                      }}
                       className="h-7 px-2.5 text-xs rounded-full"
                     >
-                      Beli
+                      <ShoppingCart className="h-3 w-3 mr-1" />
+                      Tambah
                     </Button>
                   </div>
                 </CardContent>
@@ -251,6 +302,7 @@ export default function Toko() {
       </div>
 
       {selected && <ProductDetail produk={selected} onClose={() => setSelected(null)} />}
+      <CartDrawer />
     </div>
   );
 }

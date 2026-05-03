@@ -89,11 +89,11 @@ const STATUS_BAYAR: Record<string, { label: string; className: string }> = {
 };
 
 const STATUS_PESANAN: Record<string, { label: string; className: string }> = {
-  pending:    { label: "Menunggu",   className: "bg-amber-100 text-amber-800 border border-amber-200" },
-  processing: { label: "Diproses",   className: "bg-blue-100 text-blue-800 border border-blue-200" },
-  shipped:    { label: "Dikirim",    className: "bg-violet-100 text-violet-800 border border-violet-200" },
-  completed:  { label: "Selesai",    className: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
-  cancelled:  { label: "Dibatalkan", className: "bg-red-100 text-red-800 border border-red-200" },
+  diproses:   { label: "Diproses",   className: "bg-amber-100 text-amber-800 border border-amber-200" },
+  dikerjakan: { label: "Dikerjakan", className: "bg-blue-100 text-blue-800 border border-blue-200" },
+  dikirim:    { label: "Dikirim",    className: "bg-violet-100 text-violet-800 border border-violet-200" },
+  selesai:    { label: "Selesai",    className: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
+  dibatalkan: { label: "Dibatalkan", className: "bg-red-100 text-red-800 border border-red-200" },
 };
 
 function StatusBadge({

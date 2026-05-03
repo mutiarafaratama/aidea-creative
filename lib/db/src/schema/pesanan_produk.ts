@@ -17,6 +17,8 @@ export const pesananProdukTable = pgTable("pesanan_produk", {
   alamatPengiriman: text("alamat_pengiriman"),
   catatan: text("catatan"),
   statusPembayaran: paymentStatusEnum("status_pembayaran").notNull().default("belum_bayar"),
+  midtransOrderId: text("midtrans_order_id"),
+  midtransSnapToken: text("midtrans_snap_token"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

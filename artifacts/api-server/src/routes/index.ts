@@ -17,6 +17,7 @@ import kbRouter from "./kb";
 import usersRouter from "./users";
 import chatRouter from "./chat";
 import meRouter from "./me";
+import pesananRouter from "./pesanan";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(kbRouter);
 router.use(usersRouter);
 router.use(chatRouter);
 router.use(meRouter);
+router.use(pesananRouter);
 
 export default router;

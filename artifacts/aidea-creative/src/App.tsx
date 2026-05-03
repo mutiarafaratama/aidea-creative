@@ -8,6 +8,7 @@ import { Layout } from "@/components/layout";
 import { AiChatbot } from "@/components/ai-chatbot";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { CartProvider } from "@/contexts/cart-context";
 
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
@@ -16,6 +17,7 @@ import NotFound from "@/pages/not-found";
 import AdminBeranda from "@/pages/admin/beranda";
 import AdminBookings from "@/pages/admin/bookings";
 import AdminProduk from "@/pages/admin/produk";
+import AdminPesanan from "@/pages/admin/pesanan";
 import AdminPortfolio from "@/pages/admin/portfolio";
 import AdminJadwal from "@/pages/admin/jadwal";
 import AdminTestimoni from "@/pages/admin/testimoni";
@@ -128,6 +130,7 @@ function Router() {
         <Route path="/dashboard"><ProtectedRoute requireAdmin><AdminBeranda /></ProtectedRoute></Route>
         <Route path="/dashboard/booking"><ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute></Route>
         <Route path="/dashboard/produk"><ProtectedRoute requireAdmin><AdminProduk /></ProtectedRoute></Route>
+        <Route path="/dashboard/pesanan"><ProtectedRoute requireAdmin><AdminPesanan /></ProtectedRoute></Route>
         <Route path="/dashboard/portfolio"><ProtectedRoute requireAdmin><AdminPortfolio /></ProtectedRoute></Route>
         <Route path="/dashboard/jadwal"><ProtectedRoute requireAdmin><AdminJadwal /></ProtectedRoute></Route>
         <Route path="/dashboard/testimoni"><ProtectedRoute requireAdmin><AdminTestimoni /></ProtectedRoute></Route>
@@ -150,9 +153,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
+          <CartProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </CartProvider>
         </AuthProvider>
         <Toaster />
       </TooltipProvider>
