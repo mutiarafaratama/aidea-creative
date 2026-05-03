@@ -158,11 +158,11 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label className="text-sm mb-1.5 block">Nama Lengkap</Label>
-            <Input value={nama} onChange={(e) => setNama(e.target.value)} placeholder="Nama pemesan" required />
+            <Input value={nama} readOnly className="bg-muted/50 cursor-not-allowed text-muted-foreground" />
           </div>
           <div>
             <Label className="text-sm mb-1.5 block">Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" required />
+            <Input type="email" value={email} readOnly className="bg-muted/50 cursor-not-allowed text-muted-foreground" />
           </div>
           <div>
             <Label className="text-sm mb-1.5 block">No. WhatsApp</Label>
