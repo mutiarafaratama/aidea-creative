@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { testimoniTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { attachAuth, requireAdmin } from "../middlewares/auth";
+import { attachAuth, requireAuth, requireAdmin } from "../middlewares/auth";
 
 const router = Router();
 
@@ -10,6 +10,7 @@ const formatTestimoni = (r: typeof testimoniTable.$inferSelect) => ({
   id: r.id,
   pelangganId: r.pelangganId,
   bookingId: r.bookingId,
+  pesananId: r.pesananId,
   rating: r.rating,
   komentar: r.komentar,
   namaTampil: r.namaTampil,
@@ -30,6 +31,20 @@ router.get("/testimoni", async (req, res) => {
   }
 });
 
+router.get("/testimoni/me", requireAuth, async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(testimoniTable)
+      .where(eq(testimoniTable.pelangganId, req.authUser!.id))
+      .orderBy(desc(testimoniTable.createdAt));
+    res.json(rows.map(formatTestimoni));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list my testimoni");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/testimoni", attachAuth, async (req, res) => {
   try {
     const body = req.body;
@@ -41,6 +56,7 @@ router.post("/testimoni", attachAuth, async (req, res) => {
         komentar: body.komentar,
         fotoUrl: body.fotoUrl ?? null,
         bookingId: body.bookingId ?? null,
+        pesananId: body.pesananId ?? null,
         pelangganId: req.authUser?.id ?? null,
         isApproved: false,
       })

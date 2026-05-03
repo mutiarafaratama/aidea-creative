@@ -11,6 +11,7 @@ import {
   Loader2,
   LogOut,
   MessageSquare,
+  PenLine,
   Phone,
   Printer,
   Save,
@@ -91,8 +92,20 @@ type TestimoniRow = {
   id: string;
   rating: number;
   komentar: string;
+  isApproved: boolean;
   is_approved: boolean;
+  bookingId: string | null;
+  pesananId: string | null;
+  createdAt: string;
   created_at: string;
+};
+
+type TestimoniDialogState = {
+  bookingId?: string;
+  pesananId?: string;
+  namaTampil: string;
+  rating: number;
+  komentar: string;
 };
 
 const STATUS_BOOKING: Record<string, { label: string; className: string }> = {
@@ -528,6 +541,8 @@ export default function Profil() {
   const [isTerimaPesanan, setIsTerimaPesanan] = useState(false);
   const [cancelDialog, setCancelDialog] = useState<{ booking: BookingRow; alasan: string } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [testimoniDialog, setTestimoniDialog] = useState<TestimoniDialogState | null>(null);
+  const [isSubmittingTestimoni, setIsSubmittingTestimoni] = useState(false);
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -594,11 +609,11 @@ export default function Profil() {
           headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
         }).then((r) => r.json())
       ),
-      supabase
-        .from("testimoni")
-        .select("id,rating,komentar,is_approved,created_at")
-        .eq("pelanggan_id", user.id)
-        .order("created_at", { ascending: false }),
+      supabase.auth.getSession().then(({ data: { session } }) =>
+        fetch("/api/testimoni/me", {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        }).then((r) => r.json())
+      ),
     ]).then(([b, p, t]) => {
       if (!b.error) setBooking((b.data ?? []) as BookingRow[]);
       if (Array.isArray(p)) {
@@ -610,7 +625,13 @@ export default function Profil() {
           created_at: x.createdAt,
         })));
       }
-      if (!t.error) setTestimoni((t.data ?? []) as TestimoniRow[]);
+      if (Array.isArray(t)) {
+        setTestimoni(t.map((x: any) => ({
+          ...x,
+          is_approved: x.isApproved,
+          created_at: x.createdAt,
+        })) as TestimoniRow[]);
+      }
       setDataLoading(false);
     });
   }, [user]);
@@ -752,6 +773,49 @@ export default function Profil() {
       toast({ title: "Gagal", description: e.message, variant: "destructive" });
     } finally {
       setIsTerimaPesanan(false);
+    }
+  };
+
+  const submitTestimoni = async () => {
+    if (!testimoniDialog || !supabase) return;
+    if (!testimoniDialog.komentar.trim() || testimoniDialog.komentar.trim().length < 10) {
+      toast({ title: "Komentar terlalu pendek", description: "Minimal 10 karakter.", variant: "destructive" });
+      return;
+    }
+    if (!testimoniDialog.namaTampil.trim()) {
+      toast({ title: "Nama wajib diisi", variant: "destructive" });
+      return;
+    }
+    setIsSubmittingTestimoni(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch("/api/testimoni", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          namaTampil: testimoniDialog.namaTampil.trim(),
+          rating: testimoniDialog.rating,
+          komentar: testimoniDialog.komentar.trim(),
+          bookingId: testimoniDialog.bookingId ?? null,
+          pesananId: testimoniDialog.pesananId ?? null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Gagal mengirim testimoni");
+      }
+      const newTesti = await res.json();
+      setTestimoni((prev) => [{ ...newTesti, is_approved: newTesti.isApproved, created_at: newTesti.createdAt }, ...prev]);
+      setTestimoniDialog(null);
+      toast({ title: "Testimoni dikirim!", description: "Testimoni Anda sedang menunggu persetujuan admin." });
+    } catch (e: any) {
+      toast({ title: "Gagal", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSubmittingTestimoni(false);
     }
   };
 
@@ -1208,6 +1272,31 @@ export default function Profil() {
                     Saya Sudah Menerima Pesanan
                   </Button>
                 )}
+                {selectedPesanan.status === "selesai" && (() => {
+                  const sudahTesti = testimoni.some((t) => t.pesananId === selectedPesanan.id);
+                  return sudahTesti ? (
+                    <div className="w-full text-center text-xs text-muted-foreground py-1">
+                      ✓ Testimoni sudah dikirim
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 text-primary border-primary/30 hover:bg-primary/5"
+                      onClick={() => {
+                        setSelectedPesanan(null);
+                        setTestimoniDialog({
+                          pesananId: selectedPesanan.id,
+                          namaTampil: namaLengkap || selectedPesanan.namaPemesan,
+                          rating: 5,
+                          komentar: "",
+                        });
+                      }}
+                    >
+                      <PenLine className="h-4 w-4" />
+                      Tulis Testimoni
+                    </Button>
+                  );
+                })()}
                 <Button
                   variant="outline"
                   className="w-full"
@@ -1363,6 +1452,31 @@ export default function Profil() {
                   <Printer className="h-4 w-4" />
                   Cetak / Unduh Struk
                 </Button>
+                {selectedBooking.status === "selesai" && (() => {
+                  const sudahTesti = testimoni.some((t) => t.bookingId === selectedBooking.id);
+                  return sudahTesti ? (
+                    <div className="w-full text-center text-xs text-muted-foreground py-1">
+                      ✓ Testimoni sudah dikirim
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 text-primary border-primary/30 hover:bg-primary/5"
+                      onClick={() => {
+                        setSelectedBooking(null);
+                        setTestimoniDialog({
+                          bookingId: selectedBooking.id,
+                          namaTampil: namaLengkap || selectedBooking.nama_pemesan,
+                          rating: 5,
+                          komentar: "",
+                        });
+                      }}
+                    >
+                      <PenLine className="h-4 w-4" />
+                      Tulis Testimoni
+                    </Button>
+                  );
+                })()}
                 {(selectedBooking.status === "menunggu" || selectedBooking.status === "dikonfirmasi") && (
                   <Button
                     variant="outline"
@@ -1379,6 +1493,94 @@ export default function Profil() {
                   onClick={() => setSelectedBooking(null)}
                 >
                   Tutup
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Testimoni Dialog ── */}
+      <Dialog open={!!testimoniDialog} onOpenChange={(open) => !open && setTestimoniDialog(null)}>
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl">
+          {testimoniDialog && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <PenLine className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle>Tulis Testimoni</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Bagikan pengalaman Anda bersama AideaCreative Studio
+                    </p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Nama Tampil</Label>
+                  <Input
+                    placeholder="Nama Anda"
+                    value={testimoniDialog.namaTampil}
+                    onChange={(e) => setTestimoniDialog((prev) => prev ? { ...prev, namaTampil: e.target.value } : prev)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Penilaian</Label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setTestimoniDialog((prev) => prev ? { ...prev, rating: star } : prev)}
+                        className="focus:outline-none transition-transform hover:scale-110"
+                      >
+                        <Star
+                          size={28}
+                          fill={star <= testimoniDialog.rating ? "currentColor" : "none"}
+                          className={star <= testimoniDialog.rating ? "text-amber-400" : "text-muted-foreground"}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Ulasan</Label>
+                  <Textarea
+                    placeholder="Ceritakan pengalaman Anda... (min. 10 karakter)"
+                    className="resize-none"
+                    rows={4}
+                    value={testimoniDialog.komentar}
+                    onChange={(e) => setTestimoniDialog((prev) => prev ? { ...prev, komentar: e.target.value } : prev)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setTestimoniDialog(null)}
+                  disabled={isSubmittingTestimoni}
+                >
+                  Batal
+                </Button>
+                <Button
+                  className="flex-1 gap-2"
+                  onClick={submitTestimoni}
+                  disabled={isSubmittingTestimoni}
+                >
+                  {isSubmittingTestimoni ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <PenLine className="h-4 w-4" />
+                  )}
+                  Kirim Testimoni
                 </Button>
               </div>
             </>

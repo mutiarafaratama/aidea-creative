@@ -1,26 +1,9 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useListTestimoni, useCreateTestimoni } from "@workspace/api-client-react";
-import { Star, Loader2, Quote, BadgeCheck, PenLine, BarChart2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useListTestimoni } from "@workspace/api-client-react";
+import { Star, Quote, BadgeCheck, BarChart2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
-import { useAuth } from "@/lib/auth";
-import { useIsMobile } from "@/hooks/use-mobile";
-
-const testimoniSchema = z.object({
-  namaTampil: z.string().min(2, "Nama harus diisi"),
-  rating: z.coerce.number().min(1).max(5),
-  komentar: z.string().min(10, "Komentar minimal 10 karakter"),
-});
 
 const AVATAR_COLORS = [
   "bg-blue-100 text-blue-700",
@@ -61,38 +44,9 @@ function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
 }
 
 export default function Testimoni() {
-  const { toast } = useToast();
-  const { user, profile } = useAuth();
-  const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [statsOpen, setStatsOpen] = useState(false);
-  const { data: testimoniList, isLoading, refetch } = useListTestimoni();
-
-  const createTestimoni = useCreateTestimoni();
-
-  const form = useForm<z.infer<typeof testimoniSchema>>({
-    resolver: zodResolver(testimoniSchema),
-    defaultValues: { namaTampil: "", rating: 5, komentar: "" },
-  });
-
-  const onSubmit = (values: z.infer<typeof testimoniSchema>) => {
-    if (!user) {
-      toast({ title: "Login diperlukan", description: "Silakan login untuk menulis testimoni.", variant: "destructive" });
-      return;
-    }
-    createTestimoni.mutate({ data: values }, {
-      onSuccess: () => {
-        toast({ title: "Terima Kasih!", description: "Ulasan Anda sedang menunggu persetujuan admin." });
-        setOpen(false);
-        form.reset();
-        refetch();
-      },
-      onError: () => {
-        toast({ title: "Gagal", description: "Tidak dapat menyimpan ulasan. Coba lagi.", variant: "destructive" });
-      }
-    });
-  };
+  const { data: testimoniList, isLoading } = useListTestimoni();
 
   const allList = testimoniList ?? [];
   const avgRating = allList.length > 0
@@ -105,52 +59,11 @@ export default function Testimoni() {
 
   const filtered = filterRating ? allList.filter(t => t.rating === filterRating) : allList;
 
-  const reviewFormContent = (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-        <FormField control={form.control} name="namaTampil" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nama Anda</FormLabel>
-            <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField control={form.control} name="rating" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Penilaian</FormLabel>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button key={star} type="button" onClick={() => field.onChange(star)} className="focus:outline-none">
-                  <Star size={28} fill={star <= field.value ? "currentColor" : "none"}
-                    className={star <= field.value ? "text-amber-400" : "text-muted-foreground"} />
-                </button>
-              ))}
-            </div>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField control={form.control} name="komentar" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Ulasan</FormLabel>
-            <FormControl>
-              <Textarea placeholder="Ceritakan pengalaman Anda..." className="resize-none" rows={4} {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <Button type="submit" className="w-full mt-4" disabled={createTestimoni.isPending}>
-          {createTestimoni.isPending && <Loader2 className="animate-spin mr-2" />}
-          Kirim Ulasan
-        </Button>
-      </form>
-    </Form>
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
 
-        {/* Filter row: filters + stats icon + write button */}
+        {/* Filter row: filters + stats icon */}
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {!isLoading && allList.length > 0 && (<>
             <button
@@ -177,44 +90,7 @@ export default function Testimoni() {
               <BarChart2 size={14} />
             </button>
           </>)}
-
-          {/* Write review — pushed to the right */}
-          <button
-            onClick={() => {
-              if (profile?.nama_lengkap) form.setValue("namaTampil", profile.nama_lengkap);
-              setOpen(true);
-            }}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-primary bg-primary text-primary-foreground hover:opacity-90 transition-all"
-          >
-            <PenLine size={11} />
-            Tulis Ulasan
-          </button>
         </div>
-
-        {/* Write review — Drawer on mobile, Dialog on desktop */}
-        {isMobile ? (
-          <Drawer open={open} onOpenChange={setOpen}>
-            <DrawerContent>
-              <DrawerHeader className="text-left px-6 pt-2 pb-0">
-                <DrawerTitle className="font-serif">Tulis Ulasan</DrawerTitle>
-                <DrawerDescription>Bagaimana pengalaman pemotretan Anda bersama AideaCreative?</DrawerDescription>
-              </DrawerHeader>
-              <div className="px-6 pb-8 overflow-y-auto">
-                {reviewFormContent}
-              </div>
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle className="font-serif">Tulis Ulasan</DialogTitle>
-                <DialogDescription>Bagaimana pengalaman pemotretan Anda bersama AideaCreative?</DialogDescription>
-              </DialogHeader>
-              {reviewFormContent}
-            </DialogContent>
-          </Dialog>
-        )}
 
         {/* Stats modal */}
         <Dialog open={statsOpen} onOpenChange={setStatsOpen}>
