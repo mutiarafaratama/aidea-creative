@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, MessageCircle, Package, Phone, Mail, ShoppingBag, Check, X, Wallet } from "lucide-react";
+import { Search, Eye, MessageCircle, Package, Phone, Mail, Check, X, Wallet, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { adminFetch } from "@/lib/admin-api";
@@ -89,6 +90,8 @@ export default function AdminPesanan() {
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Pesanan | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [hapusDialog, setHapusDialog] = useState<Pesanan | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const load = async () => {
     try {
@@ -144,6 +147,21 @@ export default function AdminPesanan() {
       toast({ title: "Gagal", variant: "destructive" });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const hapusPesanan = async (p: Pesanan) => {
+    setIsDeleting(true);
+    try {
+      await adminFetch(`/api/pesanan/${p.id}`, { method: "DELETE" });
+      setPesanan((prev) => prev.filter((x) => x.id !== p.id));
+      setHapusDialog(null);
+      setDetail(null);
+      toast({ title: "Pesanan dihapus", description: `#${p.kodePesanan} telah dihapus.` });
+    } catch {
+      toast({ title: "Gagal menghapus pesanan", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -228,6 +246,14 @@ export default function AdminPesanan() {
                               <MessageCircle className="h-4 w-4" />
                             </Button>
                           </a>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                            onClick={(e) => { e.stopPropagation(); setHapusDialog(p); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -363,12 +389,60 @@ export default function AdminPesanan() {
                       <Check className="h-4 w-4 mr-1" /> Tandai Selesai
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => setHapusDialog(detail)}
+                  >
+                    <Trash2 className="h-4 w-4" /> Hapus Pesanan
+                  </Button>
                 </div>
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* ── Konfirmasi Hapus Pesanan ── */}
+      <Dialog open={!!hapusDialog} onOpenChange={(open) => !open && setHapusDialog(null)}>
+        <DialogContent className="sm:max-w-sm">
+          {hapusDialog && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <Trash2 className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <DialogTitle>Hapus Pesanan?</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5 font-mono">{hapusDialog.kodePesanan}</p>
+                  </div>
+                </div>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Pesanan <span className="font-semibold text-foreground">{hapusDialog.namaPemesan}</span> akan dihapus permanen beserta semua item-nya. Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex gap-2 mt-1">
+                <Button variant="outline" className="flex-1" onClick={() => setHapusDialog(null)} disabled={isDeleting}>
+                  Batal
+                </Button>
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700 gap-2"
+                  onClick={() => hapusPesanan(hapusDialog)}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Ya, Hapus
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
