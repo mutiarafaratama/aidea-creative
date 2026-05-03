@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Camera, Loader2, Lock, UserPlus, Sparkles } from "lucide-react";
+import { Camera, Loader2, Lock, UserPlus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { isSupabaseConfigured, supabase, supabaseConfigMessage } from "@/lib/supabase";
 import { useSiteSettings } from "@/lib/settings";
+import { useListPortfolio } from "@workspace/api-client-react";
 
-const heroPhotos = [
+const FALLBACK_PHOTOS = [
   "/images/portfolio-wedding.png",
   "/images/portfolio-family.png",
   "/images/portfolio-graduation.png",
@@ -47,6 +48,17 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
   const customLoginBg = settings?.loginBgImage;
   const isLogin = location.startsWith("/login");
   const isRegister = location.startsWith("/register");
+
+  const { data: portfolioList } = useListPortfolio();
+  const sidePhotos = (() => {
+    const items = Array.isArray(portfolioList) ? portfolioList : [];
+    const urls: string[] = [];
+    for (const p of items) {
+      const arr = Array.isArray(p.gambarUrl) ? p.gambarUrl : [];
+      for (const u of arr) { if (u) urls.push(u); }
+    }
+    return urls.length >= 4 ? urls.slice(0, 12) : FALLBACK_PHOTOS;
+  })();
 
   const explicitRedirect = useMemo(() => {
     const query = location.split("?")[1] ?? "";
@@ -367,44 +379,39 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
         </div>
       </div>
 
-      {/* RIGHT: Visual panel with auto-scrolling photos OR custom bg */}
-      <div className="hidden lg:flex w-1/2 bg-foreground relative overflow-hidden">
+      {/* RIGHT: Visual panel — real portfolio photos from DB */}
+      <div className="hidden lg:block w-1/2 bg-[#0c1220] relative overflow-hidden">
         {customLoginBg ? (
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${customLoginBg})` }}
           />
         ) : (
-          <div className="absolute inset-0 grid grid-cols-2 gap-3 p-3 [mask-image:linear-gradient(to_bottom,transparent_0%,black_10%,black_90%,transparent_100%)]">
-            {[0, 1].map((col) => (
-              <div key={col} className="overflow-hidden">
-                <motion.div
-                  initial={{ y: col === 0 ? "0%" : "-50%" }}
-                  animate={{ y: col === 0 ? "-50%" : "0%" }}
-                  transition={{ duration: 40 + col * 8, repeat: Infinity, ease: "linear" }}
-                  className="flex flex-col gap-3"
-                >
-                  {[...heroPhotos, ...heroPhotos].map((src, i) => (
-                    <div key={`${col}-${i}`} className="aspect-[3/4] rounded-2xl overflow-hidden bg-white/5">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </motion.div>
-              </div>
-            ))}
+          <div className="absolute inset-0 grid grid-cols-2 gap-3 p-3 [mask-image:linear-gradient(to_bottom,transparent_0%,black_8%,black_92%,transparent_100%)]">
+            {[0, 1].map((col) => {
+              const colPhotos = sidePhotos.filter((_, i) => i % 2 === col);
+              const doubled = [...colPhotos, ...colPhotos];
+              return (
+                <div key={col} className="overflow-hidden">
+                  <motion.div
+                    initial={{ y: col === 0 ? "0%" : "-50%" }}
+                    animate={{ y: col === 0 ? "-50%" : "0%" }}
+                    transition={{ duration: 38 + col * 10, repeat: Infinity, ease: "linear" }}
+                    className="flex flex-col gap-3"
+                  >
+                    {doubled.map((src, i) => (
+                      <div key={`${col}-${i}`} className="aspect-[3/4] rounded-2xl overflow-hidden bg-white/5">
+                        <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    ))}
+                  </motion.div>
+                </div>
+              );
+            })}
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-br from-foreground/40 via-transparent to-primary/30" />
-        <div className="relative z-10 flex flex-col justify-end p-12 text-background">
-          <Sparkles className="h-8 w-8 mb-4 text-amber-300" />
-          <h2 className="text-4xl font-bold leading-tight mb-3">
-            Abadikan momenmu<br />
-            <span className="italic font-serif text-amber-300">bersama kami.</span>
-          </h2>
-          <p className="text-background/70 text-sm max-w-sm">
-            500+ pelanggan, ratusan momen tak terlupakan. Saatnya giliran kamu.
-          </p>
-        </div>
+        {/* subtle gradient overlay only — no text */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0c1220]/30 via-transparent to-primary/20 pointer-events-none" />
       </div>
     </div>
   );

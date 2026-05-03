@@ -85,7 +85,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className={`hidden md:flex items-center transition-all duration-300 ${isScrolled ? "gap-4" : "gap-8"}`}>
+          <nav className={`hidden lg:flex items-center transition-all duration-300 ${isScrolled ? "gap-4" : "gap-8"}`}>
             <ul className={`flex items-center transition-all duration-300 ${isScrolled ? "gap-4" : "gap-6"}`}>
               {navLinks.map((link) => (
                 <li key={link.name}>
@@ -136,28 +136,28 @@ export function Layout({ children }: { children: ReactNode }) {
 
           {/* Mobile Toggle */}
           <button
-            className="md:hidden z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur"
+            className="lg:hidden z-50 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 text-foreground shadow-sm backdrop-blur"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={mobileMenuOpen}
           >
-            <Menu size={22} />
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={22} />}
           </button>
         </div>
 
         {mobileMenuOpen && (
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] md:hidden"
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] lg:hidden"
             aria-label="Tutup menu"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
 
         <div
-          className={`fixed right-0 top-0 z-50 h-screen w-[86vw] max-w-sm border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out md:hidden ${
+          className={`fixed right-0 top-0 z-50 h-screen w-[86vw] max-w-sm border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
             mobileMenuOpen ? "translate-x-0" : "translate-x-full"
-          } md:hidden`}
+          }`}
         >
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-border px-5 py-5">
