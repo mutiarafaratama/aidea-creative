@@ -1,37 +1,34 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, X } from "lucide-react";
+import { Search, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useListPortfolio } from "@workspace/api-client-react";
+import type { Portfolio } from "@workspace/api-client-react";
 
-type Item = { src: string; alt: string; title: string; category: string; ratio: number };
+export default function PortfolioPage() {
+  const { data, isLoading } = useListPortfolio({}, { refetchInterval: 5000 });
+  const items: Portfolio[] = Array.isArray(data) ? data : [];
 
-const items: Item[] = [
-  { src: "/images/portfolio-wedding.png",    alt: "Wedding",    title: "Wedding Romansa Pringsewu",     category: "Wedding",    ratio: 4 / 5 },
-  { src: "/images/portfolio-family.png",     alt: "Family",     title: "Hangatnya Keluarga Aulia",      category: "Keluarga",   ratio: 3 / 4 },
-  { src: "/images/portfolio-graduation.png", alt: "Graduation", title: "Wisuda Sarjana 2025",           category: "Wisuda",     ratio: 1     },
-  { src: "/images/portfolio-product.png",    alt: "Product",    title: "Katalog UMKM Pringsewu",        category: "Produk",     ratio: 4 / 5 },
-  { src: "/images/hero-bg.png",              alt: "Studio",     title: "Studio Indoor Cinematic",       category: "Studio",     ratio: 3 / 4 },
-  { src: "/images/portfolio-wedding.png",    alt: "Pre-wed",    title: "Prewedding Outdoor Sunset",     category: "Wedding",    ratio: 3 / 4 },
-  { src: "/images/portfolio-family.png",     alt: "Anak",       title: "Cerita Si Kecil",               category: "Keluarga",   ratio: 1     },
-  { src: "/images/portfolio-product.png",    alt: "Kuliner",    title: "Kuliner UMKM",                  category: "Produk",     ratio: 4 / 5 },
-  { src: "/images/portfolio-graduation.png", alt: "Wisuda 2",   title: "Toga & Cerita Kelulusan",       category: "Wisuda",     ratio: 3 / 4 },
-];
-
-const categories = ["Semua", "Wedding", "Keluarga", "Wisuda", "Produk", "Studio"] as const;
-
-export default function Portfolio() {
-  const [active, setActive] = useState<(typeof categories)[number]>("Semua");
+  const [active, setActive] = useState("Semua");
   const [query, setQuery] = useState("");
-  const [lightbox, setLightbox] = useState<Item | null>(null);
+  const [lightbox, setLightbox] = useState<Portfolio | null>(null);
+
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(items.map((i) => i.kategori))).filter(Boolean);
+    return ["Semua", ...cats];
+  }, [items]);
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
-      const matchCat = active === "Semua" || i.category === active;
-      const matchQ = query.trim() === "" || `${i.title} ${i.category}`.toLowerCase().includes(query.toLowerCase());
+      const matchCat = active === "Semua" || i.kategori === active;
+      const matchQ =
+        query.trim() === "" ||
+        `${i.judul} ${i.kategori} ${i.tags.join(" ")}`.toLowerCase().includes(query.toLowerCase());
       return matchCat && matchQ;
     });
-  }, [active, query]);
+  }, [items, active, query]);
 
   return (
     <div className="bg-muted/30 min-h-screen">
@@ -65,39 +62,56 @@ export default function Portfolio() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <p className="text-center py-20 text-muted-foreground">Belum ada karya untuk filter ini.</p>
+        {isLoading ? (
+          <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="mb-4 break-inside-avoid">
+                <Skeleton className="w-full rounded-2xl" style={{ aspectRatio: i % 3 === 0 ? "4/5" : i % 2 === 0 ? "3/4" : "1" }} />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center py-20 text-muted-foreground">
+            {items.length === 0 ? "Belum ada foto portfolio." : "Belum ada karya untuk filter ini."}
+          </p>
         ) : (
           <div className="columns-2 md:columns-3 lg:columns-4 gap-4 [column-fill:_balance]">
-            {filtered.map((img, idx) => (
-              <motion.button
-                key={`${img.src}-${idx}`}
-                type="button"
-                onClick={() => setLightbox(img)}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: Math.min(idx * 0.04, 0.4) }}
-                className="mb-4 break-inside-avoid block w-full text-left relative group overflow-hidden rounded-2xl bg-card shadow-sm hover:shadow-xl ring-1 ring-border hover:ring-primary/30 transition-all"
-              >
-                <div style={{ aspectRatio: img.ratio }} className="w-full overflow-hidden bg-muted">
-                  <img
-                    src={img.src}
-                    alt={img.alt}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                </div>
-                <span className="absolute top-3 left-3 inline-flex items-center rounded-full bg-background/85 backdrop-blur-sm border border-border px-2.5 py-1 text-[10px] font-semibold text-foreground">
-                  {img.category}
-                </span>
-                <div className="absolute inset-0 flex items-end p-4 bg-gradient-to-t from-[#0e1b2e]/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div>
-                    <p className="text-white font-semibold text-sm leading-tight">{img.title}</p>
-                    <p className="text-white/70 text-xs mt-0.5">AideaCreative Studio</p>
+            {filtered.map((item, idx) => {
+              const firstImg = Array.isArray(item.gambarUrl) ? item.gambarUrl[0] : null;
+              if (!firstImg) return null;
+              const ratios = [4 / 5, 3 / 4, 1, 4 / 5, 3 / 4];
+              const ratio = ratios[idx % ratios.length];
+              return (
+                <motion.button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setLightbox(item)}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: Math.min(idx * 0.04, 0.4) }}
+                  className="mb-4 break-inside-avoid block w-full text-left relative group overflow-hidden rounded-2xl bg-card shadow-sm hover:shadow-xl ring-1 ring-border hover:ring-primary/30 transition-all"
+                >
+                  <div style={{ aspectRatio: ratio }} className="w-full overflow-hidden bg-muted">
+                    <img
+                      src={firstImg}
+                      alt={item.judul}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                   </div>
-                </div>
-              </motion.button>
-            ))}
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-sm border border-border px-2.5 py-1 text-[10px] font-semibold text-foreground capitalize">
+                    {item.isFeatured && <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />}
+                    {item.kategori}
+                  </span>
+                  <div className="absolute inset-0 flex items-end p-4 bg-gradient-to-t from-[#0e1b2e]/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div>
+                      <p className="text-white font-semibold text-sm leading-tight">{item.judul}</p>
+                      <p className="text-white/70 text-xs mt-0.5">AideaCreative Studio</p>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -116,11 +130,18 @@ export default function Portfolio() {
             <X className="h-5 w-5" />
           </button>
           <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
-            <img src={lightbox.src} alt={lightbox.alt} className="max-h-[80vh] w-full object-contain rounded-xl" />
+            <img
+              src={lightbox.gambarUrl[0]}
+              alt={lightbox.judul}
+              className="max-h-[80vh] w-full object-contain rounded-xl"
+            />
             <div className="mt-4 flex items-center justify-between gap-3 flex-wrap text-white">
               <div>
-                <p className="font-semibold">{lightbox.title}</p>
-                <p className="text-sm text-white/60">{lightbox.category}</p>
+                <p className="font-semibold">{lightbox.judul}</p>
+                <p className="text-sm text-white/60 capitalize">{lightbox.kategori}</p>
+                {lightbox.deskripsi && (
+                  <p className="text-sm text-white/50 mt-1">{lightbox.deskripsi}</p>
+                )}
               </div>
               <Button asChild className="rounded-full" onClick={() => setLightbox(null)}>
                 <a href="/booking">Booking Sesi Serupa</a>
