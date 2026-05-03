@@ -114,12 +114,10 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
 
   const handleGoogle = async () => {
     if (!supabase) return;
-    // Always send users back to the login route first so Supabase can complete
-    // the OAuth exchange, then role-based routing decides the final destination.
     const base = `${window.location.origin}${import.meta.env.BASE_URL}login`;
     const callback = explicitRedirect
       ? `${base}?redirect=${encodeURIComponent(explicitRedirect)}`
-      : `${base}?redirect=${encodeURIComponent(redirectTo)}`;
+      : `${base}?redirect=${encodeURIComponent("/profil")}`;
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
