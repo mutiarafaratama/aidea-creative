@@ -29,10 +29,6 @@ type PromoForm = {
   deskripsi: string;
   badge: string;
   gambarUrl: string;
-  link: string;
-  ctaLabel: string;
-  tampilMarquee: boolean;
-  tampilCard: boolean;
   tanggalMulai: string;
   tanggalBerakhir: string;
   isAktif: boolean;
@@ -44,10 +40,6 @@ const emptyForm: PromoForm = {
   deskripsi: "",
   badge: "",
   gambarUrl: "",
-  link: "",
-  ctaLabel: "",
-  tampilMarquee: true,
-  tampilCard: true,
   tanggalMulai: "",
   tanggalBerakhir: "",
   isAktif: true,
@@ -59,10 +51,6 @@ const toForm = (p: Promo): PromoForm => ({
   deskripsi: p.deskripsi,
   badge: p.badge ?? "",
   gambarUrl: p.gambarUrl ?? "",
-  link: p.link ?? "",
-  ctaLabel: p.ctaLabel ?? "",
-  tampilMarquee: p.tampilMarquee,
-  tampilCard: p.tampilCard,
   tanggalMulai: p.tanggalMulai ? p.tanggalMulai.slice(0, 10) : "",
   tanggalBerakhir: p.tanggalBerakhir ? p.tanggalBerakhir.slice(0, 10) : "",
   isAktif: p.isAktif,
@@ -74,11 +62,11 @@ const toBody = (f: PromoForm) => ({
   deskripsi: f.deskripsi.trim(),
   badge: f.badge.trim() || null,
   gambarUrl: f.gambarUrl.trim() || null,
-  link: f.link.trim() || null,
-  ctaLabel: f.ctaLabel.trim() || null,
+  link: null,
+  ctaLabel: null,
   warna: "primary",
-  tampilMarquee: f.tampilMarquee,
-  tampilCard: f.tampilCard,
+  tampilMarquee: true,
+  tampilCard: true,
   tanggalMulai: f.tanggalMulai ? new Date(f.tanggalMulai).toISOString() : null,
   tanggalBerakhir: f.tanggalBerakhir ? new Date(f.tanggalBerakhir).toISOString() : null,
   isAktif: f.isAktif,
@@ -168,7 +156,7 @@ export function AdminPromoManager() {
       <CardHeader className="flex flex-row justify-between items-center">
         <div>
           <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Manajemen Promo</CardTitle>
-          <p className="text-xs text-muted-foreground mt-1">Kelola banner marquee dan kartu promo yang tampil di website.</p>
+          <p className="text-xs text-muted-foreground mt-1">Kelola banner promo yang tampil di website. Promo aktif tampil di marquee atas dan section promo.</p>
         </div>
         <Button size="sm" onClick={handleOpenNew}><Plus className="mr-1 h-4 w-4" /> Tambah Promo</Button>
       </CardHeader>
@@ -181,7 +169,6 @@ export function AdminPromoManager() {
               <TableRow>
                 <TableHead>Judul</TableHead>
                 <TableHead>Badge</TableHead>
-                <TableHead>Tampil</TableHead>
                 <TableHead>Periode</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
@@ -190,7 +177,7 @@ export function AdminPromoManager() {
             <TableBody>
               {promos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada promo. Klik "Tambah Promo" untuk membuat.</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada promo. Klik "Tambah Promo" untuk membuat.</TableCell>
                 </TableRow>
               ) : (
                 promos.map((p) => (
@@ -200,12 +187,6 @@ export function AdminPromoManager() {
                       <div className="text-xs text-muted-foreground line-clamp-1 max-w-xs">{p.deskripsi}</div>
                     </TableCell>
                     <TableCell>{p.badge ? <Badge variant="outline">{p.badge}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="text-xs">
-                      <div className="flex flex-col gap-1">
-                        {p.tampilMarquee && <Badge variant="outline" className="w-fit">Marquee</Badge>}
-                        {p.tampilCard && <Badge variant="outline" className="w-fit">Card</Badge>}
-                      </div>
-                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {p.tanggalMulai ? new Date(p.tanggalMulai).toLocaleDateString("id-ID") : "—"}
                       {" — "}
@@ -234,10 +215,10 @@ export function AdminPromoManager() {
 
       {/* Edit/Create Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Promo" : "Tambah Promo Baru"}</DialogTitle>
-            <DialogDescription>Atur konten promo yang akan tampil di marquee atau kartu promo.</DialogDescription>
+            <DialogDescription>Promo aktif otomatis tampil di marquee atas dan section promo homepage.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -248,7 +229,7 @@ export function AdminPromoManager() {
               <Label htmlFor="deskripsi">Deskripsi *</Label>
               <Textarea id="deskripsi" rows={3} value={form.deskripsi} onChange={(e) => setForm({ ...form, deskripsi: e.target.value })} required />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="badge">Badge</Label>
                 <Input id="badge" placeholder="HEMAT 25%" value={form.badge} onChange={(e) => setForm({ ...form, badge: e.target.value })} />
@@ -264,17 +245,7 @@ export function AdminPromoManager() {
               value={form.gambarUrl}
               onChange={(url) => setForm({ ...form, gambarUrl: url })}
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="link">Link Tujuan</Label>
-                <Input id="link" placeholder="/paket?kategori=Photobox" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="ctaLabel">Label Tombol</Label>
-                <Input id="ctaLabel" placeholder="Pesan Sekarang" value={form.ctaLabel} onChange={(e) => setForm({ ...form, ctaLabel: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="tanggalMulai">Tanggal Mulai</Label>
                 <Input id="tanggalMulai" type="date" value={form.tanggalMulai} onChange={(e) => setForm({ ...form, tanggalMulai: e.target.value })} />
@@ -284,29 +255,13 @@ export function AdminPromoManager() {
                 <Input id="tanggalBerakhir" type="date" value={form.tanggalBerakhir} onChange={(e) => setForm({ ...form, tanggalBerakhir: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <label className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div>
-                  <p className="text-sm font-medium">Marquee</p>
-                  <p className="text-xs text-muted-foreground">Tampil di banner atas</p>
-                </div>
-                <Switch checked={form.tampilMarquee} onCheckedChange={(v) => setForm({ ...form, tampilMarquee: v })} />
-              </label>
-              <label className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div>
-                  <p className="text-sm font-medium">Card</p>
-                  <p className="text-xs text-muted-foreground">Tampil di section homepage</p>
-                </div>
-                <Switch checked={form.tampilCard} onCheckedChange={(v) => setForm({ ...form, tampilCard: v })} />
-              </label>
-              <label className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div>
-                  <p className="text-sm font-medium">Aktif</p>
-                  <p className="text-xs text-muted-foreground">Tampilkan ke publik</p>
-                </div>
-                <Switch checked={form.isAktif} onCheckedChange={(v) => setForm({ ...form, isAktif: v })} />
-              </label>
-            </div>
+            <label className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Aktif</p>
+                <p className="text-xs text-muted-foreground">Tampilkan ke publik</p>
+              </div>
+              <Switch checked={form.isAktif} onCheckedChange={(v) => setForm({ ...form, isAktif: v })} />
+            </label>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
               <Button type="submit" disabled={createMut.isPending || updateMut.isPending}>

@@ -1,15 +1,12 @@
-import { Link } from "wouter";
-import { ArrowRight, Tag } from "lucide-react";
-import { useListPromo, getListPromoQueryKey } from "@workspace/api-client-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Tag } from "lucide-react";
+import { useListPromo } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 
 export function PromoSection() {
   const { data } = useListPromo();
   const now = Date.now();
   const items = (Array.isArray(data) ? data : []).filter((p) => {
-    if (!p.isAktif || !p.tampilCard) return false;
+    if (!p.isAktif) return false;
     if (p.tanggalMulai && new Date(p.tanggalMulai).getTime() > now) return false;
     if (p.tanggalBerakhir && new Date(p.tanggalBerakhir).getTime() < now) return false;
     return true;
@@ -30,27 +27,37 @@ export function PromoSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.slice(0, 6).map((p) => (
-            <Card key={p.id} className="overflow-hidden border-border hover:shadow-lg transition-shadow group">
-              {p.gambarUrl && (
+        {/* Horizontal scroll container */}
+        <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+          {items.map((p) => (
+            <div
+              key={p.id}
+              className="snap-start shrink-0 w-72 md:w-80 rounded-2xl overflow-hidden border border-border bg-card hover:shadow-lg transition-shadow group"
+            >
+              {p.gambarUrl ? (
                 <div className="aspect-[16/9] overflow-hidden bg-muted">
-                  <img src={p.gambarUrl} alt={p.judul} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img
+                    src={p.gambarUrl}
+                    alt={p.judul}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-[16/9] bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                  <Tag className="h-10 w-10 text-primary/30" />
                 </div>
               )}
-              <CardContent className="p-6">
-                {p.badge && <Badge className="mb-3 bg-primary text-primary-foreground">{p.badge}</Badge>}
-                <h3 className="text-lg font-semibold text-foreground mb-2">{p.judul}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">{p.deskripsi}</p>
-                {p.link && (
-                  <Link href={p.link}>
-                    <Button variant="outline" size="sm" className="rounded-full">
-                      {p.ctaLabel ?? "Lihat Detail"} <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
+              <div className="p-5">
+                {p.badge && <Badge className="mb-2 bg-primary text-primary-foreground">{p.badge}</Badge>}
+                <h3 className="text-base font-semibold text-foreground mb-1">{p.judul}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{p.deskripsi}</p>
+                {p.tanggalBerakhir && (
+                  <p className="text-[11px] text-muted-foreground/70 mt-3">
+                    Berlaku s/d {new Date(p.tanggalBerakhir).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  </p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>
