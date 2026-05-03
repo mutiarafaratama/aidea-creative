@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -10,6 +10,8 @@ import {
   Sparkles,
   Star,
   Tag,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   useListPaket,
@@ -111,7 +113,7 @@ export default function Home() {
   const recentTestimonials = Array.isArray(testimoniList) ? testimoniList.slice(0, 8) : [];
   const now = Date.now();
   const promoBanners = (Array.isArray(promoList) ? promoList : []).filter((p) => {
-    if (!p.isAktif || !p.tampilCard) return false;
+    if (!p.isAktif) return false;
     if (p.tanggalMulai && new Date(p.tanggalMulai).getTime() > now) return false;
     if (p.tanggalBerakhir && new Date(p.tanggalBerakhir).getTime() < now) return false;
     return true;
@@ -122,9 +124,25 @@ export default function Home() {
   const heroY = useTransform(heroProgress, [0, 1], [0, 120]);
   const heroFade = useTransform(heroProgress, [0, 0.7], [1, 0]);
 
-  const promoRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: promoProgress } = useScroll({ target: promoRef, offset: ["start end", "end start"] });
-  const promoX = useTransform(promoProgress, [0, 1], ["10%", "-30%"]);
+  const promoScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = promoScrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const scrollPromo = (dir: "left" | "right") => {
+    const el = promoScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -340 : 340, behavior: "smooth" });
+  };
 
   return (
     <div className="w-full overflow-hidden">
@@ -237,8 +255,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PROMO BANNER (parallax horizontal) */}
-      <section ref={promoRef} className="relative py-16 bg-white overflow-hidden">
+      {/* PROMO BANNER (manual carousel) */}
+      <section className="relative py-16 bg-white">
         <div className="container mx-auto px-4 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -253,21 +271,43 @@ export default function Home() {
               </div>
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Hemat sekarang.</h2>
             </div>
-            <Link href="/paket" className="hidden md:inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-              Semua promo <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="flex items-center gap-2">
+              {promoBanners.length > 1 && (
+                <>
+                  <button
+                    onClick={() => scrollPromo("left")}
+                    className="h-9 w-9 rounded-full border border-border bg-background flex items-center justify-center hover:bg-muted transition"
+                    aria-label="Sebelumnya"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => scrollPromo("right")}
+                    className="h-9 w-9 rounded-full border border-border bg-background flex items-center justify-center hover:bg-muted transition"
+                    aria-label="Berikutnya"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+            </div>
           </motion.div>
         </div>
 
         {promoBanners.length > 0 ? (
-          <motion.div style={{ x: promoX }} className="flex gap-5 px-4 will-change-transform">
-            {promoBanners.concat(promoBanners).map((p, i) => (
-              <Link key={`${p.id}-${i}`} href={p.link ?? "/paket"}>
+          <div className="container mx-auto px-4">
+            <div
+              ref={promoScrollRef}
+              className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide"
+              style={{ overflowY: "hidden", touchAction: "pan-x" }}
+            >
+              {promoBanners.map((p) => (
                 <motion.div
-                  whileHover={{ y: -6 }}
-                  className="shrink-0 w-[320px] md:w-[420px] rounded-3xl overflow-hidden bg-card border border-border shadow-lg cursor-pointer"
+                  key={p.id}
+                  whileHover={{ y: -4 }}
+                  className="snap-start flex-none w-[300px] md:w-[400px] rounded-3xl overflow-hidden bg-card border border-border shadow-lg"
                 >
-                  <div className="relative h-48 md:h-56 bg-muted overflow-hidden">
+                  <div className="relative h-44 md:h-52 bg-muted overflow-hidden">
                     {p.gambarUrl ? (
                       <img src={p.gambarUrl} alt={p.judul} className="w-full h-full object-cover" />
                     ) : (
@@ -284,11 +324,16 @@ export default function Home() {
                   <div className="p-5">
                     <h3 className="font-bold text-lg mb-1 line-clamp-1">{p.judul}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2">{p.deskripsi}</p>
+                    {p.tanggalBerakhir && (
+                      <p className="text-[11px] text-muted-foreground/60 mt-2">
+                        s/d {new Date(p.tanggalBerakhir).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    )}
                   </div>
                 </motion.div>
-              </Link>
-            ))}
-          </motion.div>
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="container mx-auto px-4">
             <Card className="rounded-3xl border-dashed border-2 border-primary/30 bg-primary/5">
