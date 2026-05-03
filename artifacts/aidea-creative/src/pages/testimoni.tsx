@@ -46,7 +46,9 @@ function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
 export default function Testimoni() {
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [statsOpen, setStatsOpen] = useState(false);
-  const { data: testimoniList, isLoading } = useListTestimoni();
+  const { data: testimoniList, isLoading } = useListTestimoni({
+    query: { refetchInterval: 5000, staleTime: 0 },
+  });
 
   const allList = testimoniList ?? [];
   const avgRating = allList.length > 0
