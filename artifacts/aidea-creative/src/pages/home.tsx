@@ -261,7 +261,7 @@ export default function Home() {
       </section>
 
       {/* PROMO BANNER — auto-sliding center-focus carousel */}
-      <section className="relative py-16 bg-white overflow-hidden">
+      <section id="promo" className="relative py-16 bg-white overflow-hidden">
         <div className="container mx-auto px-4 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -278,130 +278,147 @@ export default function Home() {
 
         {promoBanners.length > 0 ? (
           <>
-            {/* Carousel stage — 5-card center-focus, no blur */}
+            {/* Carousel stage — 5-card center-focus */}
             <div
-              className="relative w-full overflow-hidden"
-              style={{ height: 420 }}
+              className="relative w-full"
+              style={{ height: 460 }}
               onMouseEnter={() => { promoHovered.current = true; }}
               onMouseLeave={() => { promoHovered.current = false; }}
             >
-              {/* Prev arrow */}
-              {promoBanners.length > 1 && (
-                <button
-                  onClick={promoPrev}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full border border-border bg-background/90 flex items-center justify-center hover:bg-muted transition shadow"
-                  aria-label="Sebelumnya"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-              )}
+              {/* Cards track — overflow hidden so far cards peek cleanly */}
+              <div className="relative w-full h-full overflow-hidden">
+                {(() => {
+                  const n = promoBanners.length;
 
-              {/* Cards — positions relative to center of container */}
-              {(() => {
-                const n = promoBanners.length;
+                  // [xOffset px from center, scale, opacity, zIndex]
+                  // Center card is widest; offsets create even left-2 / right-2 spacing
+                  const slotDefs: Record<string, [number, number, number, number]> = {
+                    "far-left":  [-440, 0.64, 0.55, 1],
+                    "left":      [-230, 0.82, 0.85, 2],
+                    "center":    [   0, 1.00, 1.00, 10],
+                    "right":     [ 230, 0.82, 0.85, 2],
+                    "far-right": [ 440, 0.64, 0.55, 1],
+                  };
 
-                // slot name → [xOffset from center (px), scale, opacity, zIndex]
-                // We show up to 5 cards: far-left, left, center, right, far-right
-                const slotDefs: Record<string, [number, number, number, number]> = {
-                  "far-left":  [-620, 0.70, 0.6, 1],
-                  "left":      [-330, 0.84, 0.85, 2],
-                  "center":    [0,    1.00, 1,    10],
-                  "right":     [330,  0.84, 0.85, 2],
-                  "far-right": [620,  0.70, 0.6,  1],
-                };
+                  type SlotKey = keyof typeof slotDefs;
 
-                type SlotKey = keyof typeof slotDefs;
+                  const buildSlots = (): { idx: number; slot: SlotKey }[] => {
+                    if (n === 1) return [{ idx: 0, slot: "center" }];
+                    if (n === 2) return [
+                      { idx: (promoActive - 1 + n) % n, slot: "left" },
+                      { idx: promoActive, slot: "center" },
+                    ];
+                    if (n === 3) return [
+                      { idx: (promoActive - 1 + n) % n, slot: "left" },
+                      { idx: promoActive, slot: "center" },
+                      { idx: (promoActive + 1) % n, slot: "right" },
+                    ];
+                    if (n === 4) return [
+                      { idx: (promoActive - 2 + n) % n, slot: "far-left" },
+                      { idx: (promoActive - 1 + n) % n, slot: "left" },
+                      { idx: promoActive, slot: "center" },
+                      { idx: (promoActive + 1) % n, slot: "right" },
+                    ];
+                    return [
+                      { idx: (promoActive - 2 + n) % n, slot: "far-left" },
+                      { idx: (promoActive - 1 + n) % n, slot: "left" },
+                      { idx: promoActive, slot: "center" },
+                      { idx: (promoActive + 1) % n, slot: "right" },
+                      { idx: (promoActive + 2) % n, slot: "far-right" },
+                    ];
+                  };
 
-                const buildSlots = (): { idx: number; slot: SlotKey }[] => {
-                  if (n === 1) return [{ idx: 0, slot: "center" }];
-                  if (n === 2) return [
-                    { idx: promoActive, slot: "center" },
-                    { idx: (promoActive + 1) % n, slot: "right" },
-                  ];
-                  if (n === 3) return [
-                    { idx: (promoActive - 1 + n) % n, slot: "left" },
-                    { idx: promoActive, slot: "center" },
-                    { idx: (promoActive + 1) % n, slot: "right" },
-                  ];
-                  if (n === 4) return [
-                    { idx: (promoActive - 1 + n) % n, slot: "left" },
-                    { idx: promoActive, slot: "center" },
-                    { idx: (promoActive + 1) % n, slot: "right" },
-                    { idx: (promoActive + 2) % n, slot: "far-right" },
-                  ];
-                  // n >= 5
-                  return [
-                    { idx: (promoActive - 2 + n) % n, slot: "far-left" },
-                    { idx: (promoActive - 1 + n) % n, slot: "left" },
-                    { idx: promoActive, slot: "center" },
-                    { idx: (promoActive + 1) % n, slot: "right" },
-                    { idx: (promoActive + 2) % n, slot: "far-right" },
-                  ];
-                };
-
-                return buildSlots().map(({ idx, slot }) => {
-                  const p = promoBanners[idx];
-                  const [xOffset, scale, opacity, zIndex] = slotDefs[slot];
-                  const isCenter = slot === "center";
-                  return (
-                    <div
-                      key={p.id + slot}
-                      onClick={() => !isCenter && setPromoActive(idx)}
-                      style={{
-                        position: "absolute",
-                        left: "50%",
-                        top: "50%",
-                        width: "clamp(220px, 28vw, 360px)",
-                        transform: `translate(calc(-50% + ${xOffset}px), -50%) scale(${scale})`,
-                        opacity,
-                        zIndex,
-                        transition: "transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease",
-                        cursor: isCenter ? "default" : "pointer",
-                      }}
-                    >
-                      <div className={`rounded-3xl overflow-hidden bg-card border border-border ${isCenter ? "shadow-2xl" : "shadow-md"} group`}>
-                        <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "16/9" }}>
-                          {p.gambarUrl ? (
-                            <img
-                              src={p.gambarUrl}
-                              alt={p.judul}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-primary/30 to-amber-200 flex items-center justify-center">
-                              <Sparkles className="h-12 w-12 text-white" />
-                            </div>
-                          )}
-                          {p.badge && (
-                            <Badge className="absolute top-4 left-4 bg-primary text-primary-foreground rounded-full shadow">
-                              {p.badge}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="p-4">
-                          <h3 className={`font-bold mb-1 line-clamp-1 ${isCenter ? "text-lg" : "text-sm"}`}>{p.judul}</h3>
-                          <p className={`text-muted-foreground line-clamp-2 ${isCenter ? "text-sm" : "text-xs"}`}>{p.deskripsi}</p>
-                          {p.tanggalBerakhir && isCenter && (
-                            <p className="text-[11px] text-muted-foreground/60 mt-2">
-                              s/d {new Date(p.tanggalBerakhir).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                  return buildSlots().map(({ idx, slot }) => {
+                    const p = promoBanners[idx];
+                    const [xOffset, scale, opacity, zIndex] = slotDefs[slot];
+                    const isCenter = slot === "center";
+                    const isAdj = slot === "left" || slot === "right";
+                    return (
+                      <div
+                        key={p.id + slot}
+                        onClick={() => !isCenter && setPromoActive(idx)}
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: "50%",
+                          width: "clamp(200px, 26vw, 330px)",
+                          transform: `translate(calc(-50% + ${xOffset}px), -50%) scale(${scale})`,
+                          opacity,
+                          zIndex,
+                          transition: "transform 0.48s cubic-bezier(0.4,0,0.2,1), opacity 0.48s ease",
+                          cursor: isCenter ? "default" : "pointer",
+                          transformOrigin: "center center",
+                        }}
+                      >
+                        <div
+                          className={`rounded-2xl overflow-hidden bg-card border ${
+                            isCenter
+                              ? "border-border/80 shadow-[0_8px_40px_rgba(0,0,0,0.18)]"
+                              : isAdj
+                              ? "border-border/50 shadow-lg"
+                              : "border-border/30 shadow-sm"
+                          } group`}
+                        >
+                          <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "4/3" }}>
+                            {p.gambarUrl ? (
+                              <img
+                                src={p.gambarUrl}
+                                alt={p.judul}
+                                className={`w-full h-full object-cover transition-transform duration-500 ${isCenter ? "group-hover:scale-105" : ""}`}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-primary/30 to-amber-200 flex items-center justify-center">
+                                <Sparkles className={`text-white ${isCenter ? "h-12 w-12" : "h-8 w-8"}`} />
+                              </div>
+                            )}
+                            {p.badge && (
+                              <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground rounded-full shadow text-[10px] px-2 py-0.5">
+                                {p.badge}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className={isCenter ? "p-4" : "p-3"}>
+                            <h3 className={`font-bold line-clamp-1 ${isCenter ? "text-base mb-1" : "text-xs mb-0.5"}`}>
+                              {p.judul}
+                            </h3>
+                            <p className={`text-muted-foreground line-clamp-2 ${isCenter ? "text-sm" : "text-[11px]"}`}>
+                              {p.deskripsi}
                             </p>
-                          )}
+                            {p.tanggalBerakhir && isCenter && (
+                              <p className="text-[10px] text-muted-foreground/50 mt-2">
+                                s/d {new Date(p.tanggalBerakhir).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                });
-              })()}
+                    );
+                  });
+                })()}
 
-              {/* Next arrow */}
+                {/* Edge fade gradients for aesthetic peek effect */}
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-24 z-20 bg-gradient-to-r from-background to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-24 z-20 bg-gradient-to-l from-background to-transparent" />
+              </div>
+
+              {/* Prev / Next arrows — sit outside the overflow-hidden track */}
               {promoBanners.length > 1 && (
-                <button
-                  onClick={promoNext}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full border border-border bg-background/90 flex items-center justify-center hover:bg-muted transition shadow"
-                  aria-label="Berikutnya"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+                <>
+                  <button
+                    onClick={promoPrev}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-30 h-9 w-9 rounded-full border border-border bg-background/95 flex items-center justify-center hover:bg-muted transition-colors shadow-md"
+                    aria-label="Sebelumnya"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={promoNext}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-30 h-9 w-9 rounded-full border border-border bg-background/95 flex items-center justify-center hover:bg-muted transition-colors shadow-md"
+                    aria-label="Berikutnya"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </>
               )}
             </div>
 
