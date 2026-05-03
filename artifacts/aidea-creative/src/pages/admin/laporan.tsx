@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { FileBarChart, Sparkles, Loader2 } from "lucide-react";
-import { useAiChat } from "@workspace/api-client-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ export default function AdminLaporan() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [narrative, setNarrative] = useState("");
-  const aiChat = useAiChat();
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
 
   const load = async () => {
     setLoading(true); setNarrative("");
@@ -28,12 +27,25 @@ export default function AdminLaporan() {
   };
   useEffect(() => { load(); }, [month]);
 
-  const generateNarrative = () => {
+  const generateNarrative = async () => {
+    setNarrativeLoading(true);
     const ctx = JSON.stringify({ bulan: data?.month, stats: data?.stats, topPaket: data?.topPaket });
-    aiChat.mutate(
-      { data: { message: `Anda adalah AI analis studio foto AideaCreative. Buat narasi laporan bulanan 1 paragraf (4-5 kalimat) bahasa Indonesia profesional tapi friendly untuk pemilik studio berdasarkan data: ${ctx}. Soroti performa, highlight paket terlaris, dan berikan 1 saran actionable.` } },
-      { onSuccess: (r: any) => setNarrative(r?.reply ?? r?.message ?? "") }
-    );
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system: "Kamu adalah AI analis studio foto AideaCreative. Jawab dalam Bahasa Indonesia yang profesional dan friendly.",
+          prompt: `Buat narasi laporan bulanan 1 paragraf (4-5 kalimat) untuk pemilik studio berdasarkan data: ${ctx}. Soroti performa, highlight paket terlaris, dan berikan 1 saran actionable.`,
+          maxTokens: 400,
+        }),
+      });
+      const json = await res.json();
+      setNarrative(json?.text ?? "AI tidak merespons.");
+    } catch {
+      setNarrative("Gagal generate narasi.");
+    }
+    setNarrativeLoading(false);
   };
 
   const s = data?.stats ?? {};
@@ -79,7 +91,7 @@ export default function AdminLaporan() {
         <Card className="bg-gradient-to-br from-amber-50 to-primary/5 border-foreground/10">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4" /> Narasi AI</CardTitle>
-            <Button size="sm" onClick={generateNarrative} disabled={aiChat.isPending || !data}>{aiChat.isPending ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Menulis...</> : "Generate"}</Button>
+            <Button size="sm" onClick={generateNarrative} disabled={narrativeLoading || !data}>{narrativeLoading ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Menulis...</> : "Generate"}</Button>
           </CardHeader>
           <CardContent>
             {narrative ? <p className="text-sm leading-relaxed whitespace-pre-line">{narrative}</p> : <p className="text-sm text-muted-foreground italic">Klik "Generate" untuk dapat narasi laporan bulanan dari AI.</p>}

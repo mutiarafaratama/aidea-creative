@@ -50,10 +50,14 @@ function InboxTab() {
   const activeRef = useRef<string | null>(null);
   activeRef.current = active;
 
+  const [ticketFilter, setTicketFilter] = useState<"open" | "closed">("open");
+  const ticketFilterRef = useRef<"open" | "closed">("open");
+  ticketFilterRef.current = ticketFilter;
+
   const fetchSessions = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
     try {
-      const res = await adminFetch<Session[]>("/admin/chat/sessions");
+      const res = await adminFetch<Session[]>(`/admin/chat/sessions?filter=${ticketFilterRef.current}`);
       setSessions(Array.isArray(res) ? res : []);
     } catch { /* silent */ }
     if (showLoader) setLoading(false);
@@ -71,7 +75,13 @@ function InboxTab() {
   }, []);
 
   useEffect(() => {
+    setActive(null);
+    setMsgs([]);
+    setActiveSession(null);
     fetchSessions(true);
+  }, [ticketFilter, fetchSessions]);
+
+  useEffect(() => {
     const t = setInterval(() => fetchSessions(false), 8000);
     return () => clearInterval(t);
   }, [fetchSessions]);
@@ -122,13 +132,33 @@ function InboxTab() {
     <div className="flex gap-0 border rounded-xl overflow-hidden bg-card" style={{ height: "calc(100vh - 220px)", minHeight: 480 }}>
       {/* Sidebar — session list */}
       <div className="w-[260px] shrink-0 flex flex-col border-r">
-        <div className="flex items-center justify-between px-3 py-2.5 border-b bg-muted/40 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold">Percakapan</span>
-            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{sessions.length}</Badge>
-            {pendingCount > 0 && (
+        {/* Ticket filter tabs */}
+        <div className="flex border-b shrink-0">
+          <button
+            onClick={() => setTicketFilter("open")}
+            className={`flex-1 py-2 text-xs font-semibold transition-colors ${ticketFilter === "open" ? "bg-background border-b-2 border-primary text-primary" : "text-muted-foreground hover:bg-muted/40"}`}
+          >
+            Aktif
+            {ticketFilter === "open" && sessions.length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px]">{sessions.length}</span>
+            )}
+          </button>
+          <button
+            onClick={() => setTicketFilter("closed")}
+            className={`flex-1 py-2 text-xs font-semibold transition-colors ${ticketFilter === "closed" ? "bg-background border-b-2 border-primary text-primary" : "text-muted-foreground hover:bg-muted/40"}`}
+          >
+            Selesai
+            {ticketFilter === "closed" && sessions.length > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-muted text-muted-foreground text-[9px]">{sessions.length}</span>
+            )}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/20 shrink-0">
+          <div className="flex items-center gap-1.5">
+            {pendingCount > 0 && ticketFilter === "open" && (
               <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20 text-[10px] h-4 px-1.5">
-                {pendingCount} baru
+                {pendingCount} menunggu
               </Badge>
             )}
           </div>

@@ -2,7 +2,6 @@ import {
   useGetDashboardStats, getGetDashboardStatsQueryKey,
   useGetRecentBookings, getGetRecentBookingsQueryKey,
   useGetBookingByStatus, getGetBookingByStatusQueryKey,
-  useAiChat,
 } from "@workspace/api-client-react";
 import { useState } from "react";
 import { CalendarRange, Users, ShoppingBag, Sparkles, TrendingUp, Loader2 } from "lucide-react";
@@ -23,21 +22,31 @@ export default function AdminBeranda() {
   const { data: byStatus, error: errByStatus } = useGetBookingByStatus();
   const { data: recent, error: errRecent } = useGetRecentBookings();
   const dashboardError = errStats ?? errByStatus ?? errRecent;
-  const aiChat = useAiChat();
   const [insight, setInsight] = useState<string>("");
+  const [insightLoading, setInsightLoading] = useState(false);
 
   const pieData = Array.isArray(byStatus) ? byStatus.map((b: any) => ({ name: b.status, value: Number(b.count) })) : [];
   const barData = Array.isArray(recent) ? recent.slice(0, 7).reverse().map((b: any) => ({ name: b.kodeBooking.slice(-4), total: b.totalHarga })) : [];
 
-  const generateInsight = () => {
+  const generateInsight = async () => {
+    setInsightLoading(true);
     const ctx = `Total booking: ${stats?.totalBooking}. Bulan ini: ${stats?.bookingBulanIni}. Pendapatan bulan: Rp ${stats?.pendapatanBulanIni?.toLocaleString("id-ID")}. Rating: ${stats?.ratingRataRata}. Status: ${JSON.stringify(pieData)}.`;
-    aiChat.mutate(
-      { data: { message: `Anda adalah AI analis studio foto. Berikan insight singkat 3-4 kalimat bahasa Indonesia casual untuk pemilik studio berdasarkan data ini: ${ctx}. Sorot tren & saran actionable.` } },
-      {
-        onSuccess: (resp: any) => setInsight(resp?.reply ?? resp?.message ?? "AI tidak merespons."),
-        onError: () => setInsight("Gagal generate insight."),
-      }
-    );
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system: "Kamu adalah AI analis studio foto. Jawab singkat dalam Bahasa Indonesia yang casual dan actionable.",
+          prompt: `Berikan insight singkat 3-4 kalimat untuk pemilik studio berdasarkan data ini: ${ctx}. Sorot tren & saran actionable.`,
+          maxTokens: 300,
+        }),
+      });
+      const json = await res.json();
+      setInsight(json?.text ?? "AI tidak merespons.");
+    } catch {
+      setInsight("Gagal generate insight.");
+    }
+    setInsightLoading(false);
   };
 
   return (
@@ -63,8 +72,8 @@ export default function AdminBeranda() {
               <p className="text-xs text-muted-foreground">Analisis otomatis dari data studio-mu</p>
             </div>
           </div>
-          <Button onClick={generateInsight} size="sm" disabled={aiChat.isPending} className="rounded-full">
-            {aiChat.isPending ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Analisis...</> : "Generate Insight"}
+          <Button onClick={generateInsight} size="sm" disabled={insightLoading} className="rounded-full">
+            {insightLoading ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Analisis...</> : "Generate Insight"}
           </Button>
         </CardHeader>
         <CardContent>

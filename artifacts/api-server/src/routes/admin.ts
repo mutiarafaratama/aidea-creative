@@ -7,8 +7,20 @@ import { requireAdmin } from "../middlewares/auth";
 const router = Router();
 
 // List chat sessions with last message preview + status
-router.get("/admin/chat/sessions", requireAdmin, async (_req, res) => {
+// Excludes internal AI-generated sessions (insight/narasi calls)
+// Query param: ?filter=open (default) | closed | all
+router.get("/admin/chat/sessions", requireAdmin, async (req, res) => {
   try {
+    const filter = (req.query.filter as string) || "open";
+
+    // Status clause for ticket system (HAVING since status is in GROUP BY)
+    const havingClause =
+      filter === "closed"
+        ? sql`HAVING COALESCE(MAX(s.status::text), 'ai') = 'selesai'`
+        : filter === "open"
+        ? sql`HAVING COALESCE(MAX(s.status::text), 'ai') != 'selesai'`
+        : sql``;
+
     const rows = await db.execute(sql`
       SELECT
         h.session_id AS "sessionId",
@@ -17,12 +29,23 @@ router.get("/admin/chat/sessions", requireAdmin, async (_req, res) => {
         (ARRAY_AGG(h.pesan ORDER BY h.created_at DESC))[1] AS "lastMessage",
         (ARRAY_AGG(h.pengirim::text ORDER BY h.created_at DESC))[1] AS "lastFrom",
         MAX(h.user_id::text) AS "userId",
-        COALESCE(s.status::text, 'ai') AS "status",
-        COALESCE(s.needs_admin, false) AS "needsAdmin",
-        s.nama_tamu AS "namaTamu"
+        COALESCE(MAX(s.status::text), 'ai') AS "status",
+        COALESCE(MAX(s.needs_admin::text) = 'true', false) AS "needsAdmin",
+        MAX(s.nama_tamu) AS "namaTamu"
       FROM chat_history h
       LEFT JOIN chat_session s ON s.session_id = h.session_id
-      GROUP BY h.session_id, s.status, s.needs_admin, s.nama_tamu
+      WHERE NOT EXISTS (
+        SELECT 1 FROM chat_history ih
+        WHERE ih.session_id = h.session_id
+          AND ih.pengirim = 'user'
+          AND (
+            ih.pesan ILIKE 'Anda adalah AI analis%'
+            OR ih.pesan ILIKE 'Buat narasi laporan%'
+            OR ih.pesan ILIKE 'Buat deskripsi produk%'
+          )
+      )
+      GROUP BY h.session_id
+      ${havingClause}
       ORDER BY MAX(h.created_at) DESC
       LIMIT 200
     `);
