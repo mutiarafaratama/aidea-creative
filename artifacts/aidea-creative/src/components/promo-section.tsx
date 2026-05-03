@@ -1,8 +1,10 @@
+import { useRef, useEffect } from "react";
 import { Tag } from "lucide-react";
 import { useListPromo } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 
 export function PromoSection() {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { data } = useListPromo();
   const now = Date.now();
   const items = (Array.isArray(data) ? data : []).filter((p) => {
@@ -11,6 +13,18 @@ export function PromoSection() {
     if (p.tanggalBerakhir && new Date(p.tanggalBerakhir).getTime() < now) return false;
     return true;
   });
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   if (items.length === 0) return null;
 
@@ -27,12 +41,18 @@ export function PromoSection() {
           </div>
         </div>
 
-        {/* Horizontal scroll container */}
-        <div className="flex gap-5 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6">
+        <div
+          ref={scrollRef}
+          className="flex gap-5 pb-4 snap-x snap-mandatory scrollbar-hide select-none"
+          style={{ overflowX: "auto", overflowY: "hidden", cursor: "grab" }}
+          onMouseDown={(e) => { e.currentTarget.style.cursor = "grabbing"; }}
+          onMouseUp={(e) => { e.currentTarget.style.cursor = "grab"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.cursor = "grab"; }}
+        >
           {items.map((p) => (
             <div
               key={p.id}
-              className="snap-start shrink-0 w-72 md:w-80 rounded-2xl overflow-hidden border border-border bg-card hover:shadow-lg transition-shadow group"
+              className="snap-start flex-none w-72 md:w-80 rounded-2xl overflow-hidden border border-border bg-card hover:shadow-lg transition-shadow group"
             >
               {p.gambarUrl ? (
                 <div className="aspect-[16/9] overflow-hidden bg-muted">
