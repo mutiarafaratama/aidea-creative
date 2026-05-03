@@ -68,7 +68,7 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Control Center</p>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+        <nav className="flex-1 overflow-y-auto p-3 space-y-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {navGroups.map((group, gi) => (
             <div key={gi}>
               {group.label && (
