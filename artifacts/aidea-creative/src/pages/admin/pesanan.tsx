@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { adminFetch } from "@/lib/admin-api";
 import { supabase } from "@/lib/supabase";
@@ -39,6 +41,7 @@ type Pesanan = {
   statusPembayaran: string;
   totalHarga: number;
   catatan: string | null;
+  alasanPembatalan: string | null;
   createdAt: string;
   items: ItemPesanan[];
 };
@@ -92,6 +95,8 @@ export default function AdminPesanan() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [hapusDialog, setHapusDialog] = useState<Pesanan | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [batalDialog, setBatalDialog] = useState<{ pesanan: Pesanan; alasan: string } | null>(null);
+  const [isBataling, setIsBataling] = useState(false);
 
   const load = async () => {
     try {
@@ -115,20 +120,39 @@ export default function AdminPesanan() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const updateStatus = async (id: string, status: string, statusPembayaran?: string) => {
+  const proseskanPesanan = async (id: string) => {
     setIsUpdating(true);
     try {
       const updated = await adminFetch<Pesanan>(`/api/pesanan/${id}/status`, {
         method: "PUT",
-        body: JSON.stringify({ status, ...(statusPembayaran ? { statusPembayaran } : {}) }),
+        body: JSON.stringify({ status: "dikerjakan" }),
       });
       setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
       setDetail((prev) => (prev?.id === id ? updated : prev));
-      toast({ title: "Status diperbarui" });
+      toast({ title: "Pesanan sedang dikerjakan" });
     } catch {
       toast({ title: "Gagal memperbarui status", variant: "destructive" });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const batalkanPesanan = async () => {
+    if (!batalDialog) return;
+    setIsBataling(true);
+    try {
+      const updated = await adminFetch<Pesanan>(`/api/pesanan/${batalDialog.pesanan.id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "dibatalkan", alasanPembatalan: batalDialog.alasan }),
+      });
+      setPesanan((prev) => prev.map((p) => (p.id === batalDialog.pesanan.id ? updated : p)));
+      setDetail((prev) => (prev?.id === batalDialog.pesanan.id ? updated : prev));
+      setBatalDialog(null);
+      toast({ title: "Pesanan dibatalkan" });
+    } catch (e: any) {
+      toast({ title: "Gagal membatalkan", description: e.message, variant: "destructive" });
+    } finally {
+      setIsBataling(false);
     }
   };
 
@@ -267,6 +291,13 @@ export default function AdminPesanan() {
                   {bayarBadge(detail.statusPembayaran)}
                 </div>
 
+                {detail.status === "dibatalkan" && detail.alasanPembatalan && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <p className="font-semibold text-xs mb-0.5">Alasan Pembatalan</p>
+                    <p>{detail.alasanPembatalan}</p>
+                  </div>
+                )}
+
                 <Separator />
 
                 <div className="space-y-3">
@@ -334,17 +365,30 @@ export default function AdminPesanan() {
                   </a>
                   {detail.status === "diproses" && (
                     <div className="grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="text-emerald-700 border-emerald-200 hover:bg-emerald-50" disabled={isUpdating} onClick={() => updateStatus(detail.id, "dikerjakan")}>
-                        <Check className="h-4 w-4 mr-1" /> Proses
+                      <Button
+                        variant="outline"
+                        className="text-blue-700 border-blue-200 hover:bg-blue-50"
+                        disabled={isUpdating}
+                        onClick={() => proseskanPesanan(detail.id)}
+                      >
+                        <Check className="h-4 w-4 mr-1" /> Kerjakan
                       </Button>
-                      <Button variant="outline" className="text-red-700 border-red-200 hover:bg-red-50" disabled={isUpdating} onClick={() => updateStatus(detail.id, "dibatalkan")}>
+                      <Button
+                        variant="outline"
+                        className="text-red-700 border-red-200 hover:bg-red-50"
+                        onClick={() => setBatalDialog({ pesanan: detail, alasan: "" })}
+                      >
                         <X className="h-4 w-4 mr-1" /> Batalkan
                       </Button>
                     </div>
                   )}
                   {detail.status === "dikerjakan" && (
-                    <Button variant="outline" className="w-full" disabled={isUpdating} onClick={() => updateStatus(detail.id, "selesai")}>
-                      <Check className="h-4 w-4 mr-1" /> Tandai Selesai
+                    <Button
+                      variant="outline"
+                      className="w-full text-red-700 border-red-200 hover:bg-red-50"
+                      onClick={() => setBatalDialog({ pesanan: detail, alasan: "" })}
+                    >
+                      <X className="h-4 w-4 mr-1" /> Batalkan Pesanan
                     </Button>
                   )}
                   <Button
@@ -360,6 +404,60 @@ export default function AdminPesanan() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* ── Batalkan Pesanan Dialog ── */}
+      <Dialog open={!!batalDialog} onOpenChange={(open) => !open && setBatalDialog(null)}>
+        <DialogContent className="sm:max-w-sm">
+          {batalDialog && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <X className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <DialogTitle>Batalkan Pesanan?</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5 font-mono">{batalDialog.pesanan.kodePesanan}</p>
+                  </div>
+                </div>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                Pesanan <span className="font-semibold text-foreground">{batalDialog.pesanan.namaPemesan}</span> akan dibatalkan. Pelanggan akan melihat alasan pembatalan ini.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="alasanBatal" className="text-sm">
+                  Alasan Pembatalan <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="alasanBatal"
+                  placeholder="Contoh: Stok habis, produksi terkendala, dll."
+                  className="resize-none"
+                  rows={3}
+                  value={batalDialog.alasan}
+                  onChange={(e) => setBatalDialog((prev) => prev ? { ...prev, alasan: e.target.value } : prev)}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setBatalDialog(null)} disabled={isBataling}>
+                  Tutup
+                </Button>
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700 gap-2"
+                  onClick={batalkanPesanan}
+                  disabled={isBataling || !batalDialog.alasan.trim()}
+                >
+                  {isBataling ? (
+                    <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4" />
+                  )}
+                  Ya, Batalkan
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Konfirmasi Hapus Pesanan ── */}
       <Dialog open={!!hapusDialog} onOpenChange={(open) => !open && setHapusDialog(null)}>

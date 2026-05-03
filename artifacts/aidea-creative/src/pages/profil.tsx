@@ -59,13 +59,32 @@ type BookingRow = {
   dibatalkan_oleh?: string | null;
 };
 
+type ItemPesananRow = {
+  id: string;
+  produkId: string;
+  namaProduk: string;
+  jumlah: number;
+  hargaSatuan: number;
+  subtotal: number;
+};
+
 type PesananRow = {
   id: string;
+  kodePesanan: string;
   kode_pesanan: string;
+  namaPemesan: string;
+  email: string;
+  telepon: string;
   status: string;
+  statusPembayaran: string;
   status_pembayaran: string;
+  totalHarga: number;
   total_harga: number;
+  catatan: string | null;
+  alasanPembatalan: string | null;
+  createdAt: string;
   created_at: string;
+  items: ItemPesananRow[];
 };
 
 type TestimoniRow = {
@@ -142,6 +161,172 @@ function formatTanggal(str: string) {
   } catch {
     return str;
   }
+}
+
+function printInvoicePesanan(p: PesananRow) {
+  const formatRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+  const tglPesan = format(new Date(p.createdAt || p.created_at), "dd MMMM yyyy, HH:mm", { locale: idLocale });
+  const kodePesanan = p.kodePesanan || p.kode_pesanan;
+  const totalHarga = p.totalHarga ?? p.total_harga;
+  const statusPembayaran = p.statusPembayaran || p.status_pembayaran;
+
+  const statusBayarLabel = ({ belum_bayar: "BELUM BAYAR", dp: "DP / UANG MUKA", lunas: "LUNAS" } as Record<string, string>)[statusPembayaran] ?? statusPembayaran.toUpperCase();
+  const statusPesananLabel = ({ diproses: "DIPROSES", dikerjakan: "SEDANG DIKERJAKAN", selesai: "SELESAI", dikirim: "DIKIRIM", dibatalkan: "DIBATALKAN" } as Record<string, string>)[p.status] ?? p.status.toUpperCase();
+  const bayarColor = ({ belum_bayar: "#f97316", dp: "#0ea5e9", lunas: "#10b981" } as Record<string, string>)[statusPembayaran] ?? "#6b7280";
+  const pesananColor = ({ diproses: "#f59e0b", dikerjakan: "#3b82f6", selesai: "#10b981", dikirim: "#8b5cf6", dibatalkan: "#ef4444" } as Record<string, string>)[p.status] ?? "#6b7280";
+
+  const itemRows = (p.items ?? []).map((item, i) => `
+    <tr>
+      <td class="num">${i + 1}</td>
+      <td>${item.namaProduk}<div class="sub">× ${item.jumlah} unit</div></td>
+      <td class="right">${formatRp(item.hargaSatuan)}</td>
+      <td class="right bold">${formatRp(item.subtotal)}</td>
+    </tr>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Invoice ${kodePesanan}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#1e293b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.toolbar{background:#1d4ed8;padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.btn{background:#fff;color:#1d4ed8;border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:hover{opacity:.88}
+.btn-ghost{background:transparent;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
+.wrap{max-width:680px;margin:28px auto 56px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.head{background:#1d4ed8;color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.brand{font-size:17px;font-weight:700;letter-spacing:-.2px}
+.brand-sub{font-size:8px;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-top:2px}
+.brand-info{font-size:11px;opacity:.65;margin-top:12px;line-height:1.8}
+.inv-right{text-align:right}
+.inv-label{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;opacity:.6}
+.inv-no{font-size:20px;font-weight:800;letter-spacing:-.5px;margin:2px 0}
+.inv-date{font-size:10.5px;opacity:.55}
+.status-row{padding:8px 32px;background:#eff6ff;border-bottom:1px solid #dbeafe;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{padding:3px 10px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.body{padding:24px 32px}
+.section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.info-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
+.inf-label{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.inf-val{font-size:12px;font-weight:500;color:#1e293b}
+.inf-row{margin-bottom:8px}
+.inf-row:last-child{margin-bottom:0}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:#1d4ed8;display:flex;align-items:flex-start;gap:8px}
+.notice-icon{font-size:14px;line-height:1;flex-shrink:0;margin-top:1px}
+table{width:100%;border-collapse:collapse;margin-bottom:18px}
+thead{background:#1d4ed8;color:#fff}
+thead th{padding:8px 12px;font-size:9.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-align:left}
+thead th.right{text-align:right}
+tbody tr{border-bottom:1px solid #f1f5f9}
+tbody tr:last-child{border-bottom:none}
+td{padding:10px 12px;font-size:12px;vertical-align:top}
+td.num{width:28px;color:#94a3b8;font-size:11px}
+td.right{text-align:right}
+td.bold{font-weight:600}
+.sub{font-size:10px;color:#94a3b8;margin-top:2px}
+.total-row{background:#1d4ed8;color:#fff;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.total-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.8}
+.total-amt{font-size:20px;font-weight:800;letter-spacing:-.5px}
+${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#64748b;line-height:1.7;margin-bottom:18px}` : ""}
+.foot{border-top:1px solid #e2e8f0;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc}
+.foot-l{font-size:10px;color:#94a3b8;line-height:1.8}
+.foot-r{text-align:right}
+.foot-thanks{font-size:12px;font-weight:700;color:#1d4ed8}
+.foot-sub{font-size:10px;color:#94a3b8;margin-top:1px}
+@media print{body{background:#fff}.toolbar{display:none!important}.wrap{margin:0;border-radius:0;box-shadow:none;max-width:100%}}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button class="btn" onclick="window.print()">🖨 Cetak / Simpan PDF</button>
+  <button class="btn-ghost" onclick="window.close()">Tutup</button>
+</div>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="brand">AideaCreative</div>
+      <div class="brand-sub">Smart Photo Studio</div>
+      <div class="brand-info">
+        Jl. A. Yani No. 12, Pringsewu, Lampung<br>
+        +62 852-7923-2879 &nbsp;|&nbsp; aidea.creative@gmail.com
+      </div>
+    </div>
+    <div class="inv-right">
+      <div class="inv-label">Invoice</div>
+      <div class="inv-no">${kodePesanan}</div>
+      <div class="inv-date">Diterbitkan ${tglPesan}</div>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="pill" style="background:${bayarColor}18;color:${bayarColor}">${statusBayarLabel}</span>
+    <span style="color:#cbd5e1;font-size:12px">·</span>
+    <span class="pill" style="background:${pesananColor}18;color:${pesananColor}">${statusPesananLabel}</span>
+  </div>
+
+  <div class="body">
+    <div class="info-grid">
+      <div class="info-box">
+        <div class="section-title">Data Pemesan</div>
+        <div class="inf-row"><div class="inf-label">Nama</div><div class="inf-val">${p.namaPemesan}</div></div>
+        <div class="inf-row"><div class="inf-label">Email</div><div class="inf-val">${p.email}</div></div>
+        <div class="inf-row"><div class="inf-label">Telepon</div><div class="inf-val">${p.telepon}</div></div>
+      </div>
+      <div class="info-box">
+        <div class="section-title">Info Pesanan</div>
+        <div class="inf-row"><div class="inf-label">Kode Pesanan</div><div class="inf-val" style="font-family:monospace">${kodePesanan}</div></div>
+        <div class="inf-row"><div class="inf-label">Tanggal Pesan</div><div class="inf-val">${tglPesan}</div></div>
+        <div class="inf-row"><div class="inf-label">Status</div><div class="inf-val">${statusBayarLabel}</div></div>
+      </div>
+    </div>
+
+    <div class="notice">
+      <span class="notice-icon">🏪</span>
+      <span>Pengambilan pesanan dilakukan langsung di studio kami. Harap tunjukkan invoice ini saat pengambilan.</span>
+    </div>
+
+    <div class="section-title">Rincian Produk</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Produk</th>
+          <th class="right">Harga</th>
+          <th class="right">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemRows}
+      </tbody>
+    </table>
+
+    <div class="total-row">
+      <span class="total-label">Total Pembayaran</span>
+      <span class="total-amt">${formatRp(totalHarga)}</span>
+    </div>
+
+    ${p.catatan ? `<div class="note"><strong style="color:#475569">Catatan:</strong> ${p.catatan}</div>` : ""}
+  </div>
+
+  <div class="foot">
+    <div class="foot-l">
+      Dokumen ini diterbitkan otomatis oleh sistem AideaCreative.<br>
+      Simpan sebagai bukti pesanan Anda.
+    </div>
+    <div class="foot-r">
+      <div class="foot-thanks">Terima kasih! 🙏</div>
+      <div class="foot-sub">Studio kami siap melayani Anda.</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>`;
+
+  const w = window.open("", "_blank", "width=780,height=900,scrollbars=yes,resizable=yes");
+  if (w) { w.document.write(html); w.document.close(); }
 }
 
 function printInvoice(b: BookingRow) {
@@ -339,6 +524,8 @@ export default function Profil() {
   const [dataLoading, setDataLoading] = useState(false);
 
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
+  const [selectedPesanan, setSelectedPesanan] = useState<PesananRow | null>(null);
+  const [isTerimaPesanan, setIsTerimaPesanan] = useState(false);
   const [cancelDialog, setCancelDialog] = useState<{ booking: BookingRow; alasan: string } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -402,11 +589,11 @@ export default function Profil() {
         )
         .eq("pelanggan_id", user.id)
         .order("created_at", { ascending: false }),
-      supabase
-        .from("pesanan_produk")
-        .select("id,kode_pesanan,status,status_pembayaran,total_harga,created_at")
-        .eq("pelanggan_id", user.id)
-        .order("created_at", { ascending: false }),
+      supabase.auth.getSession().then(({ data: { session } }) =>
+        fetch("/api/pesanan/me", {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        }).then((r) => r.json())
+      ),
       supabase
         .from("testimoni")
         .select("id,rating,komentar,is_approved,created_at")
@@ -414,7 +601,15 @@ export default function Profil() {
         .order("created_at", { ascending: false }),
     ]).then(([b, p, t]) => {
       if (!b.error) setBooking((b.data ?? []) as BookingRow[]);
-      if (!p.error) setPesanan((p.data ?? []) as PesananRow[]);
+      if (Array.isArray(p)) {
+        setPesanan(p.map((x: any) => ({
+          ...x,
+          kode_pesanan: x.kodePesanan,
+          status_pembayaran: x.statusPembayaran,
+          total_harga: x.totalHarga,
+          created_at: x.createdAt,
+        })));
+      }
       if (!t.error) setTestimoni((t.data ?? []) as TestimoniRow[]);
       setDataLoading(false);
     });
@@ -517,6 +712,31 @@ export default function Profil() {
       toast({ title: "Gagal membatalkan", description: e.message, variant: "destructive" });
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const terimaPesanan = async (p: PesananRow) => {
+    if (!supabase) return;
+    setIsTerimaPesanan(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/pesanan/${p.id}/terima`, {
+        method: "PUT",
+        headers: { ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? "Gagal mengonfirmasi penerimaan");
+      }
+      const updated: any = await res.json();
+      const merged = { ...p, ...updated, kode_pesanan: updated.kodePesanan, status_pembayaran: updated.statusPembayaran, total_harga: updated.totalHarga, created_at: updated.createdAt };
+      setPesanan((prev) => prev.map((x) => x.id === p.id ? merged : x));
+      setSelectedPesanan(merged);
+      toast({ title: "Pesanan diterima!", description: "Terima kasih telah mengonfirmasi penerimaan pesanan." });
+    } catch (e: any) {
+      toast({ title: "Gagal", description: e.message, variant: "destructive" });
+    } finally {
+      setIsTerimaPesanan(false);
     }
   };
 
@@ -773,29 +993,35 @@ export default function Profil() {
                 ) : (
                   <ul className="divide-y divide-border">
                     {pesanan.map((item) => (
-                      <li
-                        key={item.id}
-                        className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-                      >
-                        <div className="space-y-1.5 flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm font-mono">
-                              {item.kode_pesanan}
-                            </span>
-                            <StatusBadge status={item.status} map={STATUS_PESANAN} />
-                            <StatusBadge status={item.status_pembayaran} map={STATUS_BAYAR} />
+                      <li key={item.id}>
+                        <button
+                          onClick={() => setSelectedPesanan(item)}
+                          className="w-full text-left p-5 flex items-center gap-3 hover:bg-muted/50 transition-colors group"
+                        >
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm font-mono">
+                                {item.kode_pesanan}
+                              </span>
+                              <StatusBadge status={item.status} map={STATUS_PESANAN} />
+                              <StatusBadge status={item.status_pembayaran} map={STATUS_BAYAR} />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(item.created_at), "dd MMMM yyyy, HH:mm", { locale: idLocale })}
+                            </p>
+                            {item.items?.length > 0 && (
+                              <p className="text-xs text-muted-foreground truncate max-w-xs">
+                                {item.items.map((i) => i.namaProduk).join(", ")}
+                              </p>
+                            )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(item.created_at), "dd MMMM yyyy, HH:mm", {
-                              locale: idLocale,
-                            })}
-                          </p>
-                        </div>
-                        <div className="shrink-0">
-                          <p className="font-bold text-base">
-                            Rp {item.total_harga.toLocaleString("id-ID")}
-                          </p>
-                        </div>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <p className="font-bold text-base">
+                              Rp {item.total_harga.toLocaleString("id-ID")}
+                            </p>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          </div>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -854,6 +1080,131 @@ export default function Profil() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ── Pesanan Detail Dialog ── */}
+      <Dialog open={!!selectedPesanan} onOpenChange={(open) => !open && setSelectedPesanan(null)}>
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-md rounded-xl max-h-[88vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {selectedPesanan && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <ClipboardList className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="font-mono text-base">
+                      {selectedPesanan.kode_pesanan}
+                    </DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {format(new Date(selectedPesanan.created_at), "dd MMM yyyy · HH:mm", { locale: idLocale })}
+                    </p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="flex gap-2 flex-wrap -mt-1">
+                <StatusBadge status={selectedPesanan.status} map={STATUS_PESANAN} />
+                <StatusBadge status={selectedPesanan.status_pembayaran} map={STATUS_BAYAR} />
+              </div>
+
+              {selectedPesanan.status === "dikerjakan" && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 flex gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-blue-700">Pesanan sedang dikerjakan</p>
+                    <p className="text-xs text-blue-700">
+                      Silakan datang ke studio kami untuk mengambil pesanan setelah selesai. Harap tunjukkan invoice ini saat pengambilan.
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      📍 Jl. A. Yani No. 12, Pringsewu, Lampung
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedPesanan.status === "dibatalkan" && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-red-700">Pesanan dibatalkan oleh studio</p>
+                    <p className="text-xs text-red-700">
+                      {selectedPesanan.alasanPembatalan || <span className="italic opacity-60">Tidak ada alasan diberikan</span>}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
+              {selectedPesanan.items?.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Item Pesanan</p>
+                  <div className="rounded-lg border divide-y divide-border">
+                    {selectedPesanan.items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium">{item.namaProduk}</p>
+                          <p className="text-xs text-muted-foreground">
+                            × {item.jumlah} · Rp {item.hargaSatuan.toLocaleString("id-ID")}/item
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold shrink-0">
+                          Rp {item.subtotal.toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between px-4 py-3 font-bold text-sm">
+                      <span>Total</span>
+                      <span>Rp {selectedPesanan.total_harga.toLocaleString("id-ID")}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedPesanan.catatan && (
+                <div className="text-sm">
+                  <p className="text-xs text-muted-foreground mb-1">Catatan</p>
+                  <p className="text-sm whitespace-pre-line text-muted-foreground italic">
+                    {selectedPesanan.catatan}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-1">
+                <Button
+                  className="w-full gap-2"
+                  onClick={() => printInvoicePesanan(selectedPesanan)}
+                >
+                  <Printer className="h-4 w-4" />
+                  Lihat / Cetak Invoice
+                </Button>
+                {selectedPesanan.status === "dikerjakan" && (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                    disabled={isTerimaPesanan}
+                    onClick={() => terimaPesanan(selectedPesanan)}
+                  >
+                    {isTerimaPesanan ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CalendarCheck className="h-4 w-4" />
+                    )}
+                    Saya Sudah Menerima Pesanan
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setSelectedPesanan(null)}
+                >
+                  Tutup
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Booking Detail Dialog ── */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>

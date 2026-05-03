@@ -31,6 +31,7 @@ const formatPesanan = (r: any, items: any[]) => ({
   statusPembayaran: r.statusPembayaran,
   totalHarga: r.totalHarga,
   catatan: r.catatan,
+  alasanPembatalan: r.alasanPembatalan ?? null,
   midtransOrderId: r.midtransOrderId,
   midtransSnapToken: r.midtransSnapToken,
   createdAt: r.createdAt?.toISOString?.() ?? r.createdAt,
@@ -134,7 +135,6 @@ router.post("/pesanan", attachAuth, async (req, res) => {
 });
 
 // POST /pesanan/verify — dipanggil frontend setelah onSuccess/onPending Snap
-// Memverifikasi status ke Midtrans CoreAPI dan update DB
 router.post("/pesanan/verify", attachAuth, async (req, res) => {
   try {
     if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
@@ -169,13 +169,11 @@ router.post("/pesanan/verify", attachAuth, async (req, res) => {
         }
       } catch (err) {
         req.log.error({ err }, "Midtrans status check failed, marking lunas from callback trust");
-        // Fallback: percaya callback onSuccess dari Snap
         await db.update(pesananProdukTable)
           .set({ statusPembayaran: "lunas" })
           .where(eq(pesananProdukTable.kodePesanan, kodePesanan));
       }
     } else {
-      // Tidak ada server key terkonfigurasi — percaya callback
       await db.update(pesananProdukTable)
         .set({ statusPembayaran: "lunas" })
         .where(eq(pesananProdukTable.kodePesanan, kodePesanan));
@@ -260,12 +258,21 @@ router.delete("/pesanan/:id", requireAdmin, async (req, res) => {
   }
 });
 
+// PUT /pesanan/:id/status — admin: hanya bisa ke "dikerjakan" atau "dibatalkan" (dengan alasan)
 router.put("/pesanan/:id/status", requireAdmin, async (req, res) => {
   try {
-    const { status, statusPembayaran } = req.body;
-    const updateData: Record<string, unknown> = {};
-    if (status) updateData.status = status;
-    if (statusPembayaran) updateData.statusPembayaran = statusPembayaran;
+    const { status, alasanPembatalan } = req.body;
+
+    const allowedStatuses = ["dikerjakan", "dibatalkan"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: `Status tidak valid. Hanya boleh: ${allowedStatuses.join(", ")}` });
+    }
+    if (status === "dibatalkan" && !alasanPembatalan?.trim()) {
+      return res.status(400).json({ error: "Alasan pembatalan wajib diisi" });
+    }
+
+    const updateData: Record<string, unknown> = { status };
+    if (status === "dibatalkan") updateData.alasanPembatalan = alasanPembatalan.trim();
 
     const [row] = await db.update(pesananProdukTable)
       .set(updateData)
@@ -277,6 +284,31 @@ router.put("/pesanan/:id/status", requireAdmin, async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to update pesanan status");
     res.status(400).json({ error: "Bad request" });
+  }
+});
+
+// PUT /pesanan/:id/terima — pelanggan konfirmasi penerimaan (selesai)
+router.put("/pesanan/:id/terima", attachAuth, async (req, res) => {
+  try {
+    if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
+
+    const [pesanan] = await db.select().from(pesananProdukTable)
+      .where(eq(pesananProdukTable.id, req.params.id));
+    if (!pesanan) return res.status(404).json({ error: "Pesanan tidak ditemukan" });
+    if (pesanan.pelangganId !== req.authUser.id) return res.status(403).json({ error: "Forbidden" });
+    if (pesanan.status !== "dikerjakan") {
+      return res.status(400).json({ error: "Pesanan hanya bisa diterima saat statusnya Dikerjakan" });
+    }
+
+    const [row] = await db.update(pesananProdukTable)
+      .set({ status: "selesai" })
+      .where(eq(pesananProdukTable.id, req.params.id))
+      .returning();
+    const items = await db.select().from(itemPesananTable).where(eq(itemPesananTable.pesananId, row.id));
+    res.json(formatPesanan(row, items));
+  } catch (err) {
+    req.log.error({ err }, "Failed to terima pesanan");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
