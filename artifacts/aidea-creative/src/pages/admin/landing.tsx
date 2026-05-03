@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SupabaseUploader } from "@/components/supabase-uploader";
 import { useToast } from "@/hooks/use-toast";
 import { adminFetch } from "@/lib/admin-api";
 
@@ -66,19 +65,12 @@ export default function AdminLanding() {
           <CardHeader><CardTitle>Hero Section (Beranda)</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-              <strong className="text-foreground">Foto kolase di hero homepage</strong> diambil otomatis dari menu{" "}
-              <strong className="text-foreground">Portfolio</strong>. Tambah/hapus foto di sana dan ditandai
-              <strong className="text-foreground"> Featured</strong> agar tampil paling depan.
+              <strong className="text-foreground">Foto kolase di hero homepage &amp; panel login</strong> diambil otomatis dari menu{" "}
+              <strong className="text-foreground">Portfolio</strong>. Tambah/hapus foto di sana dan tandai{" "}
+              <strong className="text-foreground">Featured</strong> agar tampil paling depan di hero &amp; halaman login.
             </div>
-            <SupabaseUploader
-              bucket="landing"
-              folder="hero"
-              label="Gambar Sampul Tambahan (opsional)"
-              value={s.heroImage}
-              onChange={(v) => upd("heroImage", v)}
-            />
             <div className="grid md:grid-cols-2 gap-4">
-              <div><Label>Badge Atas</Label><Input value={s.heroBadge ?? ""} onChange={(e) => upd("heroBadge", e.target.value)} placeholder="Studio Foto #1 di Pringsewu" /></div>
+              <div><Label>Badge Atas</Label><Input value={s.heroBadge ?? ""} onChange={(e) => upd("heroBadge", e.target.value)} placeholder="Studio Foto · Pringsewu, Lampung" /></div>
               <div><Label>Judul Hero (opsional)</Label><Input value={s.heroTitle ?? ""} onChange={(e) => upd("heroTitle", e.target.value)} placeholder="Abadikan momenmu..." /></div>
             </div>
             <div><Label>Sub-judul Hero</Label><Textarea rows={2} value={s.heroSubtitle ?? ""} onChange={(e) => upd("heroSubtitle", e.target.value)} placeholder="Studio foto profesional dengan paket lengkap..." /></div>
@@ -87,15 +79,11 @@ export default function AdminLanding() {
 
         <Card>
           <CardHeader><CardTitle>Halaman Login</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <SupabaseUploader
-              bucket="landing"
-              folder="login"
-              label="Background panel kanan halaman login (akan menggantikan gallery default jika diisi)"
-              value={s.loginBgImage}
-              onChange={(v) => upd("loginBgImage", v)}
-            />
-            <p className="text-xs text-muted-foreground">Tip: gunakan gambar potret beresolusi tinggi (min. 1200px) untuk hasil terbaik.</p>
+          <CardContent>
+            <div className="rounded-lg border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              Panel foto di halaman login diambil otomatis dari foto portfolio yang ditandai{" "}
+              <strong className="text-foreground">Featured</strong>. Kelola foto di menu <strong className="text-foreground">Portfolio</strong>.
+            </div>
           </CardContent>
         </Card>
 

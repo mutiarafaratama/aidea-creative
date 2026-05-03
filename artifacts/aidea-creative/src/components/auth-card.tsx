@@ -52,12 +52,13 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
   const { data: portfolioList } = useListPortfolio();
   const sidePhotos = (() => {
     const items = Array.isArray(portfolioList) ? portfolioList : [];
+    const sorted = [...items].sort((a, b) => Number((b as any).isFeatured) - Number((a as any).isFeatured));
     const urls: string[] = [];
-    for (const p of items) {
-      const arr = Array.isArray(p.gambarUrl) ? p.gambarUrl : [];
-      for (const u of arr) { if (u) urls.push(u); }
+    for (const p of sorted) {
+      const arr = Array.isArray((p as any).gambarUrl) ? (p as any).gambarUrl : [];
+      for (const u of arr) { if (u) urls.push(u as string); }
     }
-    return urls.length >= 4 ? urls.slice(0, 12) : FALLBACK_PHOTOS;
+    return urls.length >= 1 ? urls.slice(0, 18) : FALLBACK_PHOTOS;
   })();
 
   const explicitRedirect = useMemo(() => {
@@ -379,7 +380,7 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
         </div>
       </div>
 
-      {/* RIGHT: Visual panel — real portfolio photos from DB */}
+      {/* RIGHT: Visual panel — 3-col masonry with featured portfolio photos */}
       <div className="hidden lg:block w-1/2 bg-[#0c1220] relative overflow-hidden">
         {customLoginBg ? (
           <div
@@ -387,20 +388,29 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
             style={{ backgroundImage: `url(${customLoginBg})` }}
           />
         ) : (
-          <div className="absolute inset-0 grid grid-cols-2 gap-3 p-3 [mask-image:linear-gradient(to_bottom,transparent_0%,black_8%,black_92%,transparent_100%)]">
-            {[0, 1].map((col) => {
-              const colPhotos = sidePhotos.filter((_, i) => i % 2 === col);
-              const doubled = [...colPhotos, ...colPhotos];
+          <div className="absolute inset-0 grid grid-cols-3 gap-2 p-2 [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_94%,transparent_100%)]">
+            {[0, 1, 2].map((col) => {
+              const colPhotos = sidePhotos.filter((_, i) => i % 3 === col);
+              const padded = colPhotos.length < 3 ? [...colPhotos, ...sidePhotos].slice(0, Math.max(colPhotos.length, 4)) : colPhotos;
+              const doubled = [...padded, ...padded];
+              const heightCycle = [
+                ["h-52", "h-36", "h-60", "h-44", "h-56", "h-40"],
+                ["h-40", "h-60", "h-44", "h-52", "h-36", "h-56"],
+                ["h-56", "h-44", "h-40", "h-60", "h-52", "h-36"],
+              ][col];
               return (
                 <div key={col} className="overflow-hidden">
                   <motion.div
-                    initial={{ y: col === 0 ? "0%" : "-50%" }}
-                    animate={{ y: col === 0 ? "-50%" : "0%" }}
-                    transition={{ duration: 38 + col * 10, repeat: Infinity, ease: "linear" }}
-                    className="flex flex-col gap-3"
+                    initial={{ y: col % 2 === 0 ? "0%" : "-50%" }}
+                    animate={{ y: col % 2 === 0 ? "-50%" : "0%" }}
+                    transition={{ duration: 36 + col * 9, repeat: Infinity, ease: "linear" }}
+                    className="flex flex-col gap-2"
                   >
                     {doubled.map((src, i) => (
-                      <div key={`${col}-${i}`} className="aspect-[3/4] rounded-2xl overflow-hidden bg-white/5">
+                      <div
+                        key={`${col}-${i}`}
+                        className={`${heightCycle[i % heightCycle.length]} rounded-2xl overflow-hidden bg-white/5 shrink-0`}
+                      >
                         <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
                       </div>
                     ))}
@@ -410,8 +420,7 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
             })}
           </div>
         )}
-        {/* subtle gradient overlay only — no text */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0c1220]/30 via-transparent to-primary/20 pointer-events-none" />
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-[#0c1220]/20 via-transparent to-primary/15" />
       </div>
     </div>
   );
