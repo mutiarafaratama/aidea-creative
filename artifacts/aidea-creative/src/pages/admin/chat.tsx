@@ -119,70 +119,74 @@ function InboxTab() {
   const pendingCount = sessions.filter((s) => s.status === "menunggu_admin").length;
 
   return (
-    <div className="grid md:grid-cols-[320px,1fr] gap-4 min-h-[60vh]">
-      {/* Session list */}
-      <Card className="flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0">
-          <div>
-            <p className="font-semibold text-sm">Percakapan ({sessions.length})</p>
+    <div className="flex gap-0 border rounded-xl overflow-hidden bg-card" style={{ height: "calc(100vh - 220px)", minHeight: 480 }}>
+      {/* Sidebar — session list */}
+      <div className="w-[260px] shrink-0 flex flex-col border-r">
+        <div className="flex items-center justify-between px-3 py-2.5 border-b bg-muted/40 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold">Percakapan</span>
+            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{sessions.length}</Badge>
             {pendingCount > 0 && (
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20 mt-0.5 text-[10px]">
-                {pendingCount} menunggu admin
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/20 text-[10px] h-4 px-1.5">
+                {pendingCount} baru
               </Badge>
             )}
           </div>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => fetchSessions(true)}>
-            <RefreshCw className="h-3.5 w-3.5" />
+          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => fetchSessions(true)}>
+            <RefreshCw className="h-3 w-3" />
           </Button>
         </div>
-        <div className="overflow-y-auto divide-y flex-1">
+        <div className="overflow-y-auto flex-1 divide-y">
           {loading ? (
             <div className="p-3 space-y-2">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
             </div>
           ) : sessions.length === 0 ? (
-            <p className="p-6 text-center text-sm text-muted-foreground">Belum ada percakapan.</p>
+            <p className="p-4 text-center text-xs text-muted-foreground">Belum ada percakapan.</p>
           ) : sessions.map((s) => {
             const sb = statusBadge[s.status];
+            const preview = s.lastFrom === "user" ? s.lastMessage : null;
             return (
               <button
                 key={s.sessionId}
                 onClick={() => openSession(s.sessionId)}
-                className={`w-full text-left px-4 py-3 hover:bg-muted/60 transition-colors ${active === s.sessionId ? "bg-muted" : ""}`}
+                className={`w-full text-left px-3 py-2.5 hover:bg-muted/60 transition-colors ${active === s.sessionId ? "bg-muted" : ""}`}
               >
-                <div className="flex items-center justify-between mb-1 gap-2">
+                <div className="flex items-center justify-between gap-1 mb-0.5">
                   <p className="text-xs font-semibold truncate">{s.namaTamu ?? `Tamu ${s.sessionId.slice(0, 6)}`}</p>
-                  <Badge variant="outline" className={`text-[10px] shrink-0 ${sb.cls}`}>{sb.label}</Badge>
+                  <Badge variant="outline" className={`text-[9px] shrink-0 px-1 py-0 h-4 ${sb.cls}`}>{sb.label}</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{s.lastMessage}</p>
-                <div className="flex justify-between mt-1.5">
-                  <span className="text-[10px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(s.lastAt), { locale: idLocale, addSuffix: true })}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{s.messageCount} msg</span>
-                </div>
+                {preview ? (
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">{preview}</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground/50 italic line-clamp-1">AI membalas...</p>
+                )}
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+                  {formatDistanceToNow(new Date(s.lastAt), { locale: idLocale, addSuffix: true })}
+                </p>
               </button>
             );
           })}
         </div>
-      </Card>
+      </div>
 
       {/* Chat panel */}
-      <Card className="flex flex-col overflow-hidden min-h-[60vh]">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {!active ? (
-          <div className="flex flex-col items-center justify-center flex-1 text-center text-muted-foreground p-10">
-            <MessagesSquare className="h-10 w-10 mb-3 opacity-30" />
-            <p className="text-sm">Pilih percakapan untuk membaca & membalas.</p>
+          <div className="flex flex-col items-center justify-center flex-1 text-center text-muted-foreground">
+            <MessagesSquare className="h-10 w-10 mb-3 opacity-20" />
+            <p className="text-sm">Pilih percakapan di sebelah kiri.</p>
           </div>
         ) : (
           <>
-            <div className="px-4 py-3 border-b flex items-center justify-between shrink-0">
+            {/* Header */}
+            <div className="px-4 py-2.5 border-b flex items-center justify-between shrink-0 bg-muted/20">
               <div>
                 <p className="font-semibold text-sm">{activeSession?.namaTamu ?? "Tamu"}</p>
                 <p className="font-mono text-[10px] text-muted-foreground">{active}</p>
               </div>
               <Select value={activeSession?.status ?? "ai"} onValueChange={(v) => setStatus(v as Session["status"])}>
-                <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-38 h-7 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ai">AI Aktif</SelectItem>
                   <SelectItem value="menunggu_admin">Menunggu Admin</SelectItem>
@@ -192,6 +196,7 @@ function InboxTab() {
               </Select>
             </div>
 
+            {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {msgs.length === 0 ? (
                 <div className="flex justify-center py-8">
@@ -200,34 +205,35 @@ function InboxTab() {
               ) : msgs.map((m) => (
                 <div key={m.id} className={`flex gap-2 ${m.pengirim === "user" ? "justify-end" : "justify-start"}`}>
                   {m.pengirim === "bot" && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <Bot className="h-4 w-4" />
+                    <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="h-3.5 w-3.5" />
                     </div>
                   )}
                   {m.pengirim === "admin" && (
-                    <div className="h-7 w-7 rounded-full bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="h-4 w-4" />
+                    <div className="h-6 w-6 rounded-full bg-emerald-500/10 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <ShieldCheck className="h-3.5 w-3.5" />
                     </div>
                   )}
-                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
+                  <div className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm ${
                     m.pengirim === "user" ? "bg-foreground text-background"
                     : m.pengirim === "admin" ? "bg-emerald-500/10 border border-emerald-500/20"
                     : "bg-muted"
                   }`}>
                     <p className="whitespace-pre-wrap">{m.pesan}</p>
-                    <p className={`text-[10px] mt-1 ${m.pengirim === "user" ? "text-background/60" : "text-muted-foreground"}`}>
+                    <p className={`text-[10px] mt-0.5 ${m.pengirim === "user" ? "text-background/50" : "text-muted-foreground"}`}>
                       {new Date(m.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                   {m.pengirim === "user" && (
-                    <div className="h-7 w-7 rounded-full bg-foreground text-background flex items-center justify-center shrink-0">
-                      <User className="h-4 w-4" />
+                    <div className="h-6 w-6 rounded-full bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="h-3.5 w-3.5" />
                     </div>
                   )}
                 </div>
               ))}
             </div>
 
+            {/* Reply box */}
             <div className="px-4 py-3 border-t bg-card shrink-0">
               <form onSubmit={(e) => { e.preventDefault(); sendReply(); }} className="flex gap-2">
                 <Input
@@ -235,6 +241,7 @@ function InboxTab() {
                   onChange={(e) => setReply(e.target.value)}
                   placeholder="Balas sebagai admin..."
                   disabled={sending}
+                  className="text-sm"
                 />
                 <Button type="submit" disabled={!reply.trim() || sending} className="shrink-0">
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -246,7 +253,7 @@ function InboxTab() {
             </div>
           </>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
