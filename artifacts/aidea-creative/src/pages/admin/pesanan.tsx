@@ -132,24 +132,6 @@ export default function AdminPesanan() {
     }
   };
 
-  const updateBayar = async (id: string, statusPembayaran: string) => {
-    const cur = detail?.status ?? "diproses";
-    setIsUpdating(true);
-    try {
-      const updated = await adminFetch<Pesanan>(`/api/pesanan/${id}/status`, {
-        method: "PUT",
-        body: JSON.stringify({ status: cur, statusPembayaran }),
-      });
-      setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      setDetail((prev) => (prev?.id === id ? updated : prev));
-      toast({ title: "Status pembayaran diperbarui" });
-    } catch {
-      toast({ title: "Gagal", variant: "destructive" });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const hapusPesanan = async (p: Pesanan) => {
     setIsDeleting(true);
     try {
@@ -341,30 +323,6 @@ export default function AdminPesanan() {
                     </div>
                   </>
                 )}
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ubah Status Pembayaran</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["belum_bayar", "dp", "lunas"] as const).map((s) => {
-                      const active = detail.statusPembayaran === s;
-                      const colors = { belum_bayar: "bg-orange-500 hover:bg-orange-600", dp: "bg-sky-600 hover:bg-sky-700", lunas: "bg-emerald-600 hover:bg-emerald-700" };
-                      return (
-                        <Button
-                          key={s}
-                          size="sm"
-                          variant={active ? "default" : "outline"}
-                          className={active ? `${colors[s]} text-white` : "text-muted-foreground"}
-                          disabled={active || isUpdating}
-                          onClick={() => updateBayar(detail.id, s)}
-                        >
-                          {BAYAR_LABELS[s]}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 <Separator />
 
