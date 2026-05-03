@@ -543,6 +543,7 @@ export default function Profil() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [testimoniDialog, setTestimoniDialog] = useState<TestimoniDialogState | null>(null);
   const [isSubmittingTestimoni, setIsSubmittingTestimoni] = useState(false);
+  const [selectedTestimoniDetail, setSelectedTestimoniDetail] = useState<TestimoniRow | null>(null);
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1121,37 +1122,52 @@ export default function Profil() {
                   <EmptyState icon={MessageSquare} text="Belum ada testimoni yang dikirim." />
                 ) : (
                   <ul className="divide-y divide-border">
-                    {testimoni.map((item) => (
-                      <li key={item.id} className="p-5 space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < item.rating
-                                    ? "text-amber-400 fill-amber-400"
-                                    : "text-muted-foreground/30"
-                                }`}
-                              />
-                            ))}
-                            <span className="ml-1 text-sm font-medium">{item.rating}/5</span>
-                          </div>
-                          <Badge
-                            variant={item.is_approved ? "default" : "outline"}
-                            className="text-xs"
+                    {testimoni.map((item) => {
+                      const linkedBooking = item.bookingId ? booking.find(b => b.id === item.bookingId) : null;
+                      const linkedPesanan = item.pesananId ? pesanan.find(p => p.id === item.pesananId) : null;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => setSelectedTestimoniDetail(item)}
+                            className="w-full text-left p-5 space-y-2 hover:bg-muted/40 transition-colors group"
                           >
-                            {item.is_approved ? "Ditampilkan" : "Menunggu Review"}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          "{item.komentar}"
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(item.created_at), "dd MMMM yyyy", { locale: idLocale })}
-                        </p>
-                      </li>
-                    ))}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-1">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${i < item.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`}
+                                  />
+                                ))}
+                                <span className="ml-1 text-sm font-medium">{item.rating}/5</span>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                              "{item.komentar}"
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(item.created_at), "dd MMMM yyyy", { locale: idLocale })}
+                              </p>
+                              {(linkedBooking || linkedPesanan) && (
+                                <span className="text-xs text-muted-foreground/60">·</span>
+                              )}
+                              {linkedBooking && (
+                                <span className="text-xs text-primary/70 font-medium">
+                                  {linkedBooking.paket_layanan?.nama_paket ?? linkedBooking.kode_booking}
+                                </span>
+                              )}
+                              {linkedPesanan && (
+                                <span className="text-xs text-primary/70 font-medium">
+                                  Pesanan {linkedPesanan.kode_pesanan}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </CardContent>
@@ -1585,6 +1601,53 @@ export default function Profil() {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Testimoni Detail Dialog ── */}
+      <Dialog open={!!selectedTestimoniDetail} onOpenChange={(open) => !open && setSelectedTestimoniDetail(null)}>
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-full max-w-sm rounded-xl">
+          {selectedTestimoniDetail && (() => {
+            const linkedBooking = selectedTestimoniDetail.bookingId ? booking.find(b => b.id === selectedTestimoniDetail.bookingId) : null;
+            const linkedPesanan = selectedTestimoniDetail.pesananId ? pesanan.find(p => p.id === selectedTestimoniDetail.pesananId) : null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="font-serif">Detail Testimoni</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`h-5 w-5 ${i < selectedTestimoniDetail.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
+                    ))}
+                    <span className="ml-2 text-sm font-semibold">{selectedTestimoniDetail.rating}/5</span>
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed">"{selectedTestimoniDetail.komentar}"</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(selectedTestimoniDetail.created_at), "dd MMMM yyyy", { locale: idLocale })}
+                  </p>
+                  {(linkedBooking || linkedPesanan) && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Berkaitan dengan</p>
+                      {linkedBooking && (
+                        <div>
+                          <p className="text-sm font-semibold">{linkedBooking.paket_layanan?.nama_paket ?? "Paket Foto"}</p>
+                          <p className="text-xs text-muted-foreground">{linkedBooking.kode_booking} · {format(new Date(linkedBooking.tanggal_sesi), "dd MMMM yyyy", { locale: idLocale })}</p>
+                        </div>
+                      )}
+                      {linkedPesanan && (
+                        <div>
+                          <p className="text-sm font-semibold">Pesanan Produk</p>
+                          <p className="text-xs text-muted-foreground">{linkedPesanan.kode_pesanan} · {linkedPesanan.items.length} item · Rp {linkedPesanan.total_harga.toLocaleString("id-ID")}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <Button variant="outline" className="w-full" onClick={() => setSelectedTestimoniDetail(null)}>Tutup</Button>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
