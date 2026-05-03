@@ -162,9 +162,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-border px-5 py-5">
               <Link href="/" className="flex items-center gap-2">
-                <div className="rounded-lg bg-primary p-2 text-primary-foreground">
-                  <Camera size={20} />
-                </div>
+                <img src="/images/logo.png" alt="AideaCreative" className="h-9 w-9 rounded-lg object-cover" />
                 <div>
                   <p className="font-serif text-lg font-bold leading-tight">AideaCreative</p>
                   <p className="text-xs text-muted-foreground">Studio Foto</p>
@@ -257,9 +255,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-1">
               <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="bg-primary text-primary-foreground p-1 rounded">
-                  <Camera size={20} />
-                </div>
+                <img src="/images/logo.png" alt="AideaCreative" className="h-9 w-9 rounded-lg object-cover" />
                 <span className="font-serif font-bold text-lg tracking-tight text-foreground">
                   AideaCreative
                 </span>

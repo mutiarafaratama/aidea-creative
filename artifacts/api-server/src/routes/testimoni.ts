@@ -58,7 +58,7 @@ router.post("/testimoni", attachAuth, async (req, res) => {
         bookingId: body.bookingId ?? null,
         pesananId: body.pesananId ?? null,
         pelangganId: req.authUser?.id ?? null,
-        isApproved: true,
+        isApproved: false,
       })
       .returning();
     res.status(201).json(formatTestimoni(row));

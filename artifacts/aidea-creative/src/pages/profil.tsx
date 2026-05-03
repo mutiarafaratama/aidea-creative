@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "wouter";
 import {
   AlertTriangle,
   Ban,
@@ -8,6 +9,7 @@ import {
   ClipboardList,
   Clock,
   CreditCard,
+  LayoutDashboard,
   Loader2,
   LogOut,
   MessageSquare,
@@ -899,6 +901,26 @@ export default function Profil() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Admin shortcut ── */}
+        {profile?.role === "admin" && (
+          <Link href="/dashboard">
+            <Card className="cursor-pointer border-primary/20 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all duration-200">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-foreground text-background flex items-center justify-center shrink-0">
+                    <LayoutDashboard size={17} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">Buka Dashboard Admin</p>
+                    <p className="text-xs text-muted-foreground">Kelola booking, pesanan, dan konten studio</p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-muted-foreground shrink-0" />
+              </CardContent>
+            </Card>
+          </Link>
+        )}
 
         {/* ── Main tabs ── */}
         <Tabs defaultValue="booking" className="w-full">

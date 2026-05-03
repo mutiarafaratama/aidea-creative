@@ -77,10 +77,10 @@ export default function Paket() {
           {/* Paket grid */}
           <div className="flex-1 min-w-0">
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {[1, 2, 3, 4].map(i => (
                   <Card key={i} className="animate-pulse overflow-hidden">
-                    <div className="h-44 bg-muted" />
+                    <div className="h-52 bg-muted" />
                     <CardContent className="p-5 space-y-3">
                       <div className="h-4 bg-muted rounded w-1/3" />
                       <div className="h-6 bg-muted rounded w-2/3" />
@@ -91,7 +91,7 @@ export default function Paket() {
                 ))}
               </div>
             ) : filteredPaket.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 {filteredPaket.map(paket => {
                   const isRecommended =
                     recommendMutation.isSuccess &&
@@ -109,7 +109,7 @@ export default function Paket() {
                       }`}
                     >
                       {/* Image area */}
-                      <div className="relative h-44 bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center overflow-hidden">
+                      <div className="relative h-52 bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center overflow-hidden">
                         {(paket as any).fotoUrl ? (
                           <img
                             src={(paket as any).fotoUrl}

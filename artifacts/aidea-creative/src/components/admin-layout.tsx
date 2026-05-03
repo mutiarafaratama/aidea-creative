@@ -1,60 +1,96 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, CalendarRange, Package, Image as ImageIcon,
-  Clock, Users, FileBarChart, MessagesSquare, LogOut, Menu, ShieldCheck, ExternalLink,
+  Clock, Users, FileBarChart, MessagesSquare, LogOut, Menu, X, ShieldCheck, ExternalLink,
   Megaphone, Settings, UserCog, ShoppingCart, Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { adminFetch } from "@/lib/admin-api";
 
-const navGroups = [
-  {
-    label: null,
-    items: [
-      { href: "/dashboard", label: "Beranda", icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: "Operasional",
-    items: [
-      { href: "/dashboard/booking", label: "Booking", icon: CalendarRange },
-      { href: "/dashboard/jadwal", label: "Jadwal Studio", icon: Clock },
-      { href: "/dashboard/pesanan", label: "Pesanan Toko", icon: ShoppingCart },
-    ],
-  },
-  {
-    label: "Layanan & Konten",
-    items: [
-      { href: "/dashboard/paket", label: "Paket Layanan", icon: Camera },
-      { href: "/dashboard/produk", label: "Produk", icon: Package },
-      { href: "/dashboard/portfolio", label: "Portfolio", icon: ImageIcon },
-      { href: "/dashboard/promo", label: "Banner Promo", icon: Megaphone },
-    ],
-  },
-  {
-    label: "Komunitas",
-    items: [
-      { href: "/dashboard/testimoni", label: "Testimoni", icon: Users },
-      { href: "/dashboard/chat", label: "Chat AI & Inbox", icon: MessagesSquare },
-    ],
-  },
-  {
-    label: "Pengaturan",
-    items: [
-      { href: "/dashboard/landing", label: "Landing Page", icon: Settings },
-      { href: "/dashboard/users", label: "Pengguna", icon: UserCog },
-      { href: "/dashboard/laporan", label: "Laporan", icon: FileBarChart },
-    ],
-  },
-];
+function usePendingCounts() {
+  const [bookingCount, setBookingCount] = useState(0);
+  const [pesananCount, setPesananCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [bookings, pesanan] = await Promise.all([
+          adminFetch<any[]>("/dashboard/recent-bookings"),
+          adminFetch<any[]>("/pesanan"),
+        ]);
+        if (cancelled) return;
+        if (Array.isArray(bookings)) {
+          setBookingCount(bookings.filter((b: any) => b.status === "menunggu").length);
+        }
+        if (Array.isArray(pesanan)) {
+          setPesananCount(pesanan.filter((p: any) => p.status === "diproses" || p.status === "dikerjakan").length);
+        }
+      } catch {
+        // silently ignore
+      }
+    };
+    load();
+    const interval = setInterval(load, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  return { bookingCount, pesananCount };
+}
 
 export function AdminLayout({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
   const [location, setLocation] = useLocation();
   const { signOut, profile } = useAuth();
   const [open, setOpen] = useState(false);
+  const { bookingCount, pesananCount } = usePendingCounts();
 
   const isActive = (href: string) => (href === "/dashboard" ? location === "/dashboard" : location.startsWith(href));
+
+  const navGroups = [
+    {
+      label: null,
+      items: [
+        { href: "/dashboard", label: "Beranda", icon: LayoutDashboard, badge: 0 },
+      ],
+    },
+    {
+      label: "Operasional",
+      items: [
+        { href: "/dashboard/booking", label: "Booking", icon: CalendarRange, badge: bookingCount },
+        { href: "/dashboard/jadwal", label: "Jadwal Studio", icon: Clock, badge: 0 },
+        { href: "/dashboard/pesanan", label: "Pesanan Toko", icon: ShoppingCart, badge: pesananCount },
+      ],
+    },
+    {
+      label: "Layanan & Konten",
+      items: [
+        { href: "/dashboard/paket", label: "Paket Layanan", icon: Camera, badge: 0 },
+        { href: "/dashboard/produk", label: "Produk", icon: Package, badge: 0 },
+        { href: "/dashboard/portfolio", label: "Portfolio", icon: ImageIcon, badge: 0 },
+        { href: "/dashboard/promo", label: "Banner Promo", icon: Megaphone, badge: 0 },
+      ],
+    },
+    {
+      label: "Komunitas",
+      items: [
+        { href: "/dashboard/testimoni", label: "Testimoni", icon: Users, badge: 0 },
+        { href: "/dashboard/chat", label: "Chat AI & Inbox", icon: MessagesSquare, badge: 0 },
+      ],
+    },
+    {
+      label: "Pengaturan",
+      items: [
+        { href: "/dashboard/landing", label: "Landing Page", icon: Settings, badge: 0 },
+        { href: "/dashboard/users", label: "Pengguna", icon: UserCog, badge: 0 },
+        { href: "/dashboard/laporan", label: "Laporan", icon: FileBarChart, badge: 0 },
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen flex bg-muted/30">
@@ -88,7 +124,15 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
                           active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         }`}
                       >
-                        <Icon size={17} /> {it.label}
+                        <Icon size={17} />
+                        <span className="flex-1 text-left">{it.label}</span>
+                        {it.badge > 0 && (
+                          <span className={`min-w-[20px] h-5 rounded-full text-[10px] font-bold flex items-center justify-center px-1.5 ${
+                            active ? "bg-background/20 text-background" : "bg-primary text-primary-foreground"
+                          }`}>
+                            {it.badge > 99 ? "99+" : it.badge}
+                          </span>
+                        )}
                       </button>
                     </Link>
                   );
@@ -118,7 +162,13 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
       <div className="flex-1 min-w-0">
         <header className="sticky top-0 z-20 bg-background/85 backdrop-blur border-b border-border">
           <div className="flex items-center justify-between px-4 md:px-8 py-4">
-            <button className="md:hidden" onClick={() => setOpen(true)}><Menu size={22} /></button>
+            <button
+              className="md:hidden p-1 rounded-lg hover:bg-muted transition-colors"
+              onClick={() => setOpen((o) => !o)}
+              aria-label={open ? "Tutup sidebar" : "Buka sidebar"}
+            >
+              {open ? <X size={22} /> : <Menu size={22} />}
+            </button>
             <div>
               <h1 className="text-xl md:text-2xl font-bold">{title}</h1>
               {subtitle && <p className="text-xs md:text-sm text-muted-foreground mt-0.5">{subtitle}</p>}

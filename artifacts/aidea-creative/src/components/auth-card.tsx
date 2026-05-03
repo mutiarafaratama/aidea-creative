@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Camera, Loader2, Lock, UserPlus } from "lucide-react";
+import { Loader2, Lock, UserPlus } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,9 +204,7 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
         <div className="w-full max-w-md">
           {/* Brand */}
           <Link href="/" className="inline-flex items-center gap-2 mb-10">
-            <div className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-              <Camera size={18} />
-            </div>
+            <img src="/images/logo.png" alt="AideaCreative" className="h-9 w-9 rounded-lg object-cover" />
             <div className="leading-tight">
               <p className="font-bold text-base text-foreground">AideaCreative</p>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Smart Photo Studio</p>
@@ -283,7 +281,8 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                   atau
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                <Button type="button" variant="outline" className="w-full rounded-full h-11" onClick={handleGoogle} disabled={!isSupabaseConfigured}>
+                <Button type="button" variant="outline" className="w-full rounded-full h-11 gap-2.5" onClick={handleGoogle} disabled={!isSupabaseConfigured}>
+                  <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M47.5 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h13.19c-.57 3.07-2.31 5.67-4.91 7.4v6.15h7.95c4.65-4.29 7.27-10.61 7.27-17.56z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.15 15.9-5.83l-7.95-6.15c-2.13 1.43-4.86 2.27-7.95 2.27-6.11 0-11.29-4.13-13.14-9.68H2.63v6.35C6.58 42.58 14.73 48 24 48z"/><path fill="#FBBC05" d="M10.86 28.61A14.95 14.95 0 0 1 9.96 24c0-1.6.27-3.14.9-4.61v-6.35H2.63A23.98 23.98 0 0 0 0 24c0 3.88.93 7.55 2.63 10.96l8.23-6.35z"/><path fill="#EA4335" d="M24 9.75c3.44 0 6.52 1.18 8.95 3.5l6.7-6.7C35.93 2.7 30.48 0 24 0 14.73 0 6.58 5.42 2.63 13.04l8.23 6.35C12.71 13.88 17.89 9.75 24 9.75z"/></svg>
                   Lanjutkan dengan Google
                 </Button>
 
@@ -363,7 +362,8 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                   atau
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                <Button type="button" variant="outline" className="w-full rounded-full h-11" onClick={handleGoogle} disabled={!isSupabaseConfigured}>
+                <Button type="button" variant="outline" className="w-full rounded-full h-11 gap-2.5" onClick={handleGoogle} disabled={!isSupabaseConfigured}>
+                  <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#4285F4" d="M47.5 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h13.19c-.57 3.07-2.31 5.67-4.91 7.4v6.15h7.95c4.65-4.29 7.27-10.61 7.27-17.56z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.15 15.9-5.83l-7.95-6.15c-2.13 1.43-4.86 2.27-7.95 2.27-6.11 0-11.29-4.13-13.14-9.68H2.63v6.35C6.58 42.58 14.73 48 24 48z"/><path fill="#FBBC05" d="M10.86 28.61A14.95 14.95 0 0 1 9.96 24c0-1.6.27-3.14.9-4.61v-6.35H2.63A23.98 23.98 0 0 0 0 24c0 3.88.93 7.55 2.63 10.96l8.23-6.35z"/><path fill="#EA4335" d="M24 9.75c3.44 0 6.52 1.18 8.95 3.5l6.7-6.7C35.93 2.7 30.48 0 24 0 14.73 0 6.58 5.42 2.63 13.04l8.23 6.35C12.71 13.88 17.89 9.75 24 9.75z"/></svg>
                   Daftar dengan Google
                 </Button>
 
