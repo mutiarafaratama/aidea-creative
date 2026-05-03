@@ -63,6 +63,7 @@ type PesananRow = {
   id: string;
   kode_pesanan: string;
   status: string;
+  status_pembayaran: string;
   total_harga: number;
   created_at: string;
 };
@@ -351,6 +352,44 @@ export default function Profil() {
     setFotoProfil(profile.foto_profil ?? "");
   }, [profile]);
 
+  // Supabase Realtime — update pesanan tanpa refresh halaman
+  useEffect(() => {
+    if (!supabase || !user) return;
+
+    const channel = supabase
+      .channel(`pesanan-profil-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "pesanan_produk",
+          filter: `pelanggan_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            const updated = payload.new as PesananRow;
+            setPesanan((prev) =>
+              prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+            );
+            toast({
+              title: "Status pesanan diperbarui",
+              description: `#${updated.kode_pesanan} → ${STATUS_PESANAN[updated.status]?.label ?? updated.status}`,
+              duration: 4000,
+            });
+          } else if (payload.eventType === "INSERT") {
+            const inserted = payload.new as PesananRow;
+            setPesanan((prev) => [inserted, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   useEffect(() => {
     if (!supabase || !user) return;
     setDataLoading(true);
@@ -364,7 +403,7 @@ export default function Profil() {
         .order("created_at", { ascending: false }),
       supabase
         .from("pesanan_produk")
-        .select("id,kode_pesanan,status,total_harga,created_at")
+        .select("id,kode_pesanan,status,status_pembayaran,total_harga,created_at")
         .eq("pelanggan_id", user.id)
         .order("created_at", { ascending: false }),
       supabase
@@ -737,15 +776,16 @@ export default function Profil() {
                         key={item.id}
                         className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                       >
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm font-mono">
                               {item.kode_pesanan}
                             </span>
                             <StatusBadge status={item.status} map={STATUS_PESANAN} />
+                            <StatusBadge status={item.status_pembayaran} map={STATUS_BAYAR} />
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.created_at), "dd MMMM yyyy", {
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(item.created_at), "dd MMMM yyyy, HH:mm", {
                               locale: idLocale,
                             })}
                           </p>
