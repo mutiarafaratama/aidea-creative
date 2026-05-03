@@ -193,10 +193,10 @@ export default function Paket() {
           </div>
 
           {/* Sidebar AI — desktop only */}
-          <div className="hidden lg:block lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-24">
-            <Card className="overflow-hidden border-primary/20">
-              <div className="h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40" />
-              <CardContent className="p-5">
+          <div className="hidden lg:block lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] flex flex-col">
+            <Card className="overflow-hidden border-primary/20 flex flex-col max-h-full">
+              <div className="h-1 bg-gradient-to-r from-primary/40 via-primary to-primary/40 shrink-0" />
+              <CardContent className="p-5 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="flex items-center gap-3 mb-5">
                   <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0">
                     <Sparkles size={17} />
