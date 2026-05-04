@@ -1,22 +1,19 @@
 import type { NextFunction, Request, Response } from "express";
-import { createClient, type User } from "@supabase/supabase-js";
-import { db, profilesTable } from "@workspace/db";
+import jwt from "jsonwebtoken";
+import { db, profilesTable, usersAuthTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 declare global {
   namespace Express {
     interface Request {
-      authUser?: User;
+      authUser?: { id: string; email: string };
       authProfile?: typeof profilesTable.$inferSelect;
     }
   }
 }
 
-const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const JWT_SECRET = process.env.SESSION_SECRET ?? "fallback-dev-secret-change-in-prod";
 
-// Comma-separated admin emails (env). Always include the project owner.
 const ADMIN_EMAILS = new Set(
   (process.env.ADMIN_EMAILS ?? "tiarafaratama@gmail.com")
     .split(",")
@@ -24,47 +21,48 @@ const ADMIN_EMAILS = new Set(
     .filter(Boolean)
 );
 
-function getBearerToken(req: Request) {
+function getBearerToken(req: Request): string | null {
   const header = req.headers.authorization;
-  if (!header?.startsWith("Bearer ")) return null;
-  return header.slice("Bearer ".length);
+  if (header?.startsWith("Bearer ")) return header.slice("Bearer ".length);
+  const cookie = req.cookies?.["auth_token"] as string | undefined;
+  if (cookie) return cookie;
+  return null;
 }
 
-/**
- * Loads the profile row for the given Supabase user.
- * - If no profile exists, creates one (auto-provisioning) using auth metadata.
- * - If the user's email is in the ADMIN_EMAILS allowlist, ensures role='admin'.
- */
-async function ensureProfile(user: User) {
-  const email = (user.email ?? "").toLowerCase();
-  const shouldBeAdmin = email && ADMIN_EMAILS.has(email);
+export function signToken(payload: { id: string; email: string }): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
+}
 
-  const [existing] = await db.select().from(profilesTable).where(eq(profilesTable.id, user.id));
+export function verifyToken(token: string): { id: string; email: string } | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as { id: string; email: string };
+  } catch {
+    return null;
+  }
+}
+
+export async function ensureProfile(userId: string, email: string) {
+  const shouldBeAdmin = email && ADMIN_EMAILS.has(email.toLowerCase());
+
+  const [existing] = await db.select().from(profilesTable).where(eq(profilesTable.id, userId));
   if (existing) {
-    // Promote known admin emails if not already admin
     if (shouldBeAdmin && existing.role !== "admin") {
       const [updated] = await db
         .update(profilesTable)
         .set({ role: "admin", updatedAt: new Date() })
-        .where(eq(profilesTable.id, user.id))
+        .where(eq(profilesTable.id, userId))
         .returning();
       return updated ?? existing;
     }
     return existing;
   }
 
-  // Auto-create profile row
-  const meta = (user.user_metadata ?? {}) as Record<string, any>;
-  const namaLengkap =
-    meta.nama_lengkap ?? meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "Pengguna";
-  const noTelepon = meta.no_telepon ?? meta.phone ?? null;
-
+  const name = email.split("@")[0] ?? "Pengguna";
   const [created] = await db
     .insert(profilesTable)
     .values({
-      id: user.id,
-      namaLengkap,
-      noTelepon,
+      id: userId,
+      namaLengkap: name,
       role: shouldBeAdmin ? "admin" : "pelanggan",
     })
     .returning();
@@ -73,29 +71,19 @@ async function ensureProfile(user: User) {
 
 export async function attachAuth(req: Request, _res: Response, next: NextFunction) {
   try {
-    if (!supabase) {
-      next();
-      return;
-    }
     const token = getBearerToken(req);
-    if (!token) {
-      next();
-      return;
-    }
-    const { data, error } = await supabase.auth.getUser(token);
-    if (error || !data.user) {
-      next();
-      return;
-    }
-    req.authUser = data.user;
+    if (!token) { next(); return; }
+    const payload = verifyToken(token);
+    if (!payload) { next(); return; }
+    req.authUser = { id: payload.id, email: payload.email };
     try {
-      req.authProfile = await ensureProfile(data.user);
+      req.authProfile = await ensureProfile(payload.id, payload.email);
     } catch (err) {
-      req.log.warn({ err }, "ensureProfile failed (attachAuth)");
+      req.log?.warn?.({ err }, "ensureProfile failed (attachAuth)");
     }
     next();
   } catch (err) {
-    req.log.warn({ err }, "Failed to attach optional Supabase user");
+    req.log?.warn?.({ err }, "Failed to attach auth user");
     next();
   }
 }
@@ -107,20 +95,16 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       res.status(401).json({ error: "Login diperlukan." });
       return;
     }
-    if (!supabase) {
-      res.status(500).json({ error: "Supabase auth belum dikonfigurasi di server." });
-      return;
-    }
-    const { data, error } = await supabase.auth.getUser(token);
-    if (error || !data.user) {
+    const payload = verifyToken(token);
+    if (!payload) {
       res.status(401).json({ error: "Session tidak valid." });
       return;
     }
-    req.authUser = data.user;
-    req.authProfile = await ensureProfile(data.user);
+    req.authUser = { id: payload.id, email: payload.email };
+    req.authProfile = await ensureProfile(payload.id, payload.email);
     next();
   } catch (err) {
-    req.log.error({ err }, "Failed to validate Supabase user");
+    req.log?.error?.({ err }, "Failed to validate auth user");
     res.status(401).json({ error: "Session tidak valid." });
   }
 }

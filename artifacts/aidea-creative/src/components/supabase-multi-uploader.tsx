@@ -31,8 +31,6 @@ function fileToBase64(file: File): Promise<string> {
 
 async function destroyRemote(url: string) {
   if (!url) return;
-  // Only attempt destroy for Supabase Storage URLs we own.
-  if (!/\/storage\/v1\/object\/public\//.test(url)) return;
   try {
     await adminFetch("/upload/supabase/destroy", {
       method: "POST",

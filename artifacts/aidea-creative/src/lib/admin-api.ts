@@ -1,17 +1,11 @@
-import { supabase } from "@/lib/supabase";
-
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-async function getToken() {
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+function getToken(): string | null {
+  try { return localStorage.getItem("auth_token"); } catch { return null; }
 }
 
 export async function adminFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = await getToken();
-  // Ensure every admin call goes through `/api/*` so Vite's dev proxy
-  // forwards it to the backend instead of returning the SPA HTML.
+  const token = getToken();
   const normalized = path.startsWith("/api/") ? path : `/api${path.startsWith("/") ? "" : "/"}${path}`;
   const res = await fetch(`${API_BASE}${normalized}`, {
     ...init,
@@ -20,6 +14,7 @@ export async function adminFetch<T = any>(path: string, init: RequestInit = {}):
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers || {}),
     },
+    credentials: "include",
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");

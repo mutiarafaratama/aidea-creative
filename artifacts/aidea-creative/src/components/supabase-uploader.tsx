@@ -28,13 +28,12 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-async function destroyPrevious(url: string | null | undefined, bucket: string) {
+async function destroyPrevious(url: string | null | undefined, _bucket: string) {
   if (!url) return;
-  if (!/\/storage\/v1\/object\/public\//.test(url)) return;
   try {
     await adminFetch("/upload/supabase/destroy", {
       method: "POST",
-      body: JSON.stringify({ url, bucket }),
+      body: JSON.stringify({ url }),
     });
   } catch {
     // best-effort
@@ -130,7 +129,7 @@ export function SupabaseUploader({
               </Button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">PNG/JPG/WebP/GIF, maks. 20MB. Tersimpan di Supabase Storage (bucket: {bucket}).</p>
+          <p className="text-xs text-muted-foreground">PNG/JPG/WebP/GIF, maks. 20MB.</p>
         </div>
       </div>
     </div>

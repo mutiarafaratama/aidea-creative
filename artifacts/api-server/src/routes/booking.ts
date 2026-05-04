@@ -48,6 +48,22 @@ const formatBooking = (
   createdAt: r.createdAt.toISOString(),
 });
 
+router.get("/booking/me", attachAuth, async (req, res) => {
+  try {
+    if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
+    const rows = await db
+      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket })
+      .from(bookingTable)
+      .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
+      .where(eq(bookingTable.pelangganId, req.authUser.id))
+      .orderBy(desc(bookingTable.createdAt));
+    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket)));
+  } catch (err) {
+    req.log.error({ err }, "Failed to list my bookings");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/booking", async (req, res) => {
   try {
     const rows = await db

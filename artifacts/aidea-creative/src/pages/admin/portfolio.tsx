@@ -126,12 +126,10 @@ export default function AdminPortfolio() {
           qc.invalidateQueries({ queryKey: getListPortfolioQueryKey() });
           const urls = Array.isArray(p.gambarUrl) ? p.gambarUrl : [];
           urls.filter(Boolean).forEach((u) => {
-            if (/\/storage\/v1\/object\/public\//.test(u)) {
-              adminFetch("/upload/supabase/destroy", {
-                method: "POST",
-                body: JSON.stringify({ url: u, bucket: "portfolio" }),
-              }).catch(() => {});
-            }
+            adminFetch("/upload/supabase/destroy", {
+              method: "POST",
+              body: JSON.stringify({ url: u }),
+            }).catch(() => {});
           });
         },
         onError: () => toast({ title: "Gagal menghapus", variant: "destructive" }),

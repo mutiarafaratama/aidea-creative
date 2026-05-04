@@ -1,16 +1,10 @@
 import { Router } from "express";
-import { createClient } from "@supabase/supabase-js";
 import { db } from "@workspace/db";
-import { profilesTable, bookingTable, pesananProdukTable, itemPesananTable, testimoniTable, chatSessionTable } from "@workspace/db";
+import { profilesTable, bookingTable, pesananProdukTable, itemPesananTable, testimoniTable, chatSessionTable, usersAuthTable } from "@workspace/db";
 import { eq, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
-
-const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin =
-  supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } }) : null;
 
 router.get("/admin/users", requireAdmin, async (_req, res) => {
   try {
@@ -21,15 +15,8 @@ router.get("/admin/users", requireAdmin, async (_req, res) => {
       .groupBy(bookingTable.pelangganId);
     const countMap = new Map(bookingCounts.map((b) => [b.pelangganId, b.count]));
 
-    let emailMap = new Map<string, string>();
-    if (supabaseAdmin) {
-      try {
-        const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-        emailMap = new Map((data?.users ?? []).map((u) => [u.id, u.email ?? ""]));
-      } catch {
-        // ignore
-      }
-    }
+    const auths = await db.select({ profileId: usersAuthTable.profileId, email: usersAuthTable.email }).from(usersAuthTable);
+    const emailMap = new Map(auths.map((a) => [a.profileId, a.email]));
 
     res.json(
       profiles.map((p) => ({
@@ -71,7 +58,6 @@ router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
       return res.status(400).json({ error: "Tidak bisa menghapus akun sendiri." });
     }
 
-    // 1. Hapus item_pesanan (FK → pesanan_produk)
     const pesananIds = await db
       .select({ id: pesananProdukTable.id })
       .from(pesananProdukTable)
@@ -82,27 +68,12 @@ router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
       );
     }
 
-    // 2. Hapus pesanan_produk
     await db.delete(pesananProdukTable).where(eq(pesananProdukTable.pelangganId, userId));
-
-    // 3. Hapus booking & testimoni
     await db.delete(bookingTable).where(eq(bookingTable.pelangganId, userId));
     await db.delete(testimoniTable).where(eq(testimoniTable.pelangganId, userId));
-
-    // 4. Hapus chat sessions milik user (tidak ada FK constraint ketat)
     await db.delete(chatSessionTable).where(eq(chatSessionTable.userId, userId));
-
-    // 5. Hapus profil
+    await db.delete(usersAuthTable).where(eq(usersAuthTable.profileId, userId));
     await db.delete(profilesTable).where(eq(profilesTable.id, userId));
-
-    // 6. Hapus dari Supabase Auth
-    if (supabaseAdmin) {
-      try {
-        await supabaseAdmin.auth.admin.deleteUser(userId);
-      } catch {
-        // ignore — profile already removed
-      }
-    }
 
     res.status(204).send();
   } catch (err: any) {

@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { adminFetch } from "@/lib/admin-api";
-import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -111,14 +110,7 @@ export default function AdminPesanan() {
 
   useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    if (!supabase) return;
-    const channel = supabase
-      .channel("admin-pesanan-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pesanan_produk" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+  // Realtime updates handled by polling or future websocket integration
 
   const proseskanPesanan = async (id: string) => {
     setIsUpdating(true);

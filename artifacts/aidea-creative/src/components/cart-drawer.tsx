@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/cart-context";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -44,7 +43,6 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return;
     if (!nama.trim() || !email.trim() || !telepon.trim()) {
       toast({ title: "Isi semua data diri", variant: "destructive" });
       return;
@@ -52,8 +50,7 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
 
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem("auth_token");
 
       const res = await fetch("/api/pesanan", {
         method: "POST",

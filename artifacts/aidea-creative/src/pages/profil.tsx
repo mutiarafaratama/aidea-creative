@@ -39,7 +39,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -582,67 +581,36 @@ export default function Profil() {
     setFotoProfil(profile.foto_profil ?? "");
   }, [profile]);
 
-  // Supabase Realtime — update pesanan tanpa refresh halaman
   useEffect(() => {
-    if (!supabase || !user) return;
-
-    const channel = supabase
-      .channel(`pesanan-profil-${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "pesanan_produk",
-          filter: `pelanggan_id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === "UPDATE") {
-            const updated = payload.new as PesananRow;
-            setPesanan((prev) =>
-              prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
-            );
-            toast({
-              title: "Status pesanan diperbarui",
-              description: `#${updated.kode_pesanan} → ${STATUS_PESANAN[updated.status]?.label ?? updated.status}`,
-              duration: 4000,
-            });
-          } else if (payload.eventType === "INSERT") {
-            const inserted = payload.new as PesananRow;
-            setPesanan((prev) => [inserted, ...prev]);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  useEffect(() => {
-    if (!supabase || !user) return;
+    if (!user) return;
     setDataLoading(true);
+    const token = localStorage.getItem("auth_token");
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
-      supabase
-        .from("booking")
-        .select(
-          "id,kode_booking,nama_pemesan,email,telepon,tanggal_sesi,jam_sesi,konsep_foto,catatan_pelanggan,status,status_pembayaran,total_harga,created_at,paket_layanan(nama_paket,harga)"
-        )
-        .eq("pelanggan_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase.auth.getSession().then(({ data: { session } }) =>
-        fetch("/api/pesanan/me", {
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-        }).then((r) => r.json())
-      ),
-      supabase.auth.getSession().then(({ data: { session } }) =>
-        fetch("/api/testimoni/me", {
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-        }).then((r) => r.json())
-      ),
+      fetch("/api/booking/me", { headers }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/pesanan/me", { headers }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/testimoni/me", { headers }).then((r) => r.ok ? r.json() : []),
     ]).then(([b, p, t]) => {
-      if (!b.error) setBooking((b.data ?? []) as BookingRow[]);
+      if (Array.isArray(b)) {
+        setBooking(b.map((x: any) => ({
+          id: x.id,
+          kode_booking: x.kodeBooking,
+          nama_pemesan: x.namaPemesan,
+          email: x.email,
+          telepon: x.telepon,
+          tanggal_sesi: x.tanggalSesi,
+          jam_sesi: x.jamSesi,
+          konsep_foto: x.konsepFoto,
+          catatan_pelanggan: x.catatanPelanggan,
+          status: x.status,
+          status_pembayaran: x.statusPembayaran,
+          total_harga: x.totalHarga,
+          created_at: x.createdAt,
+          paket_layanan: x.namaPaket ? { nama_paket: x.namaPaket, harga: x.totalHarga } : null,
+          alasan_pembatalan: x.alasanPembatalan ?? null,
+          dibatalkan_oleh: x.dibatalkanOleh ?? null,
+        })));
+      }
       if (Array.isArray(p)) {
         setPesanan(p.map((x: any) => ({
           ...x,
@@ -660,15 +628,14 @@ export default function Profil() {
         })) as TestimoniRow[]);
       }
       setDataLoading(false);
-    });
+    }).catch(() => setDataLoading(false));
   }, [user]);
 
   const saveProfile = async () => {
-    if (!supabase || !user) return;
+    if (!user) return;
     setIsSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem("auth_token");
       const res = await fetch("/api/me", {
         method: "PUT",
         headers: {
@@ -695,48 +662,50 @@ export default function Profil() {
   };
 
   const uploadAvatar = async (file: File) => {
-    if (!supabase || !user) return;
+    if (!user) return;
     if (file.size > 5 * 1024 * 1024) {
       toast({ title: "Ukuran terlalu besar", description: "Maksimal 5MB.", variant: "destructive" });
       return;
     }
     setIsUploading(true);
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true, cacheControl: "3600", contentType: file.type });
-    if (uploadError) {
+    try {
+      const token = localStorage.getItem("auth_token");
+      const reader = new FileReader();
+      const dataBase64: string = await new Promise((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1] ?? result);
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const res = await fetch("/api/upload/supabase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ bucket: "avatars", folder: user.id, filename: `avatar-${Date.now()}.${ext}`, contentType: file.type, dataBase64 }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Upload gagal");
+      const { url } = await res.json();
+      setFotoProfil(url);
+      await fetch("/api/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ fotoProfil: url }),
+      });
+      await refreshProfile();
+      toast({ title: "Foto profil diperbarui" });
+    } catch (e: any) {
+      toast({ title: "Upload gagal", description: e.message, variant: "destructive" });
+    } finally {
       setIsUploading(false);
-      const msg = /not.found|bucket/i.test(uploadError.message)
-        ? "Bucket 'avatars' belum dibuat di Supabase Storage."
-        : uploadError.message;
-      toast({ title: "Upload gagal", description: msg, variant: "destructive" });
-      return;
     }
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    setFotoProfil(data.publicUrl);
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    await fetch("/api/me", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ fotoProfil: data.publicUrl }),
-    });
-    setIsUploading(false);
-    await refreshProfile();
-    toast({ title: "Foto profil diperbarui" });
   };
 
   const payPesanan = async (p: PesananRow) => {
-    if (!supabase) return;
     setSnapLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem("auth_token");
       let snapToken = p.midtransSnapToken;
 
       if (!snapToken) {
@@ -804,11 +773,9 @@ export default function Profil() {
   };
 
   const payBooking = async (b: BookingRow) => {
-    if (!supabase) return;
     setSnapLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem("auth_token");
 
       const res = await fetch(`/api/booking/${b.id}/payment`, {
         method: "POST",
@@ -877,11 +844,10 @@ export default function Profil() {
   };
 
   const cancelBooking = async () => {
-    if (!cancelDialog || !supabase) return;
+    if (!cancelDialog) return;
     setIsCancelling(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem("auth_token");
       const res = await fetch(
         `/api/booking/${cancelDialog.booking.id}/cancel`,
         {
@@ -924,13 +890,12 @@ export default function Profil() {
   };
 
   const terimaPesanan = async (p: PesananRow) => {
-    if (!supabase) return;
     setIsTerimaPesanan(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const token = localStorage.getItem("auth_token");
       const res = await fetch(`/api/pesanan/${p.id}/terima`, {
         method: "PUT",
-        headers: { ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -949,7 +914,7 @@ export default function Profil() {
   };
 
   const submitTestimoni = async () => {
-    if (!testimoniDialog || !supabase) return;
+    if (!testimoniDialog) return;
     if (!testimoniDialog.komentar.trim() || testimoniDialog.komentar.trim().length < 10) {
       toast({ title: "Komentar terlalu pendek", description: "Minimal 10 karakter.", variant: "destructive" });
       return;
@@ -960,8 +925,7 @@ export default function Profil() {
     }
     setIsSubmittingTestimoni(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const token = localStorage.getItem("auth_token");
       const res = await fetch("/api/testimoni", {
         method: "POST",
         headers: {
@@ -999,9 +963,7 @@ export default function Profil() {
       .slice(0, 2)
       .toUpperCase() || "AC";
 
-  const joinDate = user?.created_at
-    ? format(new Date(user.created_at), "MMMM yyyy", { locale: idLocale })
-    : null;
+  const joinDate = null;
 
   const activeBookingCount = booking.filter(
     (b) => b.status === "menunggu" || b.status === "dikonfirmasi"

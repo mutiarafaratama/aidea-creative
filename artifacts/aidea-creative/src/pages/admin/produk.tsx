@@ -56,7 +56,7 @@ const emptyForm: ProdukForm = {
 };
 
 function destroySupabaseUrl(url: string) {
-  if (!url || !/\/storage\/v1\/object\/public\//.test(url)) return;
+  if (!url) return;
   adminFetch("/upload/supabase/destroy", {
     method: "POST",
     body: JSON.stringify({ url }),

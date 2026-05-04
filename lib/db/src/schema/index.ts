@@ -1,5 +1,6 @@
 export * from "./enums";
 export * from "./profiles";
+export * from "./users_auth";
 export * from "./kategori_layanan";
 export * from "./paket_layanan";
 export * from "./jadwal_tersedia";

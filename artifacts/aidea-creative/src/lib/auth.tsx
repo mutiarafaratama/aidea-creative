@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
 import { setAuthTokenGetter } from "@workspace/api-client-react";
-import { supabase } from "@/lib/supabase";
 
 export type Profile = {
   id: string;
@@ -12,56 +10,66 @@ export type Profile = {
   role: "admin" | "pelanggan";
 };
 
+export type AuthUser = {
+  id: string;
+  email: string;
+};
+
 type AuthContextValue = {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   profile: Profile | null;
   isLoading: boolean;
   profileChecked: boolean;
+  token: string | null;
   refreshProfile: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signUp: (opts: { email: string; password: string; namaLengkap: string; noTelepon?: string }) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const TOKEN_KEY = "auth_token";
 
-// Race a promise against a timeout. If the promise doesn't settle in
-// `ms` milliseconds, resolve with `fallback`. Used to prevent rare
-// stalled supabase auth calls from freezing the UI.
-function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return Promise.race<T>([
-    p,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
+function getStoredToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 }
 
-async function loadProfile(_userId: string): Promise<Profile | null> {
-  if (!supabase) return null;
-  const { data: sess } = await withTimeout(
-    supabase.auth.getSession(),
-    1500,
-    { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
-  );
-  const token = sess.session?.access_token;
-  if (!token) return null;
-  // Use server-side /api/me which auto-provisions the profile row and
-  // promotes known admin emails to role='admin'.
+function storeToken(token: string) {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
+}
+
+function clearToken() {
+  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+}
+
+async function apiFetch<T>(path: string, opts: RequestInit = {}, token?: string | null): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const t = token ?? getStoredToken();
+  if (t) headers["Authorization"] = `Bearer ${t}`;
+  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers: { ...headers, ...(opts.headers as Record<string, string> ?? {}) }, credentials: "include" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadProfileFromServer(token: string): Promise<{ user: AuthUser; profile: Profile } | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return null;
-    const body = await res.json();
-    const p = body.profile;
-    if (!p) return null;
+    const data = await apiFetch<{ user: AuthUser; profile: any }>("/api/auth/me", {}, token);
+    if (!data?.profile) return null;
     return {
-      id: p.id,
-      nama_lengkap: p.namaLengkap,
-      no_telepon: p.noTelepon,
-      alamat: p.alamat,
-      foto_profil: p.fotoProfil,
-      role: p.role,
+      user: data.user,
+      profile: {
+        id: data.profile.id,
+        nama_lengkap: data.profile.namaLengkap,
+        no_telepon: data.profile.noTelepon,
+        alamat: data.profile.alamat,
+        foto_profil: data.profile.fotoProfil,
+        role: data.profile.role,
+      },
     };
   } catch {
     return null;
@@ -69,131 +77,131 @@ async function loadProfile(_userId: string): Promise<Profile | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileChecked, setProfileChecked] = useState(false);
 
   const refreshProfile = async () => {
-    if (!session?.user.id) {
+    const t = token ?? getStoredToken();
+    if (!t) {
+      setUser(null);
       setProfile(null);
       setProfileChecked(true);
       return;
     }
-    setProfile(await loadProfile(session.user.id));
+    const result = await loadProfileFromServer(t);
+    if (result) {
+      setUser(result.user);
+      setProfile(result.profile);
+    } else {
+      setUser(null);
+      setProfile(null);
+    }
     setProfileChecked(true);
   };
 
   useEffect(() => {
-    setAuthTokenGetter(async () => {
-      if (!supabase) return null;
-      const { data } = await withTimeout(
-        supabase.auth.getSession(),
-        1200,
-        { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
-      );
-      return data.session?.access_token ?? null;
-    });
+    const t = getStoredToken();
+    setToken(t);
 
-    if (!supabase) {
+    setAuthTokenGetter(async () => getStoredToken());
+
+    if (!t) {
       setIsLoading(false);
+      setProfileChecked(true);
       return;
     }
 
-    let mounted = true;
-
-    const safetyTimer = setTimeout(() => {
-      if (mounted) {
-        setIsLoading(false);
-        setProfileChecked(true);
-      }
-    }, 3000);
-
-    withTimeout(
-      supabase.auth.getSession(),
-      2500,
-      { data: { session: null } } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
-    ).then(async ({ data }) => {
-      if (!mounted) return;
-      setSession(data.session);
-      if (data.session?.user.id) {
-        try {
-          setProfile(await loadProfile(data.session.user.id));
-        } catch {
-          setProfile(null);
-        }
+    loadProfileFromServer(t).then((result) => {
+      if (result) {
+        setUser(result.user);
+        setProfile(result.profile);
+      } else {
+        clearToken();
+        setToken(null);
       }
       setProfileChecked(true);
       setIsLoading(false);
     }).catch(() => {
-      if (mounted) {
-        setProfileChecked(true);
-        setIsLoading(false);
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (nextSession?.user.id) {
-        setIsLoading(true);
-        setProfileChecked(false);
-      }
-      setSession(nextSession);
-      if (nextSession?.user.id) {
-        try {
-          setProfile(await loadProfile(nextSession.user.id));
-        } catch {
-          setProfile(null);
-        }
-      } else {
-        setProfile(null);
-      }
       setProfileChecked(true);
       setIsLoading(false);
     });
 
     return () => {
-      mounted = false;
-      clearTimeout(safetyTimer);
-      listener.subscription.unsubscribe();
       setAuthTokenGetter(null);
     };
   }, []);
 
+  const signIn = async (email: string, password: string): Promise<{ error?: string }> => {
+    try {
+      const data = await apiFetch<{ token: string; user: AuthUser; profile: any }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      storeToken(data.token);
+      setToken(data.token);
+      setAuthTokenGetter(async () => data.token);
+      setUser(data.user);
+      setProfile({
+        id: data.profile.id,
+        nama_lengkap: data.profile.namaLengkap,
+        no_telepon: data.profile.noTelepon,
+        alamat: data.profile.alamat,
+        foto_profil: data.profile.fotoProfil,
+        role: data.profile.role,
+      });
+      setProfileChecked(true);
+      return {};
+    } catch (err: any) {
+      return { error: err.message ?? "Login gagal." };
+    }
+  };
+
+  const signUp = async (opts: { email: string; password: string; namaLengkap: string; noTelepon?: string }): Promise<{ error?: string }> => {
+    try {
+      const data = await apiFetch<{ token: string; user: AuthUser; profile: any }>("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify(opts),
+      });
+      storeToken(data.token);
+      setToken(data.token);
+      setAuthTokenGetter(async () => data.token);
+      setUser(data.user);
+      setProfile({
+        id: data.profile.id,
+        nama_lengkap: data.profile.namaLengkap,
+        no_telepon: data.profile.noTelepon,
+        alamat: data.profile.alamat,
+        foto_profil: data.profile.fotoProfil,
+        role: data.profile.role,
+      });
+      setProfileChecked(true);
+      return {};
+    } catch (err: any) {
+      return { error: err.message ?? "Registrasi gagal." };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    clearToken();
+    setToken(null);
+    setUser(null);
+    setProfile(null);
+    setProfileChecked(true);
+    setAuthTokenGetter(null);
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    }
+  };
+
   const value = useMemo<AuthContextValue>(
-    () => ({
-      user: session?.user ?? null,
-      session,
-      profile,
-      isLoading,
-      profileChecked,
-      refreshProfile,
-      signOut: async () => {
-        try {
-          if (supabase) {
-            await Promise.race([
-              supabase.auth.signOut({ scope: "local" }),
-              new Promise((resolve) => setTimeout(resolve, 1500)),
-            ]);
-          }
-        } catch (err) {
-          console.error("signOut error", err);
-        }
-        setSession(null);
-        setProfile(null);
-        try {
-          Object.keys(localStorage)
-            .filter((k) => k.startsWith("sb-") || k.toLowerCase().includes("supabase") || k.toLowerCase().includes("auth"))
-            .forEach((k) => localStorage.removeItem(k));
-          Object.keys(sessionStorage)
-            .filter((k) => k.startsWith("sb-") || k.toLowerCase().includes("supabase"))
-            .forEach((k) => sessionStorage.removeItem(k));
-        } catch {}
-        if (typeof window !== "undefined") {
-          window.location.replace("/login");
-        }
-      },
-    }),
-    [session, profile, isLoading, profileChecked],
+    () => ({ user, profile, isLoading, profileChecked, token, refreshProfile, signIn, signUp, signOut }),
+    [user, profile, isLoading, profileChecked, token],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -201,8 +209,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used inside AuthProvider");
   return context;
 }

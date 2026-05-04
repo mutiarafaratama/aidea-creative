@@ -2,17 +2,15 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Loader2, ShieldCheck, Lock, ArrowLeft } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { isSupabaseConfigured, supabase, supabaseConfigMessage } from "@/lib/supabase";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, signIn } = useAuth();
   const { toast } = useToast();
 
   const [email, setEmail] = useState("");
@@ -26,29 +24,19 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supabase) return;
     setBusy(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) {
-      setBusy(false);
-      toast({ title: "Login gagal", description: error?.message ?? "Kredensial salah", variant: "destructive" });
-      return;
-    }
-    // Verify admin role
-    const { data: prof } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
+    const { error } = await signIn(email, password);
     setBusy(false);
-    if (prof?.role !== "admin") {
-      await supabase.auth.signOut();
-      toast({ title: "Akses ditolak", description: "Akun ini bukan admin.", variant: "destructive" });
+    if (error) {
+      toast({ title: "Login gagal", description: error, variant: "destructive" });
       return;
     }
-    toast({ title: "Selamat datang, Admin", description: "Anda berhasil masuk." });
-    setLocation("/dashboard");
+    // Auth context will update and useEffect above will redirect if admin
+    toast({ title: "Login berhasil", description: "Memeriksa akses admin..." });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-foreground relative overflow-hidden p-4">
-      {/* Animated backdrop */}
       <div className="absolute inset-0 opacity-20">
         <motion.div
           animate={{ rotate: 360 }}
@@ -83,13 +71,6 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {!isSupabaseConfigured && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Konfigurasi dibutuhkan</AlertTitle>
-              <AlertDescription>{supabaseConfigMessage}</AlertDescription>
-            </Alert>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="admin-email">Email Admin</Label>
@@ -115,7 +96,7 @@ export default function AdminLogin() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full rounded-full h-11 bg-foreground hover:bg-foreground/90 text-background" disabled={busy || !isSupabaseConfigured}>
+            <Button type="submit" className="w-full rounded-full h-11 bg-foreground hover:bg-foreground/90 text-background" disabled={busy}>
               {busy ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memverifikasi...</>
               ) : (

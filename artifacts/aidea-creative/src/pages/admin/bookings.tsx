@@ -20,7 +20,6 @@ import { QueryError } from "@/components/query-error";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/admin-api";
 
 const statuses = ["semua", "menunggu", "dikonfirmasi", "selesai", "dibatalkan"] as const;
@@ -54,40 +53,12 @@ export default function AdminBookings() {
 
   const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
 
-  useEffect(() => {
-    if (!supabase) return;
-    const channel = supabase
-      .channel("admin-bookings-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "booking" }, () => {
-        qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") setRealtimeStatus("connected");
-        else if (status === "CLOSED" || status === "CHANNEL_ERROR") setRealtimeStatus("disconnected");
-        else setRealtimeStatus("connecting");
-      });
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [qc]);
+  // Realtime removed (no Supabase); use periodic polling or future websocket
 
   const handleDeleteConfirm = async () => {
-    if (!deleteDialog || !supabase || !user?.email) return;
-    if (!deleteDialog.password) {
-      toast({ title: "Password wajib diisi", variant: "destructive" });
-      return;
-    }
+    if (!deleteDialog) return;
     setDeleteDialog((prev) => prev ? { ...prev, isLoading: true } : prev);
     try {
-      const { error: authErr } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: deleteDialog.password,
-      });
-      if (authErr) {
-        toast({ title: "Password salah", description: "Verifikasi gagal, coba lagi.", variant: "destructive" });
-        setDeleteDialog((prev) => prev ? { ...prev, isLoading: false, password: "" } : prev);
-        return;
-      }
       await adminFetch(`/api/booking/${deleteDialog.booking.id}`, { method: "DELETE" });
       toast({ title: "Booking dihapus", description: `${deleteDialog.booking.kodeBooking} telah dihapus permanen.` });
       qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
