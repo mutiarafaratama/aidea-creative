@@ -46,11 +46,14 @@ function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
 export default function Testimoni() {
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [statsOpen, setStatsOpen] = useState(false);
-  const { data: testimoniList, isLoading } = useListTestimoni({
-    query: { refetchInterval: 5000, staleTime: 0 },
-  });
+  const { data: testimoniList, isLoading } = useListTestimoni();
 
-  const allList = testimoniList ?? [];
+  const seenIds = new Set<string>();
+  const allList = (testimoniList ?? []).filter(t => {
+    if (seenIds.has(t.id)) return false;
+    seenIds.add(t.id);
+    return true;
+  });
   const avgRating = allList.length > 0
     ? (allList.reduce((s, t) => s + t.rating, 0) / allList.length).toFixed(1)
     : null;
