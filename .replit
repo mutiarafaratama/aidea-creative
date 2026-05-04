@@ -40,13 +40,14 @@ waitForPort = 8080
 name = "Frontend"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/aidea-creative run dev:app"
 waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+isCanvasWorkflow = true
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -60,10 +61,6 @@ timeoutMs = 20000
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5002
-externalPort = 4200
 
 [[ports]]
 localPort = 5003
