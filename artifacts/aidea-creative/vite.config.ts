@@ -35,7 +35,7 @@ export default defineConfig({
     runtimeErrorOverlay(),
     VitePWA({
       registerType: "autoUpdate",
-      devOptions: { enabled: true },
+      devOptions: { enabled: false },
       manifest: {
         name: "AideaCreative Studio Foto",
         short_name: "AideaCreative",
