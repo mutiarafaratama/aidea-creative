@@ -5,6 +5,7 @@ import {
   Ban,
   CalendarCheck,
   CalendarDays,
+  CheckCircle2,
   ChevronRight,
   ClipboardList,
   Clock,
@@ -12,6 +13,7 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  MessageCircle,
   MessageSquare,
   PenLine,
   Phone,
@@ -39,6 +41,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { useSiteSettings } from "@/lib/settings";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -548,6 +551,7 @@ export default function Profil() {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
+  const { data: siteSettings } = useSiteSettings();
 
   const [namaLengkap, setNamaLengkap] = useState("");
   const [noTelepon, setNoTelepon] = useState("");
@@ -570,6 +574,12 @@ export default function Profil() {
   const [cancelDialog, setCancelDialog] = useState<{ booking: BookingRow; alasan: string } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [snapLoading, setSnapLoading] = useState(false);
+  const [paySuccessDialog, setPaySuccessDialog] = useState<{
+    type: "booking" | "pesanan";
+    kode: string;
+    tanggal?: string;
+    jam?: string;
+  } | null>(null);
   const [testimoniDialog, setTestimoniDialog] = useState<TestimoniDialogState | null>(null);
   const [isSubmittingTestimoni, setIsSubmittingTestimoni] = useState(false);
   const [selectedTestimoniDetail, setSelectedTestimoniDetail] = useState<TestimoniRow | null>(null);
@@ -812,7 +822,7 @@ export default function Profil() {
       (window as any).snap.pay(snapToken, {
         onSuccess: async () => {
           await verifyPayment();
-          toast({ title: "Pembayaran berhasil! 🎉", description: `Kode pesanan: ${kodePesanan}` });
+          setPaySuccessDialog({ type: "pesanan", kode: kodePesanan ?? "" });
         },
         onPending: async () => {
           await verifyPayment();
@@ -886,7 +896,12 @@ export default function Profil() {
       (window as any).snap.pay(snapToken, {
         onSuccess: async () => {
           await verifyBookingPayment();
-          toast({ title: "Pembayaran berhasil! 🎉", description: `Booking: ${b.kode_booking}` });
+          setPaySuccessDialog({
+            type: "booking",
+            kode: b.kode_booking,
+            tanggal: b.tanggal_sesi,
+            jam: b.jam_sesi,
+          });
         },
         onPending: async () => {
           await verifyBookingPayment();
@@ -1399,7 +1414,7 @@ export default function Profil() {
 
       {/* ── Pesanan Detail Dialog ── */}
       <Dialog open={!!selectedPesanan} onOpenChange={(open) => !open && setSelectedPesanan(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-md mx-auto rounded-xl max-h-[88vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-5 sm:p-6">
+        <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-md rounded-xl max-h-[88vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-4 sm:p-6">
           {selectedPesanan && (
             <>
               <DialogHeader>
@@ -1610,7 +1625,7 @@ export default function Profil() {
 
       {/* ── Booking Detail Dialog ── */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-md mx-auto rounded-xl max-h-[85vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-5 sm:p-6">
+        <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-md rounded-xl max-h-[85vh] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-4 sm:p-6">
           {selectedBooking && (
             <>
               <DialogHeader>
@@ -1942,6 +1957,72 @@ export default function Profil() {
                     </div>
                   )}
                   <Button variant="outline" className="w-full" onClick={() => setSelectedTestimoniDetail(null)}>Tutup</Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Payment Success Dialog ── */}
+      <Dialog open={!!paySuccessDialog} onOpenChange={(open) => !open && setPaySuccessDialog(null)}>
+        <DialogContent className="w-full max-w-[calc(100vw-2rem)] sm:max-w-sm rounded-2xl p-0 overflow-hidden">
+          {paySuccessDialog && (() => {
+            const waRaw = siteSettings?.contactWhatsapp ?? "";
+            const waNumber = waRaw.replace(/\D/g, "").replace(/^0/, "62");
+            const waMsg = paySuccessDialog.type === "booking"
+              ? encodeURIComponent(`Halo, saya sudah berhasil melakukan pembayaran booking kode *${paySuccessDialog.kode}*. Mohon konfirmasinya. Terima kasih!`)
+              : encodeURIComponent(`Halo, saya sudah berhasil melakukan pembayaran pesanan kode *${paySuccessDialog.kode}*. Mohon konfirmasinya. Terima kasih!`);
+            return (
+              <>
+                <div className="bg-emerald-50 px-6 pt-8 pb-6 flex flex-col items-center text-center gap-3">
+                  <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="h-9 w-9 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-emerald-800">Pembayaran Berhasil!</h2>
+                    <p className="text-sm text-emerald-700 mt-1 font-mono">{paySuccessDialog.kode}</p>
+                  </div>
+                </div>
+                <div className="px-6 py-5 space-y-4">
+                  {paySuccessDialog.type === "booking" && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center space-y-1">
+                      <p className="text-sm font-semibold text-emerald-800">Harap datang ke studio sesuai jadwal booking foto-mu 📸</p>
+                      {paySuccessDialog.tanggal && (
+                        <p className="text-xs text-emerald-700">
+                          {formatTanggal(paySuccessDialog.tanggal)}
+                          {paySuccessDialog.jam ? ` · ${paySuccessDialog.jam}` : ""}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {paySuccessDialog.type === "pesanan" && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center">
+                      <p className="text-sm font-semibold text-emerald-800">Terima kasih! Pesananmu sedang diproses oleh studio.</p>
+                      <p className="text-xs text-emerald-700 mt-1">Kamu akan diberitahu saat pesanan siap diambil.</p>
+                    </div>
+                  )}
+                  <div className="text-center text-xs text-muted-foreground">
+                    Untuk informasi lebih lanjut, hubungi kami via WhatsApp
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {waNumber && (
+                      <a
+                        href={`https://wa.me/${waNumber}?text=${waMsg}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <Button className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <MessageCircle className="h-4 w-4" />
+                          Hubungi via WhatsApp
+                        </Button>
+                      </a>
+                    )}
+                    <Button variant="outline" className="w-full" onClick={() => setPaySuccessDialog(null)}>
+                      Oke, Mengerti
+                    </Button>
+                  </div>
                 </div>
               </>
             );

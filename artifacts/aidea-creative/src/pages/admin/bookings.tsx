@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGetRecentBookings, getGetRecentBookingsQueryKey, useUpdateBookingStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Clock, X, Search, Eye, MessageCircle, CalendarDays, Phone, Mail, FileText, Package, Banknote, Lightbulb, Wallet, Trash2, AlertTriangle, Eye as EyeIcon, EyeOff } from "lucide-react";
+import { Check, Clock, X, Search, Eye, MessageCircle, CalendarDays, Phone, Mail, FileText, Package, Banknote, Lightbulb, Wallet, Trash2, AlertTriangle, Eye as EyeIcon, EyeOff, Bell } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,9 +51,28 @@ export default function AdminBookings() {
   const [rejectDialog, setRejectDialog] = useState<{ booking: any; alasan: string } | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<{ booking: any; password: string; showPassword: boolean; isLoading: boolean } | null>(null);
 
-  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  const [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected">("connected");
+  const prevPayStatusRef = useRef<Map<string, string>>(new Map());
 
-  // Realtime removed (no Supabase); use periodic polling or future websocket
+  // Detect newly paid bookings and show a notification toast
+  useEffect(() => {
+    if (!data || !Array.isArray(data)) return;
+    const bookings: any[] = data;
+    const prev = prevPayStatusRef.current;
+    if (prev.size > 0) {
+      bookings.forEach((b: any) => {
+        const prevStatus = prev.get(b.id);
+        if (prevStatus && prevStatus !== "lunas" && b.statusPembayaran === "lunas") {
+          toast({
+            title: "💳 Pembayaran diterima!",
+            description: `${b.namaPemesan} (${b.kodeBooking}) telah melunasi pembayaran.`,
+            duration: 8000,
+          });
+        }
+      });
+    }
+    prevPayStatusRef.current = new Map(bookings.map((b: any) => [b.id, b.statusPembayaran]));
+  }, [data]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteDialog) return;
