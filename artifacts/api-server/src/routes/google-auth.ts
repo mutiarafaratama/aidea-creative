@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, profilesTable, usersAuthTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { signToken, ensureProfile } from "../middlewares/auth";
 
 const router = Router();
@@ -9,15 +9,26 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 
 function getRedirectUri(req: import("express").Request): string {
+  // Prioritas 1: GOOGLE_REDIRECT_URI eksplisit (Railway variable)
   const custom = process.env.GOOGLE_REDIRECT_URI;
   if (custom) return custom;
-  const domain = process.env.REPLIT_DEV_DOMAIN ?? req.hostname;
-  return `https://${domain}/api/auth/google/callback`;
+  // Prioritas 2: APP_URL (Railway variable)
+  const appUrl = process.env.APP_URL;
+  if (appUrl) return `${appUrl}/api/auth/google/callback`;
+  // Prioritas 3: Replit domain (dev environment)
+  const replitDomain = process.env.REPLIT_DEV_DOMAIN;
+  if (replitDomain) return `https://${replitDomain}/api/auth/google/callback`;
+  // Fallback: hostname dari request
+  return `https://${req.hostname}/api/auth/google/callback`;
 }
 
 function getFrontendBase(req: import("express").Request): string {
-  const domain = process.env.REPLIT_DEV_DOMAIN ?? req.hostname;
-  return `https://${domain}`;
+  // Prioritas 1: APP_URL eksplisit (Railway variable)
+  if (process.env.APP_URL) return process.env.APP_URL;
+  // Prioritas 2: Replit domain (dev environment)
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  // Fallback: hostname dari request
+  return `https://${req.hostname}`;
 }
 
 router.get("/auth/google", (req, res) => {
