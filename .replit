@@ -18,23 +18,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "API Server"
+args = "Frontend"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Frontend"
-
-[[workflows.workflow]]
-name = "API Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev:app"
-waitForPort = 8080
+args = "API Server"
 
 [[workflows.workflow]]
 name = "Frontend"
@@ -48,6 +36,18 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 isCanvasWorkflow = true
+
+[[workflows.workflow]]
+name = "API Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=8099 pnpm --filter @workspace/api-server run dev:app"
+waitForPort = 8099
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -73,6 +73,10 @@ externalPort = 5173
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[[ports]]
+localPort = 8099
+externalPort = 8099
 
 [[ports]]
 localPort = 25636
