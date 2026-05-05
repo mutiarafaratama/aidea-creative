@@ -210,23 +210,15 @@ export function Layout({ children }: { children: ReactNode }) {
               </nav>
             </div>
 
-            <div className="border-t border-border px-5 pt-4 pb-6">
+            <div className="border-t border-border px-5 pt-4 pb-8" style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom, 2rem))" }}>
               {user ? (
                 <div className="space-y-2.5">
-                  <div className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center gap-3 min-w-0">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] text-muted-foreground leading-none mb-0.5">Masuk sebagai</p>
-                      <p className="text-sm font-semibold text-foreground truncate leading-snug">
-                        {profile?.nama_lengkap ?? user.email}
-                      </p>
-                    </div>
-                  </div>
                   <Link href="/profil">
                     <Button variant="outline" className="w-full rounded-full justify-start gap-2">
                       <User className="h-4 w-4" /> Profil Saya
+                      {profile?.nama_lengkap && (
+                        <span className="ml-auto text-xs text-muted-foreground truncate max-w-[120px]">{profile.nama_lengkap}</span>
+                      )}
                     </Button>
                   </Link>
                   {profile?.role === "admin" && (

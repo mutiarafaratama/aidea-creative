@@ -675,15 +675,13 @@ export default function Home() {
         {recentTestimonials.length > 0 ? (
           <div className="relative overflow-hidden">
             {(() => {
-              const minForMarquee = 4;
-              const needsDuplicate = recentTestimonials.length >= minForMarquee;
-              const displayItems = needsDuplicate
-                ? [...recentTestimonials, ...recentTestimonials]
-                : recentTestimonials;
+              const minCopiesPerHalf = Math.max(1, Math.ceil(5 / Math.max(recentTestimonials.length, 1)));
+              const singleRun = Array.from({ length: minCopiesPerHalf }, () => recentTestimonials).flat();
+              const displayItems = [...singleRun, ...singleRun];
               return (
                 <div
-                  className={`flex gap-5 ${needsDuplicate ? "animate-marquee" : "flex-wrap justify-center"}`}
-                  style={needsDuplicate ? { width: "max-content" } : undefined}
+                  className="flex gap-5 animate-marquee"
+                  style={{ width: "max-content" }}
                 >
                   {displayItems.map((t, i) => (
                     <Card key={`${t.id}-${i}`} className="shrink-0 w-[320px] sm:w-[360px] border-border bg-background">

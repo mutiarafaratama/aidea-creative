@@ -1737,7 +1737,13 @@ export default function Profil() {
               )}
 
               <div className="flex flex-col gap-2 pt-1">
-                {selectedBooking.status_pembayaran === "belum_bayar" && selectedBooking.status !== "dibatalkan" && (
+                {selectedBooking.status === "menunggu" && selectedBooking.status_pembayaran !== "lunas" && (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                    <Clock className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                    <span>Menunggu konfirmasi admin. Pembayaran akan tersedia setelah booking dikonfirmasi.</span>
+                  </div>
+                )}
+                {selectedBooking.status_pembayaran !== "lunas" && selectedBooking.status === "dikonfirmasi" && (
                   <Button
                     className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                     disabled={snapLoading}

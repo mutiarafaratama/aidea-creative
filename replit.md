@@ -89,3 +89,31 @@ Key tables:
 - `jadwal_tersedia` — available schedule slots
 
 Run schema migrations: `pnpm --filter @workspace/db run push`
+
+## Booking Payment Flow
+
+Booking status flow: `menunggu → dikonfirmasi → selesai`
+
+- After user submits booking, status is `menunggu`
+- Admin must confirm (`dikonfirmasi`) before user can pay
+- Payment button (`Bayar Sekarang`) only appears in user Profil when `status === "dikonfirmasi"`
+- Info message shown when `status === "menunggu"` explaining payment awaits admin confirmation
+- Backend guards: `POST /api/booking/:id/payment` returns 400 if status is not `dikonfirmasi`
+
+## Realtime Polling
+
+- Admin booking/pesanan pages poll every 7–8s with toast on status change
+- User profil page polls every 7s with toast on booking/pesanan status change
+
+## PWA
+
+- `vite-plugin-pwa` installed, Service Worker enabled in dev mode (`devOptions: { enabled: true, type: "module" }`)
+- Install prompt component at `artifacts/aidea-creative/src/components/install-prompt.tsx`
+- Manifest: `/public/manifest.webmanifest` (auto-generated)
+- Icons: `pwa-192.png`, `pwa-512.png`
+
+## Docker / GitHub Deployment
+
+- `Dockerfile` — multi-stage build: builds frontend (Vite), builds API (esbuild), serves API on port 8080
+- `docker-compose.yml` — single-service config with env vars
+- API server serves built frontend static files in production

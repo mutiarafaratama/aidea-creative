@@ -221,6 +221,7 @@ router.post("/booking/:id/payment", attachAuth, async (req, res) => {
     const { booking, namaPaket } = rows[0];
     if (booking.pelangganId !== req.authUser.id) return res.status(403).json({ error: "Forbidden" });
     if (booking.statusPembayaran === "lunas") return res.status(400).json({ error: "Booking sudah lunas" });
+    if (booking.status !== "dikonfirmasi") return res.status(400).json({ error: "Pembayaran hanya dapat dilakukan setelah booking dikonfirmasi oleh admin" });
 
     let snapToken: string | null = null;
     const snap = getSnap();

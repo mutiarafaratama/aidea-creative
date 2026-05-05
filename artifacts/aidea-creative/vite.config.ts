@@ -36,7 +36,7 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "pwa-192.png", "pwa-512.png", "opengraph.jpg"],
-      devOptions: { enabled: false },
+      devOptions: { enabled: true, type: "module" },
       manifest: {
         name: "AideaCreative Studio Foto",
         short_name: "AideaCreative",

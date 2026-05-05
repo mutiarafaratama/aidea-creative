@@ -358,7 +358,7 @@ function generateStrip(photos: string[], theme: Theme): Promise<string> {
       const logoLoaded = await new Promise<boolean>((res2) => {
         logoImg.onload = () => res2(true);
         logoImg.onerror = () => res2(false);
-        logoImg.src = "/images/logo.png";
+        logoImg.src = "/images/logo_nobg.png";
       });
 
       if (logoLoaded && logoImg.naturalWidth > 0) {

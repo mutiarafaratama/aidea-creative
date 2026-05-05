@@ -44,4 +44,15 @@ app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "1d" }));
 
 app.use("/api", router);
 
+// Serve frontend static build in production (Docker deployment)
+if (process.env.NODE_ENV === "production") {
+  const frontendDist = path.resolve(process.cwd(), "artifacts/aidea-creative/dist/public");
+  if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist, { maxAge: "7d" }));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(frontendDist, "index.html"));
+    });
+  }
+}
+
 export default app;
