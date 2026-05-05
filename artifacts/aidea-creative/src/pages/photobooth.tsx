@@ -821,6 +821,98 @@ export default function Photobooth() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col lg:flex-row gap-8 items-start"
           >
+            {/* Right: strip preview + stickers — shown FIRST on mobile */}
+            <div className="lg:hidden w-full space-y-3">
+              <div className="bg-background rounded-2xl border border-border p-4 shadow-sm">
+                <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+                  Preview Strip
+                </p>
+                {stripLoading ? (
+                  <div className="flex flex-col gap-1.5">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div key={i} className="w-full aspect-[4/3] rounded-lg bg-muted animate-pulse" />
+                    ))}
+                    <p className="text-[10px] text-muted-foreground text-center mt-1">Memproses...</p>
+                  </div>
+                ) : stripUrl ? (
+                  <div
+                    ref={stripRef}
+                    className="rounded-xl overflow-hidden shadow-md relative select-none mx-auto"
+                    style={{
+                      border: `3px solid ${theme.borderColor}`,
+                      cursor: draggingId ? "grabbing" : "default",
+                      touchAction: draggingId ? "none" : "auto",
+                      maxWidth: 280,
+                    }}
+                    onMouseMove={handleStripMouseMove}
+                    onMouseUp={handleStripMouseUp}
+                    onMouseLeave={handleStripMouseUp}
+                    onTouchMove={handleStripTouchMove}
+                    onTouchEnd={handleStripTouchEnd}
+                  >
+                    <img
+                      src={stripUrl}
+                      alt="photo strip preview"
+                      className="block w-full pointer-events-none"
+                      draggable={false}
+                    />
+                    {stickers.map((s) => (
+                      <div
+                        key={s.id}
+                        className="absolute text-2xl leading-none hover:scale-110 transition-transform"
+                        style={{
+                          left: `${s.x * 100}%`,
+                          top: `${s.y * 100}%`,
+                          transform: "translate(-50%, -50%)",
+                          cursor: "grab",
+                          userSelect: "none",
+                          filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.4))",
+                          touchAction: "none",
+                        }}
+                        onMouseDown={(e) => handleStickerMouseDown(e, s.id)}
+                        onTouchStart={(e) => handleStickerTouchStart(e, s.id)}
+                        onDoubleClick={() => setStickers((prev) => prev.filter((x) => x.id !== s.id))}
+                        title="Geser untuk pindahkan · Klik 2× untuk hapus"
+                      >
+                        {s.emoji}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              {stripUrl && !stripLoading && (
+                <div className="bg-background rounded-2xl border border-border p-4 shadow-sm">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+                    Tambah Stiker
+                  </p>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {EMOJI_PALETTE.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => addSticker(emoji)}
+                        className="text-xl h-9 w-full rounded-lg hover:bg-muted transition-colors flex items-center justify-center"
+                        title={`Tambah ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  {stickers.length > 0 && (
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-[10px] text-muted-foreground">{stickers.length} stiker · geser pindah · klik 2× hapus</p>
+                      <button
+                        onClick={() => setStickers([])}
+                        className="text-[10px] text-destructive hover:underline"
+                      >
+                        Hapus semua
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Left: photos + theme picker */}
             <div className="flex-1 min-w-0 space-y-5">
 
@@ -954,8 +1046,8 @@ export default function Photobooth() {
               </div>
             </div>
 
-            {/* Right: strip preview + stickers */}
-            <div className="lg:w-[300px] shrink-0 sticky top-24 space-y-3">
+            {/* Right: strip preview + stickers — desktop only (mobile version shown above) */}
+            <div className="hidden lg:block lg:w-[300px] shrink-0 sticky top-24 space-y-3">
               <div className="bg-background rounded-2xl border border-border p-4 shadow-sm">
                 <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
                   Preview Strip
@@ -971,7 +1063,7 @@ export default function Photobooth() {
                   <div
                     ref={stripRef}
                     className="rounded-xl overflow-hidden shadow-md relative select-none"
-                    style={{ border: `3px solid ${theme.borderColor}`, cursor: draggingId ? "grabbing" : "default", touchAction: "none" }}
+                    style={{ border: `3px solid ${theme.borderColor}`, cursor: draggingId ? "grabbing" : "default", touchAction: draggingId ? "none" : "auto" }}
                     onMouseMove={handleStripMouseMove}
                     onMouseUp={handleStripMouseUp}
                     onMouseLeave={handleStripMouseUp}

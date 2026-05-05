@@ -12,11 +12,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  useListPaket,
   useListTestimoni,
   useListPromo,
   useListPortfolio,
 } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,9 +60,19 @@ const FALLBACK_GALLERY = [
 
 const MASONRY_HEIGHTS = ["h-[280px]", "h-[340px]", "h-[260px]", "h-[400px]", "h-[300px]", "h-[360px]", "h-[240px]", "h-[320px]"];
 
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export default function Home() {
   const { data: settings } = useSiteSettings();
-  const { data: paketList, isLoading: loadingPaket } = useListPaket();
+  const { data: rekomendasiList, isLoading: loadingPaket } = useQuery<any[]>({
+    queryKey: ["paket-rekomendasi"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/paket/rekomendasi?limit=4`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 60000,
+  });
   const { data: testimoniList } = useListTestimoni({}, { refetchInterval: 60000, refetchOnMount: true, staleTime: 0 });
   const { data: promoList } = useListPromo();
   const { data: portfolioList } = useListPortfolio();
@@ -108,9 +118,7 @@ export default function Home() {
     return FALLBACK_GALLERY;
   })();
 
-  const popularPackages = Array.isArray(paketList)
-    ? paketList.filter((p) => p.isPopuler).slice(0, 4)
-    : [];
+  const popularPackages = Array.isArray(rekomendasiList) ? rekomendasiList : [];
 
   const recentTestimonials = Array.isArray(testimoniList)
     ? testimoniList.slice(0, 10)
@@ -504,7 +512,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PAKET FAVORIT — horizontal scroll carousel ── */}
+      {/* ── REKOMENDASI PAKET — horizontal scroll carousel ── */}
       <section className="py-20 bg-[#0c1220] overflow-hidden">
         <div className="container mx-auto px-4 mb-10">
           <motion.div
@@ -515,8 +523,8 @@ export default function Home() {
             className="flex items-end justify-between"
           >
             <div>
-              <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Paket Terpopuler</p>
-              <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white">Paket favorit.</h2>
+              <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Rekomendasi untuk Kamu</p>
+              <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white">Paket pilihan.</h2>
             </div>
             <Link href="/paket" className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors">
               Semua paket <ArrowRight className="h-4 w-4" />
@@ -567,9 +575,12 @@ export default function Home() {
                           )}
                           {/* Top gradient overlay */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          {/* Populer badge */}
+                          {/* Rekomendasi badge */}
                           <div className="absolute top-3 left-3 inline-flex items-center gap-1 bg-amber-400 text-[#0c1220] text-[11px] font-extrabold px-2.5 py-1 rounded-full">
-                            <Star className="h-3 w-3 fill-current" /> Populer
+                            <Star className="h-3 w-3 fill-current" />
+                            {(paket as any).bookingCount > 0
+                              ? `${(paket as any).bookingCount}× dipesan`
+                              : "Rekomendasi"}
                           </div>
                           {/* Duration + photos chip */}
                           <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm border border-white/10 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">

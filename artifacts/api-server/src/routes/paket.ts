@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { paketLayananTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { paketLayananTable, bookingTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -18,6 +18,49 @@ const formatPaket = (r: typeof paketLayananTable.$inferSelect) => ({
   isPopuler: r.isPopuler,
   isAktif: r.isAktif,
   createdAt: r.createdAt.toISOString(),
+});
+
+// Recommendation endpoint — sorts packages by booking frequency (ML-lite)
+router.get("/paket/rekomendasi", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 4, 10);
+
+    // Count confirmed/completed bookings per paket
+    const bookingCounts = await db
+      .select({
+        paketId: bookingTable.paketId,
+        count: sql<number>`cast(count(*) as int)`,
+      })
+      .from(bookingTable)
+      .groupBy(bookingTable.paketId);
+
+    const countMap = new Map(bookingCounts.map((r) => [r.paketId, r.count]));
+
+    const pakets = await db
+      .select()
+      .from(paketLayananTable)
+      .where(eq(paketLayananTable.isAktif, true));
+
+    // Sort: most booked first, then isPopuler, then createdAt
+    const sorted = pakets
+      .map((p) => ({ ...p, bookingCount: countMap.get(p.id) ?? 0 }))
+      .sort(
+        (a, b) =>
+          b.bookingCount - a.bookingCount ||
+          Number(b.isPopuler) - Number(a.isPopuler) ||
+          a.createdAt.getTime() - b.createdAt.getTime(),
+      );
+
+    res.json(
+      sorted.slice(0, limit).map((p) => ({
+        ...formatPaket(p),
+        bookingCount: p.bookingCount,
+      })),
+    );
+  } catch (err) {
+    req.log.error({ err }, "Failed to get paket rekomendasi");
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.get("/paket", async (req, res) => {
