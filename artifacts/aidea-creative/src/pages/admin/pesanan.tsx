@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, Eye, MessageCircle, Package, Phone, Mail, Check, X, Wallet, Trash2, PackageCheck } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,18 +99,53 @@ export default function AdminPesanan() {
   const [batalDialog, setBatalDialog] = useState<{ pesanan: Pesanan; alasan: string } | null>(null);
   const [isBataling, setIsBataling] = useState(false);
 
-  const load = async () => {
+  const prevStatusRef = useRef<Map<string, string>>(new Map());
+  const isFirstLoadRef = useRef(true);
+
+  const load = async (background = false) => {
     try {
       const data = await adminFetch<Pesanan[]>("/api/pesanan");
+
+      if (background && !isFirstLoadRef.current) {
+        const prevMap = prevStatusRef.current;
+        const newOrders = data.filter((p) => !prevMap.has(p.id));
+        if (newOrders.length > 0) {
+          toast({
+            title: `${newOrders.length} pesanan baru masuk`,
+            description: newOrders.map((p) => p.kodePesanan).join(", "),
+          });
+        }
+        data.forEach((p) => {
+          const prev = prevMap.get(p.id);
+          if (prev && prev !== p.status) {
+            toast({
+              title: "Status pesanan berubah",
+              description: `${p.kodePesanan}: ${STATUS_LABELS[prev] ?? prev} → ${STATUS_LABELS[p.status] ?? p.status}`,
+            });
+          }
+        });
+      }
+
+      prevStatusRef.current = new Map(data.map((p) => [p.id, p.status]));
+      isFirstLoadRef.current = false;
       setPesanan(data);
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const updated = data.find((p) => p.id === prev.id);
+        return updated ?? prev;
+      });
     } catch {
-      toast({ title: "Gagal memuat pesanan", variant: "destructive" });
+      if (!background) toast({ title: "Gagal memuat pesanan", variant: "destructive" });
     } finally {
-      setIsLoading(false);
+      if (!background) setIsLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load(false);
+    const interval = setInterval(() => load(true), 7000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Realtime updates handled by polling or future websocket integration
 

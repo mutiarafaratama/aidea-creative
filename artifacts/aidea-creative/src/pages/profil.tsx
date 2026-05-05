@@ -564,6 +564,9 @@ export default function Profil() {
   const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
   const [selectedPesanan, setSelectedPesanan] = useState<PesananRow | null>(null);
   const [isTerimaPesanan, setIsTerimaPesanan] = useState(false);
+
+  const prevPesananStatusRef = useRef<Map<string, string>>(new Map());
+  const pesananInitializedRef = useRef(false);
   const [cancelDialog, setCancelDialog] = useState<{ booking: BookingRow; alasan: string } | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [snapLoading, setSnapLoading] = useState(false);
@@ -613,13 +616,16 @@ export default function Profil() {
         })));
       }
       if (Array.isArray(p)) {
-        setPesanan(p.map((x: any) => ({
+        const mapped = p.map((x: any) => ({
           ...x,
           kode_pesanan: x.kodePesanan,
           status_pembayaran: x.statusPembayaran,
           total_harga: x.totalHarga,
           created_at: x.createdAt,
-        })));
+        }));
+        setPesanan(mapped);
+        prevPesananStatusRef.current = new Map(mapped.map((x: any) => [x.id, x.status]));
+        pesananInitializedRef.current = true;
       }
       if (Array.isArray(t)) {
         setTestimoni(t.map((x: any) => ({
@@ -630,6 +636,54 @@ export default function Profil() {
       }
       setDataLoading(false);
     }).catch(() => setDataLoading(false));
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const STATUS_LABEL_MAP: Record<string, string> = {
+      diproses: "Diproses",
+      dikerjakan: "Sedang Dikerjakan",
+      siap_ambil: "Siap Diambil",
+      selesai: "Selesai",
+      dibatalkan: "Dibatalkan",
+    };
+    const pollPesanan = async () => {
+      if (!pesananInitializedRef.current) return;
+      try {
+        const token = localStorage.getItem("auth_token");
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch("/api/pesanan/me", { headers });
+        if (!res.ok) return;
+        const p = await res.json();
+        if (!Array.isArray(p)) return;
+        const mapped = p.map((x: any) => ({
+          ...x,
+          kode_pesanan: x.kodePesanan,
+          status_pembayaran: x.statusPembayaran,
+          total_harga: x.totalHarga,
+          created_at: x.createdAt,
+        }));
+        const prevMap = prevPesananStatusRef.current;
+        mapped.forEach((item: any) => {
+          const prevStatus = prevMap.get(item.id);
+          if (prevStatus && prevStatus !== item.status) {
+            toast({
+              title: "Status pesanan diperbarui!",
+              description: `${item.kodePesanan ?? item.kode_pesanan}: ${STATUS_LABEL_MAP[item.status] ?? item.status}`,
+            });
+          }
+        });
+        prevPesananStatusRef.current = new Map(mapped.map((x: any) => [x.id, x.status]));
+        setPesanan(mapped);
+        setSelectedPesanan((prev) => {
+          if (!prev) return prev;
+          const updated = mapped.find((x: any) => x.id === prev.id);
+          return updated ?? prev;
+        });
+      } catch { }
+    };
+    const interval = setInterval(pollPesanan, 7000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const saveProfile = async () => {

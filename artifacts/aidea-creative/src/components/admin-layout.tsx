@@ -33,7 +33,7 @@ function usePendingCounts() {
       }
     };
     load();
-    const interval = setInterval(load, 30000);
+    const interval = setInterval(load, 8000);
     return () => {
       cancelled = true;
       clearInterval(interval);
