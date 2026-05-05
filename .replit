@@ -75,7 +75,19 @@ timeoutMs = 20000
 
 [[ports]]
 localPort = 3000
-externalPort = 3000
+externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8099
+externalPort = 8099
 
 [nix]
 channel = "stable-25_05"
@@ -84,3 +96,8 @@ channel = "stable-25_05"
 
 [userenv.shared]
 VITE_MIDTRANS_CLIENT_KEY = "Mid-client-mtXT-6umS02pM65w"
+PORT = "5000"
+BASE_PATH = "/"
+NODE_ENV = "development"
+UPLOAD_DIR = "/home/runner/workspace/uploads"
+AI_MODEL = "gpt-4o-mini"
