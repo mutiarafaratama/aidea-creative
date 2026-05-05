@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
+import googleAuthRouter from "./google-auth";
 import kategoriRouter from "./kategori";
 import paketRouter from "./paket";
 import produkRouter from "./produk";
@@ -24,6 +25,7 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(googleAuthRouter);
 router.use(kategoriRouter);
 router.use(paketRouter);
 router.use(produkRouter);

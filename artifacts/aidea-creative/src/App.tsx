@@ -12,6 +12,7 @@ import { CartProvider } from "@/contexts/cart-context";
 
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
+import AuthCallback from "@/pages/auth-callback";
 
 // Admin pages — imported eagerly so navigation between dashboard pages is instant
 import AdminBeranda from "@/pages/admin/beranda";
@@ -127,6 +128,7 @@ function Router() {
       <AdminRedirect />
       <Suspense fallback={<PageFallback />}>
       <Switch>
+        <Route path="/auth/callback" component={AuthCallback} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/dashboard/login" component={AdminLogin} />
