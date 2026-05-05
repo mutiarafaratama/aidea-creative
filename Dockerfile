@@ -1,42 +1,46 @@
-FROM node:22-slim AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# =========================
+# 1. BUILD STAGE (glibc)
+# =========================
+FROM node:22-slim AS builder
+
 WORKDIR /app
 
-FROM base AS deps
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY lib/ ./lib/
-COPY artifacts/api-server/package.json ./artifacts/api-server/
-COPY artifacts/aidea-creative/package.json ./artifacts/aidea-creative/
+# Aktifkan pnpm
+RUN corepack enable
+
+# Copy semua file
+COPY . .
+
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-FROM deps AS build-api
-COPY lib/ ./lib/
-COPY artifacts/api-server/ ./artifacts/api-server/
-RUN pnpm --filter @workspace/api-server run build
+# Build frontend (Vite)
+RUN pnpm --filter @workspace/aidea-creative build
 
-FROM deps AS build-frontend
-COPY lib/ ./lib/
-COPY artifacts/aidea-creative/ ./artifacts/aidea-creative/
-ENV PORT=3000 BASE_PATH=/
-RUN pnpm --filter @workspace/aidea-creative run build
+# Build backend (kalau ada build step)
+RUN pnpm --filter @workspace/api-server build || echo "No backend build step"
 
+# =========================
+# 2. RUNNER STAGE (ringan)
+# =========================
 FROM node:22-alpine AS runner
-RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY lib/ ./lib/
-COPY artifacts/api-server/package.json ./artifacts/api-server/
-COPY artifacts/aidea-creative/package.json ./artifacts/aidea-creative/
+# Install pnpm juga di runner
+RUN corepack enable
 
-RUN pnpm install --prod --no-optional
+# Copy hasil build dari builder
+COPY --from=builder /app /app
 
-COPY --from=build-api /app/artifacts/api-server/dist ./artifacts/api-server/dist
-COPY --from=build-frontend /app/artifacts/aidea-creative/dist ./artifacts/aidea-creative/dist
-
+# Set environment
 ENV NODE_ENV=production
+
+# Railway pakai PORT
 ENV PORT=8080
 
+# Expose port
 EXPOSE 8080
 
-CMD ["node", "--enable-source-maps", "./artifacts/api-server/dist/index.mjs"]
+# Start backend (Express)
+CMD ["pnpm", "--filter", "@workspace/api-server", "start"]
