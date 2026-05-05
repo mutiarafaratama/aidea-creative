@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { useRef, useEffect, useState, useCallback } from "react";
 import {
   ArrowRight,
@@ -10,6 +10,9 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Image,
+  TrendingUp,
 } from "lucide-react";
 import {
   useListTestimoni,
@@ -61,6 +64,266 @@ const FALLBACK_GALLERY = [
 const MASONRY_HEIGHTS = ["h-[280px]", "h-[340px]", "h-[260px]", "h-[400px]", "h-[300px]", "h-[360px]", "h-[240px]", "h-[320px]"];
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+const slideVariants = {
+  enter: (d: number) => ({ x: d > 0 ? "100%" : "-100%", opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (d: number) => ({ x: d > 0 ? "-100%" : "100%", opacity: 0 }),
+};
+
+function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolean }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [dir, setDir] = useState(1);
+  const touchStartX = useRef<number | null>(null);
+  const n = packages.length;
+
+  const goTo = useCallback((idx: number, d: number) => {
+    setDir(d);
+    setActiveIdx((idx + Math.max(n, 1)) % Math.max(n, 1));
+  }, [n]);
+
+  const next = useCallback(() => goTo(activeIdx + 1, 1), [activeIdx, goTo]);
+  const prev = useCallback(() => goTo(activeIdx - 1, -1), [activeIdx, goTo]);
+
+  useEffect(() => {
+    if (n <= 1) return;
+    const t = setInterval(next, 4500);
+    return () => clearInterval(t);
+  }, [n, next]);
+
+  if (loading) {
+    return (
+      <section className="py-20 bg-gradient-to-b from-blue-50/60 via-white to-white">
+        <div className="container mx-auto px-4">
+          <div className="h-8 w-48 bg-muted animate-pulse rounded-full mb-4" />
+          <div className="h-12 w-72 bg-muted animate-pulse rounded-xl mb-10" />
+          <div className="rounded-3xl bg-muted animate-pulse h-[420px]" />
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-20 bg-gradient-to-b from-blue-50/60 via-white to-white overflow-hidden">
+      <div className="container mx-auto px-4">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="flex items-end justify-between mb-10"
+        >
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1.5 mb-3">
+              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              <span className="text-primary text-[11px] font-bold uppercase tracking-widest">Rekomendasi untuk Kamu</span>
+            </div>
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Paket pilihan.</h2>
+          </div>
+          <Link href="/paket" className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/70 transition-colors">
+            Semua paket <ArrowRight className="h-4 w-4" />
+          </Link>
+        </motion.div>
+
+        {n === 0 ? (
+          <div className="text-center text-muted-foreground py-16">
+            <Camera className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+            <p>Belum ada paket tersedia.</p>
+          </div>
+        ) : (
+          <>
+            {/* ── Mobile: animated slide carousel ── */}
+            <div className="block md:hidden">
+              <div
+                className="relative overflow-hidden rounded-3xl shadow-lg"
+                style={{ minHeight: 430 }}
+                onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                  if (touchStartX.current === null) return;
+                  const dx = e.changedTouches[0].clientX - touchStartX.current;
+                  touchStartX.current = null;
+                  if (dx < -40) next();
+                  else if (dx > 40) prev();
+                }}
+              >
+                <AnimatePresence custom={dir} mode="popLayout" initial={false}>
+                  <motion.div
+                    key={activeIdx}
+                    custom={dir}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ type: "spring", stiffness: 320, damping: 34, mass: 0.8 }}
+                    className="w-full"
+                  >
+                    {(() => {
+                      const paket = packages[activeIdx];
+                      if (!paket) return null;
+                      return (
+                        <Link href={`/booking?paket=${paket.id}`}>
+                          <div className="bg-white rounded-3xl overflow-hidden cursor-pointer">
+                            <div className="relative h-60 overflow-hidden bg-gradient-to-br from-primary/10 to-blue-100">
+                              {paket.fotoUrl ? (
+                                <img src={paket.fotoUrl} alt={paket.namaPaket} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Camera className="h-14 w-14 text-primary/20" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+                              <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-primary text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md">
+                                <Star className="h-3 w-3 fill-white" />
+                                {paket.bookingCount > 0 ? `${paket.bookingCount}× dipesan` : "Rekomendasi"}
+                              </div>
+                              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                                <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full border border-white/30">
+                                  <Clock className="h-3 w-3" /> {paket.durasiSesi}m
+                                </div>
+                                <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full border border-white/30">
+                                  <Image className="h-3 w-3" /> {paket.jumlahFoto} foto
+                                </div>
+                              </div>
+                            </div>
+                            <div className="p-5 bg-white">
+                              <h3 className="font-bold text-lg text-foreground mb-1">{paket.namaPaket}</h3>
+                              {paket.deskripsi && (
+                                <p className="text-muted-foreground text-sm line-clamp-2 mb-4">{paket.deskripsi}</p>
+                              )}
+                              <div className="flex items-center justify-between">
+                                <p className="text-primary font-extrabold text-2xl">
+                                  Rp {Number(paket.harga).toLocaleString("id-ID")}
+                                </p>
+                                <div className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-full">
+                                  Booking <ArrowRight className="h-3.5 w-3.5" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })()}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Dots + arrows */}
+              {n > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-5">
+                  <button
+                    onClick={prev}
+                    className="h-9 w-9 rounded-full border border-border bg-white flex items-center justify-center shadow-sm hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {packages.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => goTo(i, i > activeIdx ? 1 : -1)}
+                        style={{
+                          width: i === activeIdx ? 22 : 7, height: 7,
+                          borderRadius: 999,
+                          background: i === activeIdx ? "hsl(var(--primary))" : "hsl(var(--primary)/0.2)",
+                          transition: "all 0.3s ease", border: "none", padding: 0, cursor: "pointer",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={next}
+                    className="h-9 w-9 rounded-full border border-border bg-white flex items-center justify-center shadow-sm hover:border-primary hover:text-primary transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              <div className="flex justify-center mt-5">
+                <Link href="/paket" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                  Lihat semua paket <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+
+            {/* ── Desktop: grid of 3 cards ── */}
+            <div className="hidden md:block">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                {packages.slice(0, 3).map((paket, idx) => (
+                  <motion.div
+                    key={paket.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  >
+                    <Link href={`/booking?paket=${paket.id}`}>
+                      <div className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-border/60 hover:shadow-xl hover:border-primary/30 transition-all duration-300 cursor-pointer h-full flex flex-col">
+                        <div className="relative h-52 overflow-hidden bg-gradient-to-br from-primary/10 to-blue-100 shrink-0">
+                          {paket.fotoUrl ? (
+                            <img
+                              src={paket.fotoUrl}
+                              alt={paket.namaPaket}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Camera className="h-10 w-10 text-primary/20" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                          <div className="absolute top-3 left-3 inline-flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                            <Star className="h-2.5 w-2.5 fill-white" />
+                            {paket.bookingCount > 0 ? `${paket.bookingCount}× dipesan` : "Rekomendasi"}
+                          </div>
+                          <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                            {paket.durasiSesi}m · {paket.jumlahFoto} foto
+                          </div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col">
+                          <h3 className="font-bold text-base text-foreground mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+                            {paket.namaPaket}
+                          </h3>
+                          {paket.deskripsi && (
+                            <p className="text-muted-foreground text-xs line-clamp-2 mb-3 flex-1">{paket.deskripsi}</p>
+                          )}
+                          <div className="flex items-center justify-between pt-3 border-t border-border/60 mt-auto">
+                            <p className="text-primary font-extrabold text-lg">
+                              Rp {Number(paket.harga).toLocaleString("id-ID")}
+                            </p>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                              Booking <ArrowUpRight className="h-3 w-3" />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+              {n > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  {packages.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => goTo(i, i > activeIdx ? 1 : -1)}
+                      style={{
+                        width: i === activeIdx ? 28 : 8, height: 8,
+                        borderRadius: 999,
+                        background: i === activeIdx ? "hsl(var(--primary))" : "hsl(var(--primary)/0.2)",
+                        transition: "all 0.35s ease", border: "none", padding: 0, cursor: "pointer",
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export default function Home() {
   const { data: settings } = useSiteSettings();
@@ -512,128 +775,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── REKOMENDASI PAKET — horizontal scroll carousel ── */}
-      <section className="py-20 bg-[#0c1220] overflow-hidden">
-        <div className="container mx-auto px-4 mb-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="flex items-end justify-between"
-          >
-            <div>
-              <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Rekomendasi untuk Kamu</p>
-              <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white">Paket pilihan.</h2>
-            </div>
-            <Link href="/paket" className="shrink-0 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors">
-              Semua paket <ArrowRight className="h-4 w-4" />
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* Horizontal scroll track */}
-        <div className="relative">
-          <div className="flex gap-5 overflow-x-auto scrollbar-hide px-4 md:px-8 pb-4 snap-x snap-mandatory">
-            {loadingPaket
-              ? Array(4).fill(0).map((_, i) => (
-                  <div key={i} className="shrink-0 w-[260px] sm:w-[280px] snap-start">
-                    <div className="rounded-2xl overflow-hidden bg-white/5 border border-white/10 animate-pulse">
-                      <div className="h-72 bg-white/10" />
-                      <div className="p-5 space-y-2">
-                        <div className="h-5 w-3/4 bg-white/10 rounded" />
-                        <div className="h-4 w-1/2 bg-white/10 rounded" />
-                      </div>
-                    </div>
-                  </div>
-                ))
-              : popularPackages.length > 0
-              ? popularPackages.map((paket, idx) => (
-                  <motion.div
-                    key={paket.id}
-                    initial={{ opacity: 0, x: 40 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: idx * 0.08 }}
-                    className="shrink-0 w-[260px] sm:w-[280px] snap-start"
-                  >
-                    <Link href={`/booking?paket=${paket.id}`}>
-                      <div className="group rounded-2xl overflow-hidden border border-white/10 hover:border-amber-400/50 bg-white/5 hover:bg-white/8 transition-all duration-300 cursor-pointer h-full">
-                        {/* Photo area */}
-                        <div className="relative h-72 overflow-hidden bg-gradient-to-br from-primary/40 via-blue-900/40 to-slate-900">
-                          {(paket as any).fotoUrl ? (
-                            <img
-                              src={(paket as any).fotoUrl}
-                              alt={paket.namaPaket}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-                              <Camera className="h-12 w-12 text-white/20 group-hover:text-white/40 transition-colors duration-300" />
-                              <span className="text-white/20 text-xs font-medium group-hover:text-white/40 transition-colors">Foto studio</span>
-                            </div>
-                          )}
-                          {/* Top gradient overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          {/* Rekomendasi badge */}
-                          <div className="absolute top-3 left-3 inline-flex items-center gap-1 bg-amber-400 text-[#0c1220] text-[11px] font-extrabold px-2.5 py-1 rounded-full">
-                            <Star className="h-3 w-3 fill-current" />
-                            {(paket as any).bookingCount > 0
-                              ? `${(paket as any).bookingCount}× dipesan`
-                              : "Rekomendasi"}
-                          </div>
-                          {/* Duration + photos chip */}
-                          <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm border border-white/10 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                            {paket.durasiSesi}m · {paket.jumlahFoto} foto
-                          </div>
-                        </div>
-                        {/* Info */}
-                        <div className="p-5">
-                          <h3 className="font-bold text-base text-white mb-0.5 line-clamp-1 group-hover:text-amber-100 transition-colors">
-                            {paket.namaPaket}
-                          </h3>
-                          {paket.deskripsi && (
-                            <p className="text-white/40 text-xs line-clamp-2 mb-3">{paket.deskripsi}</p>
-                          )}
-                          <div className="flex items-center justify-between mt-2">
-                            <p className="text-amber-400 font-extrabold text-lg leading-none">
-                              Rp {paket.harga.toLocaleString("id-ID")}
-                            </p>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/40 group-hover:text-amber-400 transition-colors">
-                              Booking <ArrowUpRight className="h-3 w-3" />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))
-              : (
-                <div className="w-full text-center text-white/30 py-16">
-                  Belum ada paket populer.
-                </div>
-              )
-            }
-
-            {/* "Lihat semua" card at end */}
-            {popularPackages.length > 0 && (
-              <div className="shrink-0 w-[200px] snap-start flex items-center justify-center">
-                <Link href="/paket">
-                  <div className="flex flex-col items-center gap-4 text-white/40 hover:text-amber-400 transition-colors cursor-pointer group">
-                    <div className="h-14 w-14 rounded-full border border-white/10 group-hover:border-amber-400/40 flex items-center justify-center transition-colors">
-                      <ArrowRight className="h-5 w-5" />
-                    </div>
-                    <span className="text-sm font-semibold">Semua paket</span>
-                  </div>
-                </Link>
-              </div>
-            )}
-          </div>
-          {/* Fade edges */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[#0c1220] to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0c1220] to-transparent" />
-        </div>
-      </section>
+      {/* ── REKOMENDASI PAKET ── */}
+      <PaketCarousel packages={popularPackages} loading={loadingPaket} />
 
       {/* ── AI ASSISTANT CTA ── */}
       <section className="py-20 bg-white">

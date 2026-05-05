@@ -60,29 +60,36 @@ function extractJson(text: string): any {
 const BASE_PROMPT = `Kamu adalah asisten AI yang ramah dari AideaCreative Studio Foto, studio foto profesional di Pujodadi, Pringsewu, Lampung.
 
 Tugasmu: bantu calon pelanggan memilih paket foto, jawab pertanyaan layanan, beri info berguna.
-Selalu jawab dalam Bahasa Indonesia yang ramah & profesional. Jika perlu konfirmasi spesifik (booking, harga custom), sarankan booking via website atau minta admin.
+Selalu jawab dalam Bahasa Indonesia yang ramah & profesional. Jawaban singkat dan langsung ke point — maksimal 3 paragraf pendek.
+Jika perlu konfirmasi spesifik (booking, harga custom), sarankan booking via website atau minta admin.
 Jika kamu tidak tahu jawabannya atau pelanggan minta bicara dengan manusia, sarankan tombol "Bicara dengan Admin".`;
 
+// In-memory prompt cache — rebuilt at most once per minute
+let _promptCache: { value: string; expiresAt: number } | null = null;
+
 async function buildSystemPrompt(): Promise<string> {
+  const now = Date.now();
+  if (_promptCache && _promptCache.expiresAt > now) return _promptCache.value;
+
   let prompt = BASE_PROMPT;
   try {
-    const paket = await db.select().from(paketLayananTable);
+    const [paket, kb] = await Promise.all([
+      db.select().from(paketLayananTable),
+      db.select().from(chatKbTable).where(eq(chatKbTable.isAktif, true)),
+    ]);
     if (paket.length > 0) {
       prompt += "\n\nPaket yang tersedia (data live):\n" +
         paket
-          .map((p: any) => `- ${p.namaPaket} (${p.kategori ?? "umum"}): Rp ${Number(p.harga).toLocaleString("id-ID")} — ${p.deskripsi ?? ""}`)
+          .map((p: any) => `- ${p.namaPaket}: Rp ${Number(p.harga).toLocaleString("id-ID")} — ${p.deskripsi ?? ""}`)
           .join("\n");
     }
-  } catch {}
-
-  try {
-    const kb = await db.select().from(chatKbTable).where(eq(chatKbTable.isAktif, true));
     if (kb.length > 0) {
       prompt += "\n\nKnowledge Base (gunakan jika relevan):\n" +
         kb.map((k: any) => `Q: ${k.pertanyaan}\nA: ${k.jawaban}`).join("\n\n");
     }
   } catch {}
 
+  _promptCache = { value: prompt, expiresAt: now + 60_000 };
   return prompt;
 }
 
