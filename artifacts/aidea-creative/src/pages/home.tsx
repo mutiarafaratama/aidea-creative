@@ -63,7 +63,7 @@ const MASONRY_HEIGHTS = ["h-[280px]", "h-[340px]", "h-[260px]", "h-[400px]", "h-
 export default function Home() {
   const { data: settings } = useSiteSettings();
   const { data: paketList, isLoading: loadingPaket } = useListPaket();
-  const { data: testimoniList } = useListTestimoni();
+  const { data: testimoniList } = useListTestimoni({}, { refetchInterval: 60000, refetchOnMount: true, staleTime: 0 });
   const { data: promoList } = useListPromo();
   const { data: portfolioList } = useListPortfolio();
 

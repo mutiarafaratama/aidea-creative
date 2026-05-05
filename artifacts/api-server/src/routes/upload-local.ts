@@ -1,5 +1,5 @@
 import { Router, json, type Request, type Response } from "express";
-import { requireAdmin } from "../middlewares/auth";
+import { requireAdmin, requireAuth } from "../middlewares/auth";
 import { logger } from "../lib/logger";
 import path from "path";
 import fs from "fs";
@@ -97,6 +97,39 @@ router.post("/upload/supabase/destroy", requireAdmin, async (req, res) => {
     res.status(500).json({ error: "Gagal menghapus file." });
   }
 });
+
+router.post(
+  "/upload/avatar",
+  requireAuth,
+  json({ limit: "10mb" }),
+  async (req: Request, res: Response) => {
+    try {
+      const body = (req.body ?? {}) as { filename?: string; contentType?: string; dataBase64?: string };
+      const userId = (req.authUser as any)?.id ?? "unknown";
+      const folder = String(userId).replace(/[^a-zA-Z0-9-]/g, "");
+      const filename = safeFilename(body.filename || `avatar-${Date.now()}`);
+      const dataBase64 = body.dataBase64 || "";
+      if (!dataBase64) { res.status(400).json({ error: "dataBase64 wajib diisi." }); return; }
+      let buffer: Buffer;
+      try {
+        const cleaned = dataBase64.includes(",") ? dataBase64.split(",", 2)[1] : dataBase64;
+        buffer = Buffer.from(cleaned, "base64");
+      } catch { res.status(400).json({ error: "dataBase64 tidak valid." }); return; }
+      const ext = filename.includes(".") ? filename.split(".").pop() : "jpg";
+      const baseName = filename.replace(/\.[^.]+$/, "");
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${baseName}.${ext}`;
+      const absDir = path.join(UPLOAD_DIR, "avatars", folder);
+      ensureDir(absDir);
+      fs.writeFileSync(path.join(absDir, path.basename(unique)), buffer);
+      const relPath = `avatars/${folder}/${unique}`;
+      const url = `${PUBLIC_BASE}/uploads/${relPath}`;
+      res.json({ url, path: relPath, bucket: "avatars" });
+    } catch (err) {
+      logger.error({ err }, "Avatar upload failed");
+      res.status(500).json({ error: "Upload gagal." });
+    }
+  },
+);
 
 export function serveUploads(app: import("express").Express) {
   import("express").then(({ default: express }) => {

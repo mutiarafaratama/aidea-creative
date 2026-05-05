@@ -44,7 +44,8 @@ A photography booking + e-commerce web application for AideaCreative Studio Foto
 ## File Uploads
 
 - **Local filesystem** uploads (replaces Supabase Storage)
-- Upload: `POST /api/upload/supabase` (admin only, accepts base64 payload)
+- Upload (admin): `POST /api/upload/supabase` (admin only, accepts base64 payload)
+- Upload (user avatars): `POST /api/upload/avatar` (any authenticated user, saves to avatars/ bucket)
 - Delete: `POST /api/upload/supabase/destroy`
 - Files stored in `UPLOAD_DIR` (default: `./uploads/`), served at `/uploads`
 
@@ -103,7 +104,23 @@ Booking status flow: `menunggu → dikonfirmasi → selesai`
 ## Realtime Polling
 
 - Admin booking/pesanan pages poll every 7–8s with toast on status change
-- User profil page polls every 7s with toast on booking/pesanan status change
+- User profil page polls every 7–8s with toast on booking AND pesanan status change
+- Home page testimoni refetches every 60s with staleTime:0 to pick up new approvals
+
+## Photobooth Virtual
+
+- `artifacts/aidea-creative/src/pages/photobooth.tsx` — virtual photobooth in browser
+- 3 frame themes: **Aidea Blue** (rect clip, blue gradient), **Love Edition** (oval clip, pink hearts), **Night Sky** (gold stars, dark gradient)
+- Per-photo retake: hover/tap thumbnail shows RotateCcw button to retake only that shot
+- Touch drag: emojis draggable on mobile via Pointer Events (`onPointerDown/Move/Up`)
+- Larger logo watermark (40px font) scattered in side margins for Frame 1
+
+## AI Chatbot / Draggable Buttons
+
+- `artifacts/aidea-creative/src/components/ai-chatbot.tsx` — floating chatbot button
+- Fully draggable on mobile/desktop via Pointer Events API; position persists in `localStorage["aidea_ai_btn_pos"]`
+- Click vs. drag discrimination (moves <5px = click)
+- On Paket page: `MobilAiButton` component with "Asisten AI" label above icon; saves to `localStorage["aidea_paket_ai_btn_pos"]`
 
 ## PWA
 

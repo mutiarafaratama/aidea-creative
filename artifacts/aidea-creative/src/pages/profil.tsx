@@ -606,7 +606,7 @@ export default function Profil() {
       fetch("/api/testimoni/me", { headers }).then((r) => r.ok ? r.json() : []),
     ]).then(([b, p, t]) => {
       if (Array.isArray(b)) {
-        setBooking(b.map((x: any) => ({
+        const bMapped: BookingRow[] = b.map((x: any) => ({
           id: x.id,
           kode_booking: x.kodeBooking,
           nama_pemesan: x.namaPemesan,
@@ -623,7 +623,10 @@ export default function Profil() {
           paket_layanan: x.namaPaket ? { nama_paket: x.namaPaket, harga: x.totalHarga } : null,
           alasan_pembatalan: x.alasanPembatalan ?? null,
           dibatalkan_oleh: x.dibatalkanOleh ?? null,
-        })));
+        }));
+        setBooking(bMapped);
+        prevBookingStatusRef.current = new Map(bMapped.map((x) => [x.id, { status: x.status, statusPembayaran: x.status_pembayaran }]));
+        bookingInitializedRef.current = true;
       }
       if (Array.isArray(p)) {
         const mapped = p.map((x: any) => ({
@@ -646,6 +649,79 @@ export default function Profil() {
       }
       setDataLoading(false);
     }).catch(() => setDataLoading(false));
+  }, [user]);
+
+  const bookingInitializedRef = useRef(false);
+  const prevBookingStatusRef = useRef<Map<string, { status: string; statusPembayaran: string }>>(new Map());
+
+  useEffect(() => {
+    if (!user) return;
+    const STATUS_BOOKING_MAP: Record<string, string> = {
+      menunggu: "Menunggu Konfirmasi",
+      dikonfirmasi: "Dikonfirmasi",
+      selesai: "Selesai",
+      dibatalkan: "Dibatalkan",
+    };
+    const BAYAR_MAP: Record<string, string> = {
+      belum_bayar: "Belum Bayar",
+      dp: "DP",
+      lunas: "Lunas",
+    };
+    const pollBooking = async () => {
+      if (!bookingInitializedRef.current) return;
+      try {
+        const token = localStorage.getItem("auth_token");
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch("/api/booking/me", { headers });
+        if (!res.ok) return;
+        const b = await res.json();
+        if (!Array.isArray(b)) return;
+        const mapped: BookingRow[] = b.map((x: any) => ({
+          id: x.id,
+          kode_booking: x.kodeBooking,
+          nama_pemesan: x.namaPemesan,
+          email: x.email,
+          telepon: x.telepon,
+          tanggal_sesi: x.tanggalSesi,
+          jam_sesi: x.jamSesi,
+          konsep_foto: x.konsepFoto,
+          catatan_pelanggan: x.catatanPelanggan,
+          status: x.status,
+          status_pembayaran: x.statusPembayaran,
+          total_harga: x.totalHarga,
+          created_at: x.createdAt,
+          paket_layanan: x.namaPaket ? { nama_paket: x.namaPaket, harga: x.totalHarga } : null,
+          alasan_pembatalan: x.alasanPembatalan ?? null,
+          dibatalkan_oleh: x.dibatalkanOleh ?? null,
+        }));
+        const prevMap = prevBookingStatusRef.current;
+        mapped.forEach((item) => {
+          const prev = prevMap.get(item.id);
+          if (prev) {
+            if (prev.status !== item.status) {
+              toast({
+                title: "Status booking diperbarui!",
+                description: `${item.kode_booking}: ${STATUS_BOOKING_MAP[item.status] ?? item.status}`,
+              });
+            } else if (prev.statusPembayaran !== item.status_pembayaran) {
+              toast({
+                title: "Status pembayaran diperbarui!",
+                description: `${item.kode_booking}: ${BAYAR_MAP[item.status_pembayaran] ?? item.status_pembayaran}`,
+              });
+            }
+          }
+        });
+        prevBookingStatusRef.current = new Map(mapped.map((x) => [x.id, { status: x.status, statusPembayaran: x.status_pembayaran }]));
+        setBooking(mapped);
+        setSelectedBooking((prev) => {
+          if (!prev) return prev;
+          const updated = mapped.find((x) => x.id === prev.id);
+          return updated ?? prev;
+        });
+      } catch { }
+    };
+    const interval = setInterval(pollBooking, 8000);
+    return () => clearInterval(interval);
   }, [user]);
 
   useEffect(() => {
@@ -745,10 +821,10 @@ export default function Profil() {
         reader.readAsDataURL(file);
       });
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const res = await fetch("/api/upload/supabase", {
+      const res = await fetch("/api/upload/avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ bucket: "avatars", folder: user.id, filename: `avatar-${Date.now()}.${ext}`, contentType: file.type, dataBase64 }),
+        body: JSON.stringify({ filename: `avatar-${Date.now()}.${ext}`, contentType: file.type, dataBase64 }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "Upload gagal");
       const { url } = await res.json();
