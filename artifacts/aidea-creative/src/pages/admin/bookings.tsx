@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useGetRecentBookings, getGetRecentBookingsQueryKey, useUpdateBookingStatus } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useUpdateBookingStatus } from "@workspace/api-client-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Clock, X, Search, Eye, MessageCircle, CalendarDays, Phone, Mail, FileText, Package, Banknote, Lightbulb, Wallet, Trash2, AlertTriangle, Eye as EyeIcon, EyeOff, Bell } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { QueryError } from "@/components/query-error";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { useAuth } from "@/lib/auth";
 import { adminFetch } from "@/lib/admin-api";
 
 const statuses = ["semua", "menunggu", "dikonfirmasi", "selesai", "dibatalkan"] as const;
@@ -42,8 +41,12 @@ function formatTanggal(tgl: string) {
 export default function AdminBookings() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const { data, isLoading, error, refetch, isFetching } = useGetRecentBookings();
+  const ADMIN_BOOKINGS_KEY = ["admin-bookings"];
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey: ADMIN_BOOKINGS_KEY,
+    queryFn: () => adminFetch("/api/booking"),
+    refetchInterval: 8000,
+  });
   const mutate = useUpdateBookingStatus();
   const [filter, setFilter] = useState<(typeof statuses)[number]>("semua");
   const [search, setSearch] = useState("");
@@ -80,7 +83,7 @@ export default function AdminBookings() {
     try {
       await adminFetch(`/api/booking/${deleteDialog.booking.id}`, { method: "DELETE" });
       toast({ title: "Booking dihapus", description: `${deleteDialog.booking.kodeBooking} telah dihapus permanen.` });
-      qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
+      qc.invalidateQueries({ queryKey: ADMIN_BOOKINGS_KEY });
       setDeleteDialog(null);
       setDetailBooking(null);
     } catch (e: any) {
@@ -103,7 +106,7 @@ export default function AdminBookings() {
     mutate.mutate({ id, data: { status, statusPembayaran: curStatusBayar, ...(alasanPembatalan ? { alasanPembatalan } : {}) } }, {
       onSuccess: () => {
         toast({ title: "Status diperbarui" });
-        qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
+        qc.invalidateQueries({ queryKey: ADMIN_BOOKINGS_KEY });
         if (detailBooking?.id === id) {
           setDetailBooking((prev: any) => prev ? { ...prev, status, ...(alasanPembatalan !== undefined ? { alasanPembatalan, dibatalkanOleh: "admin" } : {}) } : prev);
         }
@@ -120,7 +123,7 @@ export default function AdminBookings() {
     mutate.mutate({ id, data: { status: curStatus, statusPembayaran } }, {
       onSuccess: () => {
         toast({ title: "Status pembayaran diperbarui" });
-        qc.invalidateQueries({ queryKey: getGetRecentBookingsQueryKey() });
+        qc.invalidateQueries({ queryKey: ADMIN_BOOKINGS_KEY });
         if (detailBooking?.id === id) {
           setDetailBooking((prev: any) => prev ? { ...prev, statusPembayaran } : prev);
         }

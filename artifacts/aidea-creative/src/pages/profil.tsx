@@ -189,9 +189,9 @@ function EmptyState({ icon: Icon, text }: { icon: React.ElementType; text: strin
 
 function DetailRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-2.5">
-      <span className="text-xs text-muted-foreground sm:w-36 shrink-0 pt-0.5">{label}</span>
-      <span className="text-sm font-medium flex-1">{children}</span>
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <span className="text-xs text-muted-foreground shrink-0 mt-0.5 leading-relaxed">{label}</span>
+      <span className="text-sm font-medium text-right leading-relaxed">{children}</span>
     </div>
   );
 }
@@ -1653,30 +1653,21 @@ export default function Profil() {
                 <StatusBadge status={selectedBooking.status_pembayaran} map={STATUS_BAYAR} />
               </div>
 
-              <Separator />
-
-              {/* Jadwal */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Jadwal Sesi
-                </p>
-                <div className="divide-y divide-border rounded-lg border">
-                  <DetailRow label={<><CalendarDays className="inline h-3.5 w-3.5 mr-1" />Tanggal</>}>
+              {/* Jadwal + Paket + Pemesan in one card */}
+              <div className="rounded-xl bg-muted/40 divide-y divide-border overflow-hidden">
+                <div className="px-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-3 pb-1">Jadwal Sesi</p>
+                  <DetailRow label={<span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />Tanggal</span>}>
                     {formatTanggal(selectedBooking.tanggal_sesi)}
                   </DetailRow>
-                  <DetailRow label={<><Clock className="inline h-3.5 w-3.5 mr-1" />Jam</>}>
+                  <DetailRow label={<span className="flex items-center gap-1"><Clock className="h-3 w-3" />Jam</span>}>
                     {selectedBooking.jam_sesi}
                   </DetailRow>
                 </div>
-              </div>
 
-              {/* Paket */}
-              {selectedBooking.paket_layanan && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                    Paket
-                  </p>
-                  <div className="divide-y divide-border rounded-lg border">
+                {selectedBooking.paket_layanan && (
+                  <div className="px-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-3 pb-1">Paket</p>
                     <DetailRow label="Nama Paket">
                       {selectedBooking.paket_layanan.nama_paket}
                     </DetailRow>
@@ -1684,19 +1675,14 @@ export default function Profil() {
                       Rp {selectedBooking.paket_layanan.harga.toLocaleString("id-ID")}
                     </DetailRow>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Pemesan */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Data Pemesan
-                </p>
-                <div className="divide-y divide-border rounded-lg border">
-                  <DetailRow label={<><User className="inline h-3.5 w-3.5 mr-1" />Nama</>}>
+                <div className="px-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-3 pb-1">Data Pemesan</p>
+                  <DetailRow label={<span className="flex items-center gap-1"><User className="h-3 w-3" />Nama</span>}>
                     {selectedBooking.nama_pemesan}
                   </DetailRow>
-                  <DetailRow label={<><Phone className="inline h-3.5 w-3.5 mr-1" />Telepon</>}>
+                  <DetailRow label={<span className="flex items-center gap-1"><Phone className="h-3 w-3" />Telepon</span>}>
                     {selectedBooking.telepon}
                   </DetailRow>
                   {selectedBooking.konsep_foto && (
@@ -1706,28 +1692,21 @@ export default function Profil() {
                   )}
                   {selectedBooking.catatan_pelanggan && (
                     <DetailRow label="Catatan">
-                      <span className="italic text-muted-foreground">
-                        {selectedBooking.catatan_pelanggan}
-                      </span>
+                      <span className="italic text-muted-foreground">{selectedBooking.catatan_pelanggan}</span>
                     </DetailRow>
                   )}
                 </div>
-              </div>
 
-              {/* Pembayaran */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-                  Pembayaran
-                </p>
-                <div className="divide-y divide-border rounded-lg border">
-                  <DetailRow label={<><Wallet className="inline h-3.5 w-3.5 mr-1" />Status</>}>
+                {/* Pembayaran */}
+                <div className="px-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground pt-3 pb-1">Pembayaran</p>
+                  <DetailRow label={<span className="flex items-center gap-1"><Wallet className="h-3 w-3" />Status</span>}>
                     <StatusBadge status={selectedBooking.status_pembayaran} map={STATUS_BAYAR} />
                   </DetailRow>
-                  <DetailRow label={<><CreditCard className="inline h-3.5 w-3.5 mr-1" />Total</>}>
-                    <span className="font-bold text-base">
-                      Rp {selectedBooking.total_harga.toLocaleString("id-ID")}
-                    </span>
+                  <DetailRow label={<span className="flex items-center gap-1"><CreditCard className="h-3 w-3" />Total</span>}>
+                    <span className="font-bold text-base">Rp {selectedBooking.total_harga.toLocaleString("id-ID")}</span>
                   </DetailRow>
+                  <div className="pb-3" />
                 </div>
               </div>
 
