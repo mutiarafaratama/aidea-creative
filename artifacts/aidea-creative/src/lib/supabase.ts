@@ -1,6 +1,14 @@
-// Supabase has been replaced with server-side JWT auth.
-// This file is kept as a stub so existing imports don't break.
+import { createClient } from "@supabase/supabase-js";
 
-export const isSupabaseConfigured = false;
-export const supabase = null;
-export const supabaseConfigMessage = "";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  : null;
+
+export const supabaseConfigMessage = isSupabaseConfigured
+  ? ""
+  : "VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY belum dikonfigurasi.";

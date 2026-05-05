@@ -18,16 +18,42 @@ export default function AuthCallback() {
       return;
     }
 
-    if (!token) {
-      setLocation("/login");
+    if (token) {
+      handleOAuthToken(token).then(() => {
+        const safeRedirect =
+          redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
+        setLocation(safeRedirect);
+      });
       return;
     }
 
-    handleOAuthToken(token).then(() => {
-      const safeRedirect =
-        redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
-      setLocation(safeRedirect);
-    });
+    const hash = window.location.hash.slice(1);
+    const hashParams = new URLSearchParams(hash);
+    const supabaseToken = hashParams.get("access_token");
+
+    if (supabaseToken) {
+      fetch("/api/auth/supabase-exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: supabaseToken }),
+        credentials: "include",
+      })
+        .then((r) => r.json())
+        .then(async (data) => {
+          if (data.token) {
+            await handleOAuthToken(data.token);
+            const safeRedirect =
+              redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
+            setLocation(safeRedirect);
+          } else {
+            setLocation(`/login?oauth_error=${encodeURIComponent(data.error ?? "unknown")}`);
+          }
+        })
+        .catch(() => setLocation("/login?oauth_error=server_error"));
+      return;
+    }
+
+    setLocation("/login");
   }, []);
 
   return (

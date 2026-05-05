@@ -107,9 +107,19 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
   });
   const [isLoadingRegister, setIsLoadingRegister] = useState(false);
 
-  const handleGoogleLogin = () => {
-    const redirect = redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
-    window.location.href = `/api/auth/google${redirect}`;
+  const handleGoogleLogin = async () => {
+    const { supabase } = await import("@/lib/supabase");
+    if (!supabase) {
+      const redirect = redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
+      window.location.href = `/api/auth/google${redirect}`;
+      return;
+    }
+    const appBase = window.location.origin;
+    const callbackUrl = `${appBase}/auth/callback${redirectTo !== "/" ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`;
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: callbackUrl },
+    });
   };
 
   const handleLogin = async (e: React.FormEvent) => {

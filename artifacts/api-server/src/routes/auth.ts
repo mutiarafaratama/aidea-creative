@@ -134,6 +134,121 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
+router.post("/auth/supabase-exchange", async (req, res) => {
+  try {
+    const { access_token } = req.body as { access_token?: string };
+
+    if (!access_token) {
+      res.status(400).json({ error: "access_token diperlukan." });
+      return;
+    }
+
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) {
+      res.status(503).json({ error: "Supabase belum dikonfigurasi." });
+      return;
+    }
+
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+      },
+    });
+
+    if (!userRes.ok) {
+      res.status(401).json({ error: "Token Supabase tidak valid." });
+      return;
+    }
+
+    const supabaseUser = (await userRes.json()) as {
+      id: string;
+      email?: string;
+      user_metadata?: { full_name?: string; avatar_url?: string; name?: string };
+      email_confirmed_at?: string;
+    };
+
+    if (!supabaseUser.email) {
+      res.status(400).json({ error: "Email tidak ditemukan dari akun Google." });
+      return;
+    }
+
+    const normalizedEmail = supabaseUser.email.trim().toLowerCase();
+    const displayName =
+      supabaseUser.user_metadata?.full_name ??
+      supabaseUser.user_metadata?.name ??
+      normalizedEmail.split("@")[0];
+    const avatarUrl = supabaseUser.user_metadata?.avatar_url ?? null;
+
+    const [existingAuth] = await db
+      .select()
+      .from(usersAuthTable)
+      .where(eq(usersAuthTable.email, normalizedEmail));
+
+    let profileId: string;
+
+    if (existingAuth) {
+      profileId = existingAuth.profileId;
+      await db
+        .update(usersAuthTable)
+        .set({
+          provider: "google",
+          providerId: supabaseUser.id,
+          emailVerified: Boolean(supabaseUser.email_confirmed_at),
+          updatedAt: new Date(),
+        })
+        .where(eq(usersAuthTable.id, existingAuth.id));
+    } else {
+      const [newProfile] = await db
+        .insert(profilesTable)
+        .values({
+          namaLengkap: displayName,
+          fotoProfil: avatarUrl,
+          role: "pelanggan",
+        })
+        .returning();
+
+      profileId = newProfile.id;
+
+      await db.insert(usersAuthTable).values({
+        profileId,
+        email: normalizedEmail,
+        passwordHash: null,
+        provider: "google",
+        providerId: supabaseUser.id,
+        emailVerified: Boolean(supabaseUser.email_confirmed_at),
+      });
+    }
+
+    const profile = await ensureProfile(profileId, normalizedEmail);
+    const token = signToken({ id: profileId, email: normalizedEmail });
+
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    res.json({
+      token,
+      user: { id: profileId, email: normalizedEmail },
+      profile: {
+        id: profile.id,
+        namaLengkap: profile.namaLengkap,
+        noTelepon: profile.noTelepon,
+        alamat: profile.alamat,
+        fotoProfil: profile.fotoProfil,
+        role: profile.role,
+      },
+    });
+  } catch (err) {
+    req.log?.error?.({ err }, "Supabase exchange error");
+    res.status(500).json({ error: "Gagal memproses login Google." });
+  }
+});
+
 router.post("/auth/logout", (req, res) => {
   res.clearCookie("auth_token", { path: "/" });
   res.json({ ok: true });
