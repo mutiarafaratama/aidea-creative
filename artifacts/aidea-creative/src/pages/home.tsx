@@ -673,37 +673,46 @@ export default function Home() {
         </div>
 
         {recentTestimonials.length > 0 ? (
-          <div className="relative">
-            <div
-              className="flex gap-5 animate-marquee"
-              style={{ width: "max-content" }}
-            >
-              {[...recentTestimonials, ...recentTestimonials].map((t, i) => (
-                <Card key={`${t.id}-${i}`} className="shrink-0 w-[320px] sm:w-[360px] border-border bg-background">
-                  <CardContent className="p-6">
-                    <div className="flex gap-0.5 text-amber-400 mb-3">
-                      {Array(5).fill(0).map((_, j) => (
-                        <Star key={j} size={14} fill={j < t.rating ? "currentColor" : "none"} />
-                      ))}
-                    </div>
-                    <p className="text-sm leading-relaxed line-clamp-4 mb-5">"{t.komentar}"</p>
-                    <div className="flex items-center gap-3">
-                      {t.fotoUrl ? (
-                        <img src={t.fotoUrl} alt={t.namaTampil} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary uppercase text-sm shrink-0">
-                          {t.namaTampil?.charAt(0) ?? "?"}
+          <div className="relative overflow-hidden">
+            {(() => {
+              const minForMarquee = 4;
+              const needsDuplicate = recentTestimonials.length >= minForMarquee;
+              const displayItems = needsDuplicate
+                ? [...recentTestimonials, ...recentTestimonials]
+                : recentTestimonials;
+              return (
+                <div
+                  className={`flex gap-5 ${needsDuplicate ? "animate-marquee" : "flex-wrap justify-center"}`}
+                  style={needsDuplicate ? { width: "max-content" } : undefined}
+                >
+                  {displayItems.map((t, i) => (
+                    <Card key={`${t.id}-${i}`} className="shrink-0 w-[320px] sm:w-[360px] border-border bg-background">
+                      <CardContent className="p-6">
+                        <div className="flex gap-0.5 text-amber-400 mb-3">
+                          {Array(5).fill(0).map((_, j) => (
+                            <Star key={j} size={14} fill={j < t.rating ? "currentColor" : "none"} />
+                          ))}
                         </div>
-                      )}
-                      <div>
-                        <div className="font-semibold text-sm">{t.namaTampil}</div>
-                        <div className="text-xs text-muted-foreground">Pelanggan</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        <p className="text-sm leading-relaxed line-clamp-4 mb-5">"{t.komentar}"</p>
+                        <div className="flex items-center gap-3">
+                          {t.fotoUrl ? (
+                            <img src={t.fotoUrl} alt={t.namaTampil} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary uppercase text-sm shrink-0">
+                              {t.namaTampil?.charAt(0) ?? "?"}
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-semibold text-sm">{t.namaTampil}</div>
+                            <div className="text-xs text-muted-foreground">Pelanggan</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              );
+            })()}
             <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white to-transparent z-10" />
             <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white to-transparent z-10" />
           </div>

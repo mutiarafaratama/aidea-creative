@@ -47,7 +47,7 @@ export function AiChatbot() {
         const data = await res.json();
         if (data.status) setStatus(data.status as SessionStatus);
         const newOnes: ChatMessage[] = (data.messages ?? [])
-          .filter((m: any) => m.pengirim === "admin" || (lastSeenRef.current && m.pengirim === "bot"))
+          .filter((m: any) => m.pengirim === "admin")
           .map((m: any) => ({
             id: m.id,
             role: m.pengirim === "admin" ? "admin" : m.pengirim === "user" ? "user" : "assistant",

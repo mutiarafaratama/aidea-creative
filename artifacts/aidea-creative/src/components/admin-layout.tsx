@@ -104,14 +104,21 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
       <aside className={`fixed top-0 left-0 h-dvh w-64 bg-background border-r border-border z-40 flex flex-col transition-transform duration-200
         ${open ? "translate-x-0" : "-translate-x-full"}
         ${desktopOpen ? "md:sticky md:flex md:translate-x-0" : "md:hidden"}`}>
-        <div className="p-5 border-b border-border flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-foreground text-background flex items-center justify-center">
-            <ShieldCheck size={20} />
+        <div className="p-4 border-b border-border flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-foreground text-background flex items-center justify-center shrink-0">
+            <ShieldCheck size={18} />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-bold text-sm">Aidea Admin</p>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Control Center</p>
           </div>
+          <button
+            className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+            onClick={() => setOpen(false)}
+            aria-label="Tutup sidebar"
+          >
+            <X size={18} />
+          </button>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {navGroups.map((group, gi) => (
@@ -170,17 +177,16 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
 
       <div className="flex-1 min-w-0">
         <header className="sticky top-0 z-20 bg-background/85 backdrop-blur border-b border-border">
-          <div className="flex items-center justify-between px-4 md:px-8 py-4">
-            <div className="flex items-center gap-2">
-              {/* Mobile hamburger */}
+          <div className="relative flex items-center px-4 md:px-8 h-16">
+            {/* Kiri: hamburger */}
+            <div className="flex items-center gap-1 shrink-0">
               <button
-                className="md:hidden p-1 rounded-lg hover:bg-muted transition-colors"
+                className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                 onClick={() => setOpen((o) => !o)}
-                aria-label={open ? "Tutup sidebar" : "Buka sidebar"}
+                aria-label="Buka sidebar"
               >
-                {open ? <X size={22} /> : <Menu size={22} />}
+                <Menu size={20} />
               </button>
-              {/* Desktop sidebar toggle */}
               <button
                 className="hidden md:flex p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                 onClick={() => setDesktopOpen((o) => !o)}
@@ -190,11 +196,11 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
                 <PanelLeft size={20} />
               </button>
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold">{title}</h1>
-              {subtitle && <p className="text-xs md:text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
+            {/* Tengah: title (absolute center) */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-16">
+              <h1 className="text-base md:text-xl font-bold leading-tight text-center truncate max-w-full">{title}</h1>
+              {subtitle && <p className="text-[11px] md:text-xs text-muted-foreground text-center truncate max-w-full">{subtitle}</p>}
             </div>
-            <div className="w-6 md:w-8" />
           </div>
         </header>
         <main className="p-4 md:p-8">{children}</main>
