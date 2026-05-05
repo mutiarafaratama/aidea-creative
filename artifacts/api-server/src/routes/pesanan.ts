@@ -263,7 +263,7 @@ router.put("/pesanan/:id/status", requireAdmin, async (req, res) => {
   try {
     const { status, alasanPembatalan } = req.body;
 
-    const allowedStatuses = ["dikerjakan", "dibatalkan"];
+    const allowedStatuses = ["dikerjakan", "siap_ambil", "dibatalkan"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: `Status tidak valid. Hanya boleh: ${allowedStatuses.join(", ")}` });
     }
@@ -296,8 +296,8 @@ router.put("/pesanan/:id/terima", attachAuth, async (req, res) => {
       .where(eq(pesananProdukTable.id, req.params.id));
     if (!pesanan) return res.status(404).json({ error: "Pesanan tidak ditemukan" });
     if (pesanan.pelangganId !== req.authUser.id) return res.status(403).json({ error: "Forbidden" });
-    if (pesanan.status !== "dikerjakan") {
-      return res.status(400).json({ error: "Pesanan hanya bisa diterima saat statusnya Dikerjakan" });
+    if (pesanan.status !== "siap_ambil") {
+      return res.status(400).json({ error: "Pesanan hanya bisa dikonfirmasi saat statusnya Siap Diambil" });
     }
 
     const [row] = await db.update(pesananProdukTable)

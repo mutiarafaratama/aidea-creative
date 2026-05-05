@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, MessageCircle, Package, Phone, Mail, Check, X, Wallet, Trash2 } from "lucide-react";
+import { Search, Eye, MessageCircle, Package, Phone, Mail, Check, X, Wallet, Trash2, PackageCheck } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { adminFetch } from "@/lib/admin-api";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
-const STATUSES = ["semua", "diproses", "dikerjakan", "selesai", "dibatalkan"] as const;
+const STATUSES = ["semua", "diproses", "dikerjakan", "siap_ambil", "selesai", "dibatalkan"] as const;
 type StatusFilter = (typeof STATUSES)[number];
 
 type ItemPesanan = {
@@ -55,6 +55,7 @@ function toWANumber(telepon: string): string {
 const STATUS_LABELS: Record<string, string> = {
   diproses: "Diproses",
   dikerjakan: "Dikerjakan",
+  siap_ambil: "Siap Diambil",
   selesai: "Selesai",
   dibatalkan: "Dibatalkan",
 };
@@ -69,6 +70,7 @@ function statusBadge(s: string) {
   const map: Record<string, string> = {
     diproses: "bg-amber-500/10 text-amber-700 border-amber-500/20",
     dikerjakan: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+    siap_ambil: "bg-purple-500/10 text-purple-700 border-purple-500/20",
     selesai: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
     dibatalkan: "bg-red-500/10 text-red-700 border-red-500/20",
   };
@@ -122,6 +124,23 @@ export default function AdminPesanan() {
       setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
       setDetail((prev) => (prev?.id === id ? updated : prev));
       toast({ title: "Pesanan sedang dikerjakan" });
+    } catch {
+      toast({ title: "Gagal memperbarui status", variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const selesaikanPesanan = async (id: string) => {
+    setIsUpdating(true);
+    try {
+      const updated = await adminFetch<Pesanan>(`/api/pesanan/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "siap_ambil" }),
+      });
+      setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      setDetail((prev) => (prev?.id === id ? updated : prev));
+      toast({ title: "Pesanan siap diambil", description: "Pelanggan akan melihat notifikasi bahwa pesanan siap diambil di studio." });
     } catch {
       toast({ title: "Gagal memperbarui status", variant: "destructive" });
     } finally {
@@ -375,13 +394,37 @@ export default function AdminPesanan() {
                     </div>
                   )}
                   {detail.status === "dikerjakan" && (
-                    <Button
-                      variant="outline"
-                      className="w-full text-red-700 border-red-200 hover:bg-red-50"
-                      onClick={() => setBatalDialog({ pesanan: detail, alasan: "" })}
-                    >
-                      <X className="h-4 w-4 mr-1" /> Batalkan Pesanan
-                    </Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        className="text-purple-700 border-purple-200 hover:bg-purple-50"
+                        disabled={isUpdating}
+                        onClick={() => selesaikanPesanan(detail.id)}
+                      >
+                        {isUpdating ? (
+                          <span className="h-4 w-4 border-2 border-purple-300 border-t-purple-700 rounded-full animate-spin mr-1" />
+                        ) : (
+                          <PackageCheck className="h-4 w-4 mr-1" />
+                        )}
+                        Siap Diambil
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="text-red-700 border-red-200 hover:bg-red-50"
+                        onClick={() => setBatalDialog({ pesanan: detail, alasan: "" })}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Batalkan
+                      </Button>
+                    </div>
+                  )}
+                  {detail.status === "siap_ambil" && (
+                    <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 flex gap-2.5">
+                      <PackageCheck className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-semibold text-purple-700">Menunggu konfirmasi pelanggan</p>
+                        <p className="text-xs text-purple-600">Pesanan sudah siap diambil. Pelanggan akan mengonfirmasi penerimaan.</p>
+                      </div>
+                    </div>
                   )}
                   <Button
                     variant="outline"
