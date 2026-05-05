@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useSiteSettings } from "@/lib/settings";
+import { InstallPrompt } from "@/components/install-prompt";
 
 
 function BrandLogo() {
@@ -257,6 +258,8 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="flex-grow">
         {children}
       </main>
+
+      <InstallPrompt />
 
       {location === "/" && (
       <footer className="bg-card border-t border-border pt-16 pb-8">

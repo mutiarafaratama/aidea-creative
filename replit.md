@@ -8,7 +8,7 @@ A photography booking + e-commerce web application for AideaCreative Studio Foto
 - **Frontend**: React + Vite (port 5000) at `artifacts/aidea-creative`
 - **Backend**: Express + TypeScript (port 8099) at `artifacts/api-server`
 - **Dev Proxy**: Forwards port 3000 → 5000 (external preview) at `scripts/dev-proxy.mjs`
-- **Database**: Replit PostgreSQL via Drizzle ORM at `lib/db`
+- **Database**: Supabase PostgreSQL via Drizzle ORM at `lib/db` (uses `SUPABASE_DATABASE_URL`)
 - **API client**: Generated OpenAPI client at `lib/api-client-react`
 - **API spec**: OpenAPI YAML + Orval codegen at `lib/api-spec`
 
