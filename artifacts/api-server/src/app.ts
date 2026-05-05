@@ -46,7 +46,7 @@ app.use("/api", router);
 
 // Serve frontend static build in production (Docker/Railway deployment)
 if (process.env.NODE_ENV === "production") {
-  const frontendDist = path.resolve(process.cwd(), "artifacts/aidea-creative/dist");
+  const frontendDist = path.resolve(process.cwd(), "artifacts/aidea-creative/dist/public");
   if (fs.existsSync(frontendDist)) {
     app.use(express.static(frontendDist, {
       maxAge: "7d",
