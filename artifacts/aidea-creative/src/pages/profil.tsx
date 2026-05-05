@@ -780,7 +780,10 @@ export default function Profil() {
       }
 
       await loadSnapScript();
-      await new Promise((r) => setTimeout(r, 80));
+
+      // Close the dialog BEFORE opening Snap — the Radix overlay blocks Snap clicks otherwise
+      setSelectedPesanan(null);
+      await new Promise((r) => setTimeout(r, 300));
 
       const kodePesanan = p.kodePesanan || p.kode_pesanan;
       const verifyPayment = async () => {
@@ -855,7 +858,10 @@ export default function Profil() {
       }
 
       await loadSnapScript();
-      await new Promise((r) => setTimeout(r, 80));
+
+      // Close the dialog BEFORE opening Snap — the Radix overlay blocks Snap clicks otherwise
+      setSelectedBooking(null);
+      await new Promise((r) => setTimeout(r, 300));
 
       const verifyBookingPayment = async () => {
         try {
