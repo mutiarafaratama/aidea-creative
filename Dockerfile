@@ -29,7 +29,7 @@ COPY lib/ ./lib/
 COPY artifacts/api-server/package.json ./artifacts/api-server/
 COPY artifacts/aidea-creative/package.json ./artifacts/aidea-creative/
 
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --prod --no-optional
 
 COPY --from=build-api /app/artifacts/api-server/dist ./artifacts/api-server/dist
 COPY --from=build-frontend /app/artifacts/aidea-creative/dist ./artifacts/aidea-creative/dist

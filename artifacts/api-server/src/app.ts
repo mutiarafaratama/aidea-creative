@@ -44,14 +44,22 @@ app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "1d" }));
 
 app.use("/api", router);
 
-// Serve frontend static build in production (Docker deployment)
+// Serve frontend static build in production (Docker/Railway deployment)
 if (process.env.NODE_ENV === "production") {
   const frontendDist = path.resolve(process.cwd(), "artifacts/aidea-creative/dist/public");
   if (fs.existsSync(frontendDist)) {
-    app.use(express.static(frontendDist, { maxAge: "7d" }));
-    app.get("*", (_req, res) => {
+    app.use(express.static(frontendDist, {
+      maxAge: "7d",
+      immutable: true,
+      index: false,
+    }));
+    // Catch-all: serve index.html for all non-API routes (SPA fallback)
+    // Use regex to be compatible with Express 5 path-to-regexp v8
+    app.get(/.*/, (_req, res) => {
       res.sendFile(path.join(frontendDist, "index.html"));
     });
+  } else {
+    logger.warn({ frontendDist }, "Frontend dist not found — static serving disabled");
   }
 }
 
