@@ -10,6 +10,7 @@ import { GlobalStatusNotifier } from "@/components/status-notifier";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { CartProvider } from "@/contexts/cart-context";
+import { unlockAudio } from "@/lib/notify-sound";
 
 import Home from "@/pages/home";
 import NotFound from "@/pages/not-found";
@@ -161,6 +162,12 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    const handler = () => unlockAudio();
+    document.addEventListener("pointerdown", handler, { once: true });
+    return () => document.removeEventListener("pointerdown", handler);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

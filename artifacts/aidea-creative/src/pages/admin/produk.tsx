@@ -3,6 +3,7 @@ import { useListProduk, getListProdukQueryKey, useCreateProduk, useUpdateProduk,
 import { adminFetch } from "@/lib/admin-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Sparkles, Loader2, ImageOff } from "lucide-react";
+import { AppImage } from "@/components/app-image";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -235,7 +236,7 @@ export default function AdminProduk() {
                         <TableCell>
                           <div className="relative h-12 w-12 rounded-md overflow-hidden bg-muted flex items-center justify-center">
                             {firstImg ? (
-                              <img src={firstImg} alt={p.namaProduk} className="h-full w-full object-cover" />
+                              <AppImage src={firstImg} alt={p.namaProduk} className="h-full w-full object-cover" />
                             ) : (
                               <ImageOff className="h-4 w-4 text-muted-foreground/60" />
                             )}

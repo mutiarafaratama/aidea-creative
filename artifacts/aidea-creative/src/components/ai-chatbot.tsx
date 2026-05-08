@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Bot, Loader2, ShieldCheck, UserPlus, Info, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { soundNewMessage, soundStatusUpdate, unlockAudio } from "@/lib/notify-sound";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const SESSION_KEY = "aidea_chat_session_v1";
@@ -127,7 +128,10 @@ export function AiChatbot() {
 
       // Badge: jika ada balasan admin yang belum dilihat & chat tertutup
       const hasAdminMsg = serverMsgs.some((m) => m.role === "admin");
-      if (hasAdminMsg && !isOpen && finalStatus === "admin") setHasUnread(true);
+      if (hasAdminMsg && !isOpen && finalStatus === "admin") {
+        setHasUnread(true);
+        soundNewMessage();
+      }
     } catch {}
     setHistoryLoaded(true);
     if (!silent) setHistoryLoading(false);
@@ -175,8 +179,11 @@ export function AiChatbot() {
               },
             ]);
           }
-          // Status jadi admin sementara chat tertutup → nyalakan badge
-          if (newStatus === "admin" && !isOpen) setHasUnread(true);
+          // Status jadi admin sementara chat tertutup → nyalakan badge + suara
+          if (newStatus === "admin" && !isOpen) {
+            setHasUnread(true);
+            soundStatusUpdate();
+          }
         } else if (newStatus) {
           setStatus((prev) => (prev === newStatus ? prev : (newStatus === "selesai" ? "ai" : newStatus)));
         }
@@ -191,7 +198,10 @@ export function AiChatbot() {
           setMessages((prev) => {
             const seenIds = new Set(prev.filter((p) => p.id).map((p) => p.id));
             const additions = newOnes.filter((n) => !n.id || !seenIds.has(n.id));
-            if (additions.length && !isOpen) setHasUnread(true);
+            if (additions.length && !isOpen) {
+              setHasUnread(true);
+              soundNewMessage();
+            }
             return additions.length ? [...prev, ...additions] : prev;
           });
         }
@@ -322,10 +332,10 @@ export function AiChatbot() {
   const onPointerUp = useCallback(() => {
     const moved = dragRef.current?.moved ?? false;
     dragRef.current = null;
-    if (!moved) { setIsOpen(true); setHasUnread(false); }
+    if (!moved) { unlockAudio(); setIsOpen(true); setHasUnread(false); }
   }, []);
 
-  const onDesktopClick = useCallback(() => { setIsOpen(true); setHasUnread(false); }, []);
+  const onDesktopClick = useCallback(() => { unlockAudio(); setIsOpen(true); setHasUnread(false); }, []);
 
   // ── Styles ───────────────────────────────────────────────────────────
   const btnStyle: React.CSSProperties = mobile

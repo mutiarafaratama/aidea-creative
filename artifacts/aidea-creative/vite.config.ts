@@ -178,6 +178,10 @@ export default defineConfig({
         target: "http://localhost:8099",
         changeOrigin: true,
       },
+      "/uploads": {
+        target: "http://localhost:8099",
+        changeOrigin: true,
+      },
     },
     // Pre-compile the heaviest, most-visited entries at server start so the
     // first page load doesn't have to wait for on-demand transforms.

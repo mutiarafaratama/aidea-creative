@@ -25,6 +25,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useSiteSettings } from "@/lib/settings";
+import { AppImage } from "@/components/app-image";
+import { resolveUploadUrl } from "@/lib/upload-url";
 import { PromoModal } from "@/components/promo-modal";
 
 const heroColumns = [
@@ -179,7 +181,7 @@ function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolea
                           <div className="bg-white rounded-3xl overflow-hidden cursor-pointer">
                             <div className="relative h-60 overflow-hidden bg-gradient-to-br from-primary/10 to-blue-100">
                               {paket.fotoUrl ? (
-                                <img src={paket.fotoUrl} alt={paket.namaPaket} className="w-full h-full object-cover" />
+                                <AppImage src={paket.fotoUrl} alt={paket.namaPaket} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                   <Camera className="h-14 w-14 text-primary/20" />
@@ -274,7 +276,7 @@ function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolea
                       <div className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-border/60 hover:shadow-xl hover:border-primary/30 transition-all duration-300 cursor-pointer h-full flex flex-col">
                         <div className="relative h-52 overflow-hidden bg-gradient-to-br from-primary/10 to-blue-100 shrink-0">
                           {paket.fotoUrl ? (
-                            <img
+                            <AppImage
                               src={paket.fotoUrl}
                               alt={paket.namaPaket}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -609,7 +611,7 @@ export default function Home() {
                           <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "4/3" }}>
                             {p.gambarUrl ? (
                               <motion.img
-                                src={p.gambarUrl}
+                                src={resolveUploadUrl(p.gambarUrl) ?? p.gambarUrl}
                                 alt={p.judul}
                                 className="w-full h-full object-cover"
                                 animate={{ scale: isActive ? 1.04 : 1 }}
@@ -855,7 +857,7 @@ export default function Home() {
                         <p className="text-sm leading-relaxed line-clamp-4 mb-5">"{t.komentar}"</p>
                         <div className="flex items-center gap-3">
                           {t.fotoUrl ? (
-                            <img src={t.fotoUrl} alt={t.namaTampil} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                            <AppImage src={t.fotoUrl} alt={t.namaTampil} className="w-10 h-10 rounded-full object-cover shrink-0" />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary uppercase text-sm shrink-0">
                               {t.namaTampil?.charAt(0) ?? "?"}

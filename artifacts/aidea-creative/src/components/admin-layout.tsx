@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, CalendarRange, Package, Image as ImageIcon,
@@ -8,11 +8,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { adminFetch } from "@/lib/admin-api";
+import { soundAdminAlert, unlockAudio } from "@/lib/notify-sound";
 
 function usePendingCounts() {
   const [bookingCount, setBookingCount] = useState(0);
   const [pesananCount, setPesananCount] = useState(0);
   const [chatCount, setChatCount] = useState(0);
+  const prevChatCountRef = useRef<number | null>(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +34,13 @@ function usePendingCounts() {
           setPesananCount(pesanan.filter((p: any) => p.status === "diproses" || p.status === "dikerjakan").length);
         }
         if (Array.isArray(chatSessions)) {
-          setChatCount(chatSessions.filter((s: any) => s.needsAdmin === true || s.status === "menunggu_admin").length);
+          const newChatCount = chatSessions.filter((s: any) => s.needsAdmin === true || s.status === "menunggu_admin").length;
+          setChatCount(newChatCount);
+          if (initializedRef.current && prevChatCountRef.current !== null && newChatCount > prevChatCountRef.current) {
+            soundAdminAlert();
+          }
+          prevChatCountRef.current = newChatCount;
+          initializedRef.current = true;
         }
       } catch {
         // silently ignore
@@ -60,6 +69,12 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
   useEffect(() => {
     try { localStorage.setItem("admin-sidebar", desktopOpen ? "open" : "closed"); } catch {}
   }, [desktopOpen]);
+
+  useEffect(() => {
+    const handler = () => unlockAudio();
+    document.addEventListener("pointerdown", handler, { once: true });
+    return () => document.removeEventListener("pointerdown", handler);
+  }, []);
 
   const isActive = (href: string) => (href === "/dashboard" ? location === "/dashboard" : location.startsWith(href));
 

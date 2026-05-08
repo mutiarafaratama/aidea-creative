@@ -15,6 +15,7 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { soundStatusUpdate } from "@/lib/notify-sound";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -115,12 +116,14 @@ function usePelangganPoller(active: boolean) {
                 const p = prev.get(b.id);
                 if (p) {
                   if (p.status !== b.status) {
+                    soundStatusUpdate();
                     toast({
                       title: "📋 Status booking diperbarui",
                       description: `${b.kodeBooking}: ${BOOKING_LABEL[b.status] ?? b.status}`,
                       duration: 7000,
                     });
                   } else if (p.statusPembayaran !== b.statusPembayaran) {
+                    soundStatusUpdate();
                     toast({
                       title: "💳 Status pembayaran diperbarui",
                       description: `${b.kodeBooking}: ${BAYAR_LABEL[b.statusPembayaran] ?? b.statusPembayaran}`,
@@ -148,6 +151,7 @@ function usePelangganPoller(active: boolean) {
               pesanan.forEach((p) => {
                 const prevStatus = prev.get(p.id);
                 if (prevStatus && prevStatus !== p.status) {
+                  soundStatusUpdate();
                   toast({
                     title: "📦 Status pesanan diperbarui",
                     description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status}`,

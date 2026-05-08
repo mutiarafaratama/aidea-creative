@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { useListPaket, useListKategori, useAiRecommend } from "@workspace/api-client-react";
 import { Clock, Check, Sparkles, Loader2, Camera, ImageIcon, ChevronRight, Star, X, List } from "lucide-react";
+import { AppImage } from "@/components/app-image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -203,7 +204,7 @@ export default function Paket() {
                       {/* Image area */}
                       <div className="relative h-52 bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center overflow-hidden">
                         {(paket as any).fotoUrl ? (
-                          <img
+                          <AppImage
                             src={(paket as any).fotoUrl}
                             alt={paket.namaPaket}
                             className="absolute inset-0 w-full h-full object-cover"

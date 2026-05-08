@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/cart-context";
 import { CartButton, CartDrawer } from "@/components/cart-drawer";
+import { AppImage } from "@/components/app-image";
 import { useToast } from "@/hooks/use-toast";
 
 const kategoriLabel: Record<string, string> = {
@@ -61,7 +62,7 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
         <div className="grid grid-cols-1 md:grid-cols-2">
           <div className="relative bg-muted aspect-square md:aspect-auto md:min-h-[400px] flex items-center justify-center">
             {current ? (
-              <img src={current} alt={produk.namaProduk} className="max-h-full max-w-full object-contain p-6" />
+              <AppImage src={current} alt={produk.namaProduk} className="max-h-full max-w-full object-contain p-6" />
             ) : (
               <ShoppingBag className="text-muted-foreground opacity-20" size={80} />
             )}
@@ -122,7 +123,7 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
                       i === idx ? "border-primary" : "border-border opacity-70 hover:opacity-100"
                     }`}
                   >
-                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <AppImage src={src} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -235,7 +236,7 @@ export default function Toko() {
               >
                 <div className="h-36 sm:h-44 bg-muted relative flex items-center justify-center overflow-hidden">
                   {gambarPertama ? (
-                    <img
+                    <AppImage
                       src={gambarPertama}
                       alt={produk.namaProduk}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

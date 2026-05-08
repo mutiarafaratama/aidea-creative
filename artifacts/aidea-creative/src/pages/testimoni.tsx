@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useListTestimoni } from "@workspace/api-client-react";
 import { Star, Quote, BadgeCheck, BarChart2 } from "lucide-react";
+import { AppImage } from "@/components/app-image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -160,7 +161,7 @@ export default function Testimoni() {
                   <div className="flex items-center justify-between border-t border-border pt-4">
                     <div className="flex items-center gap-3">
                       {testimoni.fotoUrl ? (
-                        <img src={testimoni.fotoUrl} alt={testimoni.namaTampil} className="w-9 h-9 rounded-full object-cover" />
+                        <AppImage src={testimoni.fotoUrl} alt={testimoni.namaTampil} className="w-9 h-9 rounded-full object-cover" />
                       ) : (
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${getAvatarColor(testimoni.namaTampil)}`}>
                           {testimoni.namaTampil.charAt(0).toUpperCase()}

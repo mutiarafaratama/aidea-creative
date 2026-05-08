@@ -6,6 +6,7 @@ import {
 import { adminFetch } from "@/lib/admin-api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Sparkles, Loader2, GripVertical, X, ImageOff } from "lucide-react";
+import { AppImage } from "@/components/app-image";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -218,7 +219,7 @@ export default function AdminPaket() {
                     <TableCell>
                       <div className="h-10 w-10 rounded-md overflow-hidden bg-muted flex items-center justify-center shrink-0">
                         {(p as any).fotoUrl ? (
-                          <img src={(p as any).fotoUrl} alt={p.namaPaket} className="h-full w-full object-cover" />
+                          <AppImage src={(p as any).fotoUrl} alt={p.namaPaket} className="h-full w-full object-cover" />
                         ) : (
                           <ImageOff className="h-4 w-4 text-muted-foreground/40" />
                         )}

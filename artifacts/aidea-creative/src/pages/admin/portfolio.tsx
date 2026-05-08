@@ -3,6 +3,7 @@ import { useListPortfolio, getListPortfolioQueryKey, useCreatePortfolio, useDele
 import type { Portfolio } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Pencil, Loader2, Star } from "lucide-react";
+import { AppImage } from "@/components/app-image";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ export default function AdminPortfolio() {
               <Card key={p.id} className="overflow-hidden group">
                 <div className="aspect-[4/3] bg-muted relative">
                   {firstImg && (
-                    <img src={firstImg} alt={p.judul} className="w-full h-full object-cover" />
+                    <AppImage src={firstImg} alt={p.judul} className="w-full h-full object-cover" />
                   )}
                   {p.isFeatured && (
                     <Badge className="absolute top-2 left-2 bg-amber-500 text-white gap-1">
