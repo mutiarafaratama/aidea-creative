@@ -1,12 +1,26 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { bookingTable, paketLayananTable, promoTable } from "@workspace/db";
+import { bookingTable, paketLayananTable, promoTable, pengaturanSitusTable } from "@workspace/db";
 import { eq, desc, and, ne, sql } from "drizzle-orm";
 import { attachAuth, requireAdmin } from "../middlewares/auth";
 
 const serverKey = process.env.MIDTRANS_SERVER_KEY?.trim();
 const clientKey = process.env.VITE_MIDTRANS_CLIENT_KEY?.trim();
-const ADMIN_WA = process.env.ADMIN_WA_NUMBER ?? "6285279232879";
+
+async function getAdminWa(): Promise<string> {
+  try {
+    const [row] = await db
+      .select()
+      .from(pengaturanSitusTable)
+      .where(eq(pengaturanSitusTable.key, "contactWhatsapp"));
+    if (row?.value && typeof row.value === "string") {
+      return row.value.replace(/\D/g, "").replace(/^0/, "62");
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
 
 function getSnap() {
   if (!serverKey) return null;
@@ -29,6 +43,7 @@ const formatBooking = (
   r: typeof bookingTable.$inferSelect,
   namaPaket?: string | null,
   namaPromo?: string | null,
+  adminWa?: string,
 ) => ({
   id: r.id,
   kodeBooking: r.kodeBooking,
@@ -52,7 +67,7 @@ const formatBooking = (
   alasanPembatalan: r.alasanPembatalan ?? null,
   dibatalkanOleh: r.dibatalkanOleh ?? null,
   createdAt: r.createdAt.toISOString(),
-  adminWa: ADMIN_WA,
+  adminWa: adminWa ?? "",
 });
 
 // Helper: cek apakah slot sudah terisi
@@ -76,14 +91,17 @@ async function isSlotBooked(tanggalSesi: string, jamSesi: string, excludeBooking
 router.get("/booking/me", attachAuth, async (req, res) => {
   try {
     if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
-    const rows = await db
-      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
-      .from(bookingTable)
-      .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
-      .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
-      .where(eq(bookingTable.pelangganId, req.authUser.id))
-      .orderBy(desc(bookingTable.createdAt));
-    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket, r.namaPromo)));
+    const [rows, adminWa] = await Promise.all([
+      db
+        .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
+        .from(bookingTable)
+        .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
+        .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
+        .where(eq(bookingTable.pelangganId, req.authUser.id))
+        .orderBy(desc(bookingTable.createdAt)),
+      getAdminWa(),
+    ]);
+    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket, r.namaPromo, adminWa)));
   } catch (err) {
     req.log.error({ err }, "Failed to list my bookings");
     res.status(500).json({ error: "Internal server error" });
@@ -92,13 +110,16 @@ router.get("/booking/me", attachAuth, async (req, res) => {
 
 router.get("/booking", async (req, res) => {
   try {
-    const rows = await db
-      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
-      .from(bookingTable)
-      .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
-      .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
-      .orderBy(desc(bookingTable.createdAt));
-    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket, r.namaPromo)));
+    const [rows, adminWa] = await Promise.all([
+      db
+        .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
+        .from(bookingTable)
+        .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
+        .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
+        .orderBy(desc(bookingTable.createdAt)),
+      getAdminWa(),
+    ]);
+    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket, r.namaPromo, adminWa)));
   } catch (err) {
     req.log.error({ err }, "Failed to list booking");
     res.status(500).json({ error: "Internal server error" });
@@ -193,7 +214,8 @@ router.post("/booking", attachAuth, async (req, res) => {
         .where(eq(promoTable.id, promoId));
     }
 
-    res.status(201).json(formatBooking(row, paket.namaPaket, promoRow?.judul ?? null));
+    const adminWa = await getAdminWa();
+    res.status(201).json(formatBooking(row, paket.namaPaket, promoRow?.judul ?? null, adminWa));
   } catch (err) {
     req.log.error({ err }, "Failed to create booking");
     res.status(400).json({ error: "Gagal membuat booking." });
@@ -210,7 +232,8 @@ router.get("/booking/:id", async (req, res) => {
       .where(eq(bookingTable.id, req.params.id));
     if (!rows.length) return res.status(404).json({ error: "Not found" });
     const { booking, namaPaket, namaPromo } = rows[0];
-    res.json(formatBooking(booking, namaPaket, namaPromo));
+    const adminWa = await getAdminWa();
+    res.json(formatBooking(booking, namaPaket, namaPromo, adminWa));
   } catch (err) {
     req.log.error({ err }, "Failed to get booking");
     res.status(404).json({ error: "Not found" });
@@ -235,10 +258,10 @@ router.put("/booking/:id", requireAdmin, async (req, res) => {
       .returning();
     if (!row) return res.status(404).json({ error: "Not found" });
 
-    const [paketRow] = await db
-      .select({ namaPaket: paketLayananTable.namaPaket })
-      .from(paketLayananTable)
-      .where(eq(paketLayananTable.id, row.paketId));
+    const [paketRow, adminWa] = await Promise.all([
+      db.select({ namaPaket: paketLayananTable.namaPaket }).from(paketLayananTable).where(eq(paketLayananTable.id, row.paketId)).then((r) => r[0]),
+      getAdminWa(),
+    ]);
 
     let namaPromo: string | null = null;
     if (row.promoId) {
@@ -246,7 +269,7 @@ router.put("/booking/:id", requireAdmin, async (req, res) => {
       namaPromo = promoRow?.judul ?? null;
     }
 
-    res.json(formatBooking(row, paketRow?.namaPaket, namaPromo));
+    res.json(formatBooking(row, paketRow?.namaPaket, namaPromo, adminWa));
   } catch (err) {
     req.log.error({ err }, "Failed to update booking status");
     res.status(400).json({ error: "Bad request" });
@@ -284,12 +307,12 @@ router.post("/booking/:id/cancel", attachAuth, async (req, res) => {
         .where(eq(promoTable.id, row.promoId));
     }
 
-    const [paketRow] = await db
-      .select({ namaPaket: paketLayananTable.namaPaket })
-      .from(paketLayananTable)
-      .where(eq(paketLayananTable.id, row.paketId));
+    const [[paketRow], adminWa] = await Promise.all([
+      db.select({ namaPaket: paketLayananTable.namaPaket }).from(paketLayananTable).where(eq(paketLayananTable.id, row.paketId)),
+      getAdminWa(),
+    ]);
 
-    res.json(formatBooking(row, paketRow?.namaPaket));
+    res.json(formatBooking(row, paketRow?.namaPaket, null, adminWa));
   } catch (err) {
     req.log.error({ err }, "Failed to cancel booking");
     res.status(500).json({ error: "Internal server error" });
@@ -358,7 +381,8 @@ router.post("/booking/:id/payment", attachAuth, async (req, res) => {
       }
     }
 
-    res.json({ snapToken, kodeBooking: booking.kodeBooking, adminWa: ADMIN_WA });
+    const adminWa = await getAdminWa();
+    res.json({ snapToken, kodeBooking: booking.kodeBooking, adminWa });
   } catch (err) {
     req.log.error({ err }, "Failed to create booking payment");
     res.status(500).json({ error: "Internal server error" });
@@ -393,12 +417,12 @@ router.post("/booking/:id/verify-payment", attachAuth, async (req, res) => {
     }
 
     const [updated] = await db.select().from(bookingTable).where(eq(bookingTable.id, booking.id));
-    const [paketRow] = await db
-      .select({ namaPaket: paketLayananTable.namaPaket })
-      .from(paketLayananTable)
-      .where(eq(paketLayananTable.id, updated.paketId));
+    const [[paketRow], adminWa] = await Promise.all([
+      db.select({ namaPaket: paketLayananTable.namaPaket }).from(paketLayananTable).where(eq(paketLayananTable.id, updated.paketId)),
+      getAdminWa(),
+    ]);
 
-    res.json(formatBooking(updated, paketRow?.namaPaket));
+    res.json(formatBooking(updated, paketRow?.namaPaket, null, adminWa));
   } catch (err) {
     req.log.error({ err }, "Failed to verify booking payment");
     res.status(500).json({ error: "Internal server error" });
