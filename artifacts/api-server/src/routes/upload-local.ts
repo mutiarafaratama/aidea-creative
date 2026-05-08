@@ -77,6 +77,8 @@ router.post(
       const supabase = getSupabaseAdmin();
 
       if (supabase) {
+        await supabase.storage.createBucket(bucket, { public: true }).catch(() => {});
+
         const { error } = await supabase.storage
           .from(bucket)
           .upload(storagePath, buffer, {
