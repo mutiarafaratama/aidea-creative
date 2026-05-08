@@ -985,7 +985,7 @@ export default function Profil() {
   };
 
   const payBookingViaWA = (b: BookingRow) => {
-    const adminWa = (b.adminWa ?? "6285279232879").replace(/\D/g, "");
+    const adminWa = (b.adminWa ?? siteSettings?.contactWhatsapp ?? "").replace(/\D/g, "").replace(/^0/, "62");
     const tanggal = (() => {
       try { return format(new Date(b.tanggal_sesi), "dd MMMM yyyy", { locale: idLocale }); }
       catch { return b.tanggal_sesi; }

@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useSiteSettings } from "@/lib/settings";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -80,6 +81,7 @@ function hitungDiskon(harga: number, promo: PromoInfo | null, paketId: string): 
 export default function Booking() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
+  const { data: siteSettings } = useSiteSettings();
 
   const { data: paketList, isLoading: loadingPaket } = useListPaket();
   const createBooking = useCreateBooking();
@@ -251,7 +253,7 @@ export default function Booking() {
   const bookedSlots = jamSlots.filter((s) => !s.isTersedia);
 
   if (bookedResult) {
-    const waNumber = "6285279232879";
+    const waNumber = (siteSettings?.contactWhatsapp ?? "").replace(/\D/g, "").replace(/^0/, "62");
     const waText = encodeURIComponent(
       `Halo AideaCreative! Saya baru saja melakukan booking.\nKode: *${bookedResult.kodeBooking}*\nPaket: ${bookedResult.namaPaket}\nTanggal: ${format(bookedResult.tanggalSesi, "EEEE, dd MMMM yyyy", { locale: idLocale })}\nJam: ${bookedResult.jamSesi}${bookedResult.namaPromo ? `\nPromo: ${bookedResult.namaPromo}` : ""}\nTotal: Rp ${bookedResult.totalHarga.toLocaleString("id-ID")}\n\nMohon konfirmasinya, terima kasih.`
     );
