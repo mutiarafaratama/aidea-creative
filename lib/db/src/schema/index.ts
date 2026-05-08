@@ -15,3 +15,4 @@ export * from "./chat_session";
 export * from "./chat_kb";
 export * from "./pengaturan_situs";
 export * from "./promo";
+export * from "./pricelist";

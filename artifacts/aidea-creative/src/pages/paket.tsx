@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { useListPaket, useListKategori, useAiRecommend } from "@workspace/api-client-react";
-import { Clock, Check, Sparkles, Loader2, Camera, ImageIcon, ChevronRight, Star, X } from "lucide-react";
+import { Clock, Check, Sparkles, Loader2, Camera, ImageIcon, ChevronRight, Star, X, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { PricelistSection } from "@/components/pricelist-section";
 
 const PAKET_BTN_POS_KEY = "aidea_paket_ai_btn_pos";
 
@@ -72,12 +73,15 @@ export default function Paket() {
   const { data: paketList, isLoading } = useListPaket({}, { refetchInterval: 5000 });
   const { data: kategoriList } = useListKategori({}, { refetchInterval: 5000 });
   const search = useSearch();
+  const [activeView, setActiveView] = useState<"paket" | "pricelist">("paket");
   const [filter, setFilter] = useState<string>("Semua");
 
   useEffect(() => {
     const params = new URLSearchParams(search);
     const k = params.get("kategori");
     if (k) setFilter(k);
+    const tab = params.get("tab");
+    if (tab === "pricelist") setActiveView("pricelist");
   }, [search]);
 
   const [kebutuhan, setKebutuhan] = useState("");
@@ -114,6 +118,35 @@ export default function Paket() {
 
       <div className="container mx-auto px-4 pt-8 pb-10 md:pt-10 md:pb-14">
 
+        {/* View toggle: Paket | Pricelist */}
+        <div className="flex items-center gap-2 mb-6">
+          <button
+            onClick={() => setActiveView("paket")}
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border ${
+              activeView === "paket"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20"
+                : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+            }`}
+          >
+            <Camera size={14} /> Paket
+          </button>
+          <button
+            onClick={() => setActiveView("pricelist")}
+            className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border ${
+              activeView === "pricelist"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20"
+                : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+            }`}
+          >
+            <List size={14} /> Pricelist
+          </button>
+        </div>
+
+        {/* Pricelist view */}
+        {activeView === "pricelist" ? (
+          <PricelistSection />
+        ) : (
+          <>
         {/* Filter tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-8 scrollbar-hide">
           {categories.map(cat => (
@@ -333,6 +366,8 @@ export default function Paket() {
           </div>
 
         </div>
+          </>
+        )}
       </div>
 
       {/* Mobile: floating AI button — draggable, bottom-left */}

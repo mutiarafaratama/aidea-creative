@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, CalendarRange, Package, Image as ImageIcon,
   Clock, Users, FileBarChart, MessagesSquare, LogOut, Menu, X, ShieldCheck, ExternalLink,
-  Megaphone, Settings, UserCog, ShoppingCart, Camera, PanelLeft,
+  Megaphone, Settings, UserCog, ShoppingCart, Camera, PanelLeft, List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -80,6 +80,7 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
         { href: "/dashboard/produk", label: "Produk", icon: Package, badge: 0 },
         { href: "/dashboard/portfolio", label: "Portfolio", icon: ImageIcon, badge: 0 },
         { href: "/dashboard/promo", label: "Banner Promo", icon: Megaphone, badge: 0 },
+        { href: "/dashboard/pricelist", label: "Pricelist", icon: List, badge: 0 },
       ],
     },
     {

@@ -28,6 +28,7 @@ import AdminUsers from "@/pages/admin/users";
 import AdminLanding from "@/pages/admin/landing";
 import AdminPromo from "@/pages/admin/promo";
 import AdminPaket from "@/pages/admin/paket";
+import AdminPricelist from "@/pages/admin/pricelist";
 
 // Public pages — lazy loaded so they don't bloat the initial bundle
 const Photobooth = lazy(() => import("@/pages/photobooth"));
@@ -146,6 +147,7 @@ function Router() {
         <Route path="/dashboard/users"><ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute></Route>
         <Route path="/dashboard/landing"><ProtectedRoute requireAdmin><AdminLanding /></ProtectedRoute></Route>
         <Route path="/dashboard/chat"><ProtectedRoute requireAdmin><AdminChat /></ProtectedRoute></Route>
+        <Route path="/dashboard/pricelist"><ProtectedRoute requireAdmin><AdminPricelist /></ProtectedRoute></Route>
         <Route path="/dashboard/laporan"><ProtectedRoute requireAdmin><AdminLaporan /></ProtectedRoute></Route>
         <Route>
           <MainRoutes />
