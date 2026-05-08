@@ -18,10 +18,22 @@ function newSessionId() {
   return `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function clampPos(x: number, y: number): { x: number; y: number } {
+  const maxX = Math.max(8, window.innerWidth - 64);
+  const maxY = Math.max(8, window.innerHeight - 64);
+  return {
+    x: Math.max(8, Math.min(maxX, x)),
+    y: Math.max(8, Math.min(maxY, y)),
+  };
+}
+
 function loadSavedPos(): { x: number; y: number } | null {
   try {
     const s = localStorage.getItem(BTN_POS_KEY);
-    if (s) return JSON.parse(s);
+    if (s) {
+      const parsed = JSON.parse(s);
+      return clampPos(parsed.x, parsed.y);
+    }
   } catch {}
   return null;
 }
@@ -59,12 +71,25 @@ export function AiChatbot() {
     moved: boolean;
   } | null>(null);
 
+  const isMobile = () => window.innerWidth < 640;
+
   const getDefaultPos = () => ({
     x: window.innerWidth - 80,
     y: window.innerHeight - 80,
   });
 
   const getCurrentPos = () => btnPos ?? getDefaultPos();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setBtnPos((prev) => {
+        if (!prev) return null;
+        return clampPos(prev.x, prev.y);
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const onBtnPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (isOpen) return;
@@ -86,8 +111,10 @@ export function AiChatbot() {
     const dy = e.clientY - dragInfoRef.current.startY;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragInfoRef.current.moved = true;
     if (dragInfoRef.current.moved) {
-      const x = Math.max(8, Math.min(window.innerWidth - 64, dragInfoRef.current.btnX + dx));
-      const y = Math.max(8, Math.min(window.innerHeight - 64, dragInfoRef.current.btnY + dy));
+      const { x, y } = clampPos(
+        dragInfoRef.current.btnX + dx,
+        dragInfoRef.current.btnY + dy
+      );
       setBtnPos({ x, y });
       try {
         localStorage.setItem(BTN_POS_KEY, JSON.stringify({ x, y }));
@@ -130,7 +157,6 @@ export function AiChatbot() {
           prevStatusRef.current = newStatus;
           setStatus(newStatus);
 
-          // Admin closed the chat → notify user and revert to AI
           if (
             (oldStatus === "admin" || oldStatus === "menunggu_admin") &&
             (newStatus === "ai" || newStatus === "selesai")
@@ -145,7 +171,6 @@ export function AiChatbot() {
                     : "Admin telah mengalihkan percakapan kembali ke asisten AI. Silakan lanjutkan bertanya.",
               },
             ]);
-            // Reset to ai so input is re-enabled
             if (newStatus === "selesai") setStatus("ai");
           }
         } else if (newStatus) {
@@ -244,6 +269,26 @@ export function AiChatbot() {
       ? { text: "Anda terhubung dengan admin", cls: "bg-emerald-500/10 text-emerald-700" }
       : null;
 
+  const chatWindowStyle: React.CSSProperties = isMobile()
+    ? {
+        position: "fixed",
+        left: 8,
+        right: 8,
+        bottom: 16,
+        top: "auto",
+        width: "auto",
+        height: "min(520px, calc(100dvh - 80px))",
+        maxHeight: "calc(100dvh - 80px)",
+      }
+    : {
+        position: "fixed",
+        right: 24,
+        bottom: 24,
+        width: 384,
+        height: 520,
+        maxHeight: "calc(100vh - 48px)",
+      };
+
   return (
     <>
       <button
@@ -256,7 +301,7 @@ export function AiChatbot() {
           touchAction: "none",
         }}
         className={`bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center ${
-          isOpen ? "scale-0" : "scale-100"
+          isOpen ? "scale-0 pointer-events-none" : "scale-100"
         } transition-transform duration-200`}
         onPointerDown={onBtnPointerDown}
         onPointerMove={onBtnPointerMove}
@@ -267,10 +312,10 @@ export function AiChatbot() {
       </button>
 
       <div
-        className={`fixed bottom-6 right-6 w-80 sm:w-96 bg-card border border-border rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ${
+        className={`bg-card border border-border rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ${
           isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
         }`}
-        style={{ height: "520px", maxHeight: "calc(100vh - 48px)" }}
+        style={{ ...chatWindowStyle, zIndex: 50 }}
       >
         {/* Header */}
         <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between shrink-0">
@@ -282,7 +327,7 @@ export function AiChatbot() {
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
+            className="text-primary-foreground/80 hover:text-primary-foreground transition-colors p-1"
           >
             <X size={20} />
           </button>
