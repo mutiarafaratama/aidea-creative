@@ -63,6 +63,8 @@ type BookingRow = {
   alasan_pembatalan?: string | null;
   dibatalkan_oleh?: string | null;
   adminWa?: string | null;
+  promoId?: string | null;
+  namaPromo?: string | null;
 };
 
 type ItemPesananRow = {
@@ -625,6 +627,8 @@ export default function Profil() {
           alasan_pembatalan: x.alasanPembatalan ?? null,
           dibatalkan_oleh: x.dibatalkanOleh ?? null,
           adminWa: x.adminWa ?? null,
+          promoId: x.promoId ?? null,
+          namaPromo: x.namaPromo ?? null,
         }));
         setBooking(bMapped);
         prevBookingStatusRef.current = new Map(bMapped.map((x) => [x.id, { status: x.status, statusPembayaran: x.status_pembayaran }]));
@@ -696,6 +700,8 @@ export default function Profil() {
           alasan_pembatalan: x.alasanPembatalan ?? null,
           dibatalkan_oleh: x.dibatalkanOleh ?? null,
           adminWa: x.adminWa ?? null,
+          promoId: x.promoId ?? null,
+          namaPromo: x.namaPromo ?? null,
         }));
         const prevMap = prevBookingStatusRef.current;
         mapped.forEach((item) => {
@@ -902,6 +908,65 @@ export default function Profil() {
         onSuccess: async () => {
           await verifyPayment();
           setPaySuccessDialog({ type: "pesanan", kode: kodePesanan ?? "" });
+        },
+        onPending: async () => {
+          await verifyPayment();
+          toast({ title: "Pembayaran tertunda", description: "Selesaikan pembayaran sesuai instruksi." });
+        },
+        onError: () => {
+          toast({ title: "Pembayaran gagal", description: "Coba lagi atau hubungi admin.", variant: "destructive" });
+        },
+        onClose: () => {},
+      });
+    } catch (err: any) {
+      toast({ title: "Gagal membuka pembayaran", description: err.message, variant: "destructive" });
+    } finally {
+      setSnapLoading(false);
+    }
+  };
+
+  const payBookingMidtrans = async (b: BookingRow) => {
+    setSnapLoading(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch(`/api/booking/${b.id}/payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Pembayaran tidak tersedia", description: body.error ?? "Hubungi admin untuk konfirmasi pembayaran.", variant: "destructive" });
+        return;
+      }
+      const data = await res.json();
+      const snapToken: string | null = data.snapToken ?? null;
+
+      if (!snapToken || !MIDTRANS_CLIENT_KEY) {
+        toast({ title: "Pembayaran tidak tersedia", description: "Hubungi admin untuk konfirmasi pembayaran.", variant: "destructive" });
+        return;
+      }
+
+      await loadSnapScript();
+      setSelectedBooking(null);
+      await new Promise((r) => setTimeout(r, 300));
+
+      const verifyPayment = async () => {
+        try {
+          const vRes = await fetch(`/api/booking/${b.id}/verify-payment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          });
+          if (vRes.ok) {
+            const updated = await vRes.json();
+            setBooking((prev) => prev.map((x) => x.id === b.id ? { ...x, status_pembayaran: updated.statusPembayaran } : x));
+          }
+        } catch { }
+      };
+
+      (window as any).snap.pay(snapToken, {
+        onSuccess: async () => {
+          await verifyPayment();
+          setPaySuccessDialog({ type: "booking", kode: b.kode_booking, tanggal: b.tanggal_sesi, jam: b.jam_sesi });
         },
         onPending: async () => {
           await verifyPayment();
@@ -1766,13 +1831,42 @@ export default function Profil() {
                   </div>
                 )}
                 {selectedBooking.status_pembayaran !== "lunas" && selectedBooking.status === "dikonfirmasi" && (
-                  <Button
-                    className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => payBookingViaWA(selectedBooking)}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Bayar via WhatsApp
-                  </Button>
+                  <>
+                    {selectedBooking.promoId ? (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-xs">
+                          <MessageCircle className="h-4 w-4 shrink-0 mt-0.5 text-green-600" />
+                          <span>Booking promo ini dibayar via WhatsApp. Admin akan memberikan instruksi pembayaran.</span>
+                        </div>
+                        <Button
+                          className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          onClick={() => payBookingViaWA(selectedBooking)}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          Bayar via WhatsApp
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Button
+                          className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                          disabled={snapLoading}
+                          onClick={() => payBookingMidtrans(selectedBooking)}
+                        >
+                          {snapLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                          Bayar Sekarang
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                          onClick={() => payBookingViaWA(selectedBooking)}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          Bayar via WhatsApp
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
                 <Button
                   className="w-full gap-2"
