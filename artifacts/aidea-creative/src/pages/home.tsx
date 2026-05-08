@@ -591,52 +591,47 @@ export default function Home() {
                           transform: isActive ? "scale(1.02)" : "scale(1)",
                         }}
                       >
-                        <div className={`rounded-2xl overflow-hidden bg-card border transition-shadow duration-300 ${isActive ? "border-primary/30 shadow-[0_8px_40px_rgba(0,0,0,0.14)]" : "border-border shadow-sm"}`}>
-                          <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "4/3" }}>
-                            {p.gambarUrl ? (
-                              <motion.img
-                                src={p.gambarUrl}
-                                alt={p.judul}
-                                className="w-full h-full object-cover"
-                                animate={{ scale: isActive ? 1.04 : 1 }}
-                                transition={{ duration: 0.5, ease: "easeOut" }}
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-primary/30 to-amber-200 flex items-center justify-center">
-                                <Sparkles className="h-10 w-10 text-white" />
-                              </div>
-                            )}
-                            {(p as any).badge && (
-                              <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground rounded-full shadow text-[10px] px-2 py-0.5">
-                                {(p as any).badge}
-                              </Badge>
-                            )}
-                            {isActive && (
-                              <div className="absolute inset-0 ring-2 ring-primary/20 rounded-2xl pointer-events-none" />
-                            )}
+                        <Link href={`/promo/${p.id}`}>
+                          <div className={`rounded-2xl overflow-hidden bg-card border transition-shadow duration-300 ${isActive ? "border-primary/30 shadow-[0_8px_40px_rgba(0,0,0,0.14)]" : "border-border shadow-sm"}`}>
+                            <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "4/3" }}>
+                              {p.gambarUrl ? (
+                                <motion.img
+                                  src={p.gambarUrl}
+                                  alt={p.judul}
+                                  className="w-full h-full object-cover"
+                                  animate={{ scale: isActive ? 1.04 : 1 }}
+                                  transition={{ duration: 0.5, ease: "easeOut" }}
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary/30 to-amber-200 flex items-center justify-center">
+                                  <Sparkles className="h-10 w-10 text-white" />
+                                </div>
+                              )}
+                              {(p as any).badge && (
+                                <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground rounded-full shadow text-[10px] px-2 py-0.5">
+                                  {(p as any).badge}
+                                </Badge>
+                              )}
+                              {isActive && (
+                                <div className="absolute inset-0 ring-2 ring-primary/20 rounded-2xl pointer-events-none" />
+                              )}
+                            </div>
+                            <div className="p-4">
+                              <h3 className="font-bold text-base mb-1 line-clamp-1">{p.judul}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2">{p.deskripsi}</p>
+                              {(p as any).tanggalBerakhir && (
+                                <p className="text-[11px] text-muted-foreground/50 mt-2">
+                                  s/d {new Date((p as any).tanggalBerakhir).toLocaleDateString("id-ID", {
+                                    day: "numeric", month: "short", year: "numeric",
+                                  })}
+                                </p>
+                              )}
+                              <span className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-primary">
+                                Lihat detail <ArrowUpRight className="h-3 w-3" />
+                              </span>
+                            </div>
                           </div>
-                          <div className="p-4">
-                            <h3 className="font-bold text-base mb-1 line-clamp-1">{p.judul}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{p.deskripsi}</p>
-                            {(p as any).tanggalBerakhir && (
-                              <p className="text-[11px] text-muted-foreground/50 mt-2">
-                                s/d {new Date((p as any).tanggalBerakhir).toLocaleDateString("id-ID", {
-                                  day: "numeric", month: "short", year: "numeric",
-                                })}
-                              </p>
-                            )}
-                            {p.link && (
-                              <a
-                                href={p.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-primary hover:underline"
-                              >
-                                Lihat promo <ArrowUpRight className="h-3 w-3" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
+                        </Link>
                       </div>
                     );
                   })}

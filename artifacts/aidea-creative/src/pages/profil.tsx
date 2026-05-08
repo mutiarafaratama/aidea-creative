@@ -62,6 +62,7 @@ type BookingRow = {
   paket_layanan: { nama_paket: string; harga: number } | null;
   alasan_pembatalan?: string | null;
   dibatalkan_oleh?: string | null;
+  adminWa?: string | null;
 };
 
 type ItemPesananRow = {
@@ -623,6 +624,7 @@ export default function Profil() {
           paket_layanan: x.namaPaket ? { nama_paket: x.namaPaket, harga: x.totalHarga } : null,
           alasan_pembatalan: x.alasanPembatalan ?? null,
           dibatalkan_oleh: x.dibatalkanOleh ?? null,
+          adminWa: x.adminWa ?? null,
         }));
         setBooking(bMapped);
         prevBookingStatusRef.current = new Map(bMapped.map((x) => [x.id, { status: x.status, statusPembayaran: x.status_pembayaran }]));
@@ -693,6 +695,7 @@ export default function Profil() {
           paket_layanan: x.namaPaket ? { nama_paket: x.namaPaket, harga: x.totalHarga } : null,
           alasan_pembatalan: x.alasanPembatalan ?? null,
           dibatalkan_oleh: x.dibatalkanOleh ?? null,
+          adminWa: x.adminWa ?? null,
         }));
         const prevMap = prevBookingStatusRef.current;
         mapped.forEach((item) => {
@@ -916,83 +919,26 @@ export default function Profil() {
     }
   };
 
-  const payBooking = async (b: BookingRow) => {
-    setSnapLoading(true);
-    try {
-      const token = localStorage.getItem("auth_token");
-
-      const res = await fetch(`/api/booking/${b.id}/payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        if (!MIDTRANS_CLIENT_KEY) {
-          toast({ title: "Pembayaran tidak tersedia", description: "Hubungi admin untuk konfirmasi pembayaran." });
-          return;
-        }
-        throw new Error(err.error ?? "Gagal membuat token pembayaran");
-      }
-
-      const data = await res.json();
-      const snapToken = data.snapToken;
-
-      if (!snapToken || !MIDTRANS_CLIENT_KEY) {
-        toast({ title: "Pembayaran tidak tersedia", description: "Hubungi admin untuk konfirmasi pembayaran." });
-        return;
-      }
-
-      await loadSnapScript();
-
-      // Close the dialog BEFORE opening Snap — the Radix overlay blocks Snap clicks otherwise
-      setSelectedBooking(null);
-      await new Promise((r) => setTimeout(r, 300));
-
-      const verifyBookingPayment = async () => {
-        try {
-          const vRes = await fetch(`/api/booking/${b.id}/verify-payment`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          });
-          if (vRes.ok) {
-            const updated = await vRes.json();
-            setBooking((prev) => prev.map((x) => x.id === b.id ? {
-              ...x,
-              status_pembayaran: updated.statusPembayaran,
-            } : x));
-            setSelectedBooking((prev) => prev?.id === b.id ? {
-              ...prev,
-              status_pembayaran: updated.statusPembayaran,
-            } : prev);
-          }
-        } catch { /* ignore */ }
-      };
-
-      (window as any).snap.pay(snapToken, {
-        onSuccess: async () => {
-          await verifyBookingPayment();
-          setPaySuccessDialog({
-            type: "booking",
-            kode: b.kode_booking,
-            tanggal: b.tanggal_sesi,
-            jam: b.jam_sesi,
-          });
-        },
-        onPending: async () => {
-          await verifyBookingPayment();
-          toast({ title: "Pembayaran tertunda", description: "Selesaikan pembayaran sesuai instruksi." });
-        },
-        onError: () => {
-          toast({ title: "Pembayaran gagal", description: "Coba lagi atau hubungi admin.", variant: "destructive" });
-        },
-        onClose: () => {},
-      });
-    } catch (err: any) {
-      toast({ title: "Gagal membuka pembayaran", description: err.message, variant: "destructive" });
-    } finally {
-      setSnapLoading(false);
-    }
+  const payBookingViaWA = (b: BookingRow) => {
+    const adminWa = (b.adminWa ?? "6285279232879").replace(/\D/g, "");
+    const tanggal = (() => {
+      try { return format(new Date(b.tanggal_sesi), "dd MMMM yyyy", { locale: idLocale }); }
+      catch { return b.tanggal_sesi; }
+    })();
+    const paketNama = b.paket_layanan?.nama_paket ?? "-";
+    const total = `Rp ${b.total_harga.toLocaleString("id-ID")}`;
+    const pesan = [
+      `Halo Admin, saya ingin melakukan *pembayaran booking* sesi foto:`,
+      ``,
+      `📋 *Kode Booking:* ${b.kode_booking}`,
+      `📦 *Paket:* ${paketNama}`,
+      `📅 *Tanggal:* ${tanggal} pukul ${b.jam_sesi}`,
+      `💰 *Total:* ${total}`,
+      ``,
+      `Mohon informasi rekening/cara pembayaran. Terima kasih! 🙏`,
+    ].join("\n");
+    const url = `https://wa.me/${adminWa}?text=${encodeURIComponent(pesan)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const cancelBooking = async () => {
@@ -1822,11 +1768,10 @@ export default function Profil() {
                 {selectedBooking.status_pembayaran !== "lunas" && selectedBooking.status === "dikonfirmasi" && (
                   <Button
                     className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    disabled={snapLoading}
-                    onClick={() => payBooking(selectedBooking)}
+                    onClick={() => payBookingViaWA(selectedBooking)}
                   >
-                    {snapLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                    Bayar Sekarang
+                    <MessageCircle className="h-4 w-4" />
+                    Bayar via WhatsApp
                   </Button>
                 )}
                 <Button

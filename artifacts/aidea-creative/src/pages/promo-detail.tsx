@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/lib/auth";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -57,6 +58,7 @@ function formatRp(n: number) {
 export default function PromoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [promo, setPromo] = useState<PromoDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
@@ -109,7 +111,12 @@ export default function PromoDetailPage() {
     const params = new URLSearchParams();
     if (promo.paketId) params.set("paket", promo.paketId);
     params.set("promo", promo.id);
-    setLocation(`/booking?${params.toString()}`);
+    const bookingUrl = `/booking?${params.toString()}`;
+    if (!user) {
+      setLocation(`/login?redirect=${encodeURIComponent(bookingUrl)}`);
+      return;
+    }
+    setLocation(bookingUrl);
   };
 
   return (
