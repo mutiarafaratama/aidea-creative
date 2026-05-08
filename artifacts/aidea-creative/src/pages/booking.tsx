@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   CalendarIcon, Loader2, CheckCircle2, Clock, PartyPopper, Copy,
-  MessageCircle, AlertTriangle, Tag, BadgePercent, XCircle
+  MessageCircle, AlertTriangle, Tag, BadgePercent, XCircle, Lock, ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,7 +25,6 @@ import { useAuth } from "@/lib/auth";
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type JadwalSlot = { tanggal: string; jamMulai: string; jamSelesai: string; isTersedia: boolean };
-type DayRule = { isBuka: boolean; jamBuka: string; jamTutup: string; slotMenit: number };
 type BlacklistEntry = { tanggal: string; alasan: string };
 type PromoInfo = {
   id: string;
@@ -94,6 +93,11 @@ export default function Booking() {
   const [promoId, setPromoId] = useState<string | null>(null);
   const [loadingPromo, setLoadingPromo] = useState(false);
 
+  const searchParams = new URLSearchParams(window.location.search);
+  const paketIdFromUrl = searchParams.get("paket");
+  const promoIdFromUrl = searchParams.get("promo");
+  const isLockedPaket = !!paketIdFromUrl;
+
   useEffect(() => {
     fetch(`${API_BASE}/api/jadwal/aturan`)
       .then((r) => r.json())
@@ -126,26 +130,28 @@ export default function Booking() {
       telepon: "",
       catatanPelanggan: "",
       konsepFoto: "",
-      paketId: "",
+      paketId: paketIdFromUrl ?? "",
       jamSesi: "",
     },
   });
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const paketIdParam = searchParams.get("paket");
-    const promoParam = searchParams.get("promo");
-    if (paketIdParam) form.setValue("paketId", paketIdParam);
-    if (promoParam) {
-      setPromoId(promoParam);
+    if (promoIdFromUrl) {
+      setPromoId(promoIdFromUrl);
       setLoadingPromo(true);
-      fetch(`${API_BASE}/api/promo/${promoParam}`)
+      fetch(`${API_BASE}/api/promo/${promoIdFromUrl}`)
         .then((r) => r.json())
         .then((data) => setPromoInfo(data))
         .catch(() => setPromoInfo(null))
         .finally(() => setLoadingPromo(false));
     }
-  }, [form]);
+  }, [promoIdFromUrl]);
+
+  useEffect(() => {
+    if (paketIdFromUrl && Array.isArray(paketList) && paketList.length > 0) {
+      form.setValue("paketId", paketIdFromUrl, { shouldValidate: true });
+    }
+  }, [paketList, paketIdFromUrl]);
 
   useEffect(() => {
     if (!user) return;
@@ -425,37 +431,95 @@ export default function Booking() {
                     Detail Reservasi
                   </h3>
 
+                  {/* Paket — locked (from URL) or selectable */}
                   <FormField
                     control={form.control}
                     name="paketId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Pilih Paket</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={loadingPaket || !!promoId}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue
-                                placeholder={loadingPaket ? "Memuat paket..." : "Pilih Paket Foto"}
-                              />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Array.isArray(paketList) &&
-                              paketList.map((paket) => (
-                                <SelectItem key={paket.id} value={paket.id}>
-                                  {paket.namaPaket} — {formatRp(paket.harga)}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                        {promoId && (
-                          <p className="text-xs text-muted-foreground">Paket terkunci sesuai promo yang dipilih.</p>
+                        {isLockedPaket ? (
+                          /* Read-only paket card when coming from paket/promo page */
+                          <div>
+                            <FormLabel className="flex items-center gap-1.5">
+                              <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Paket Terpilih
+                            </FormLabel>
+                            {loadingPaket ? (
+                              <div className="flex items-center gap-2 h-20 text-sm text-muted-foreground border border-border rounded-lg px-4">
+                                <Loader2 className="h-4 w-4 animate-spin" /> Memuat detail paket...
+                              </div>
+                            ) : selectedPaket ? (
+                              <div className="border border-primary/30 bg-primary/5 rounded-xl p-4 space-y-3">
+                                {(selectedPaket as any).fotoUrl && (
+                                  <img
+                                    src={(selectedPaket as any).fotoUrl}
+                                    alt={selectedPaket.namaPaket}
+                                    className="w-full h-28 object-cover rounded-lg"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                  />
+                                )}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <div className="font-semibold text-base">{selectedPaket.namaPaket}</div>
+                                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                                      <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" /> {selectedPaket.durasiSesi} menit
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <ImageIcon className="h-3 w-3" /> {selectedPaket.jumlahFoto} foto
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    {diskonCalc > 0 ? (
+                                      <>
+                                        <div className="text-xs text-muted-foreground line-through">{formatRp(selectedPaket.harga)}</div>
+                                        <div className="font-bold text-lg text-primary">{formatRp(totalAfterDiskon)}</div>
+                                        <div className="text-xs text-green-600 flex items-center gap-0.5 justify-end">
+                                          <Tag className="h-3 w-3" /> Hemat {formatRp(diskonCalc)}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="font-bold text-lg">{formatRp(selectedPaket.harga)}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 h-16 text-sm text-muted-foreground border border-border rounded-lg px-4">
+                                <Loader2 className="h-4 w-4 animate-spin" /> Memuat paket...
+                              </div>
+                            )}
+                            <input type="hidden" {...field} />
+                            <FormMessage />
+                          </div>
+                        ) : (
+                          /* Normal select when visiting /booking directly */
+                          <div>
+                            <FormLabel>Pilih Paket</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={loadingPaket}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue
+                                    placeholder={loadingPaket ? "Memuat paket..." : "Pilih Paket Foto"}
+                                  />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Array.isArray(paketList) &&
+                                  paketList.map((paket) => (
+                                    <SelectItem key={paket.id} value={paket.id}>
+                                      {paket.namaPaket} — {formatRp(paket.harga)}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </div>
                         )}
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -612,7 +676,8 @@ export default function Booking() {
                 </div>
               </div>
 
-              {selectedPaket && (
+              {/* Summary harga — hanya tampil jika tidak locked (locked sudah tampil di card paket di atas) */}
+              {selectedPaket && !isLockedPaket && (
                 <div className="bg-muted p-4 rounded-lg border border-border space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
