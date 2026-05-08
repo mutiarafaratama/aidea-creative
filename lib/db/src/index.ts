@@ -4,15 +4,15 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+const connectionString = process.env.SUPABASE_DATABASE_URL;
 
 if (!connectionString) {
   throw new Error(
-    "SUPABASE_DATABASE_URL or DATABASE_URL must be set. Tambahkan database connection string di Replit Secrets.",
+    "SUPABASE_DATABASE_URL harus diisi. Tambahkan connection string Supabase di Replit Secrets.",
   );
 }
 
-// Enable SSL for Supabase URLs or when sslmode=require is specified
+// Supabase selalu butuh SSL
 const useSsl =
   /sslmode=require/i.test(connectionString) ||
   /\.supabase\.co/i.test(connectionString) ||
