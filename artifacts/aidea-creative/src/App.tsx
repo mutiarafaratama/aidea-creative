@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
 import { AiChatbot } from "@/components/ai-chatbot";
+import { GlobalStatusNotifier } from "@/components/status-notifier";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { CartProvider } from "@/contexts/cart-context";
@@ -129,6 +130,7 @@ function Router() {
   return (
     <>
       <AdminRedirect />
+      <GlobalStatusNotifier />
       <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/auth/callback" component={AuthCallback} />
