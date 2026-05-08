@@ -20,21 +20,29 @@ function usePendingCounts() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      if (cancelled) return;
+      // Fetch each independently so one failure doesn't block the others
       try {
-        const [bookings, pesanan, chatSessions] = await Promise.all([
-          adminFetch<any[]>("/dashboard/recent-bookings"),
-          adminFetch<any[]>("/pesanan"),
-          adminFetch<any[]>("/admin/chat/sessions?filter=open"),
-        ]);
-        if (cancelled) return;
-        if (Array.isArray(bookings)) {
+        const bookings = await adminFetch<any[]>("/dashboard/recent-bookings");
+        if (!cancelled && Array.isArray(bookings)) {
           setBookingCount(bookings.filter((b: any) => b.status === "menunggu").length);
         }
-        if (Array.isArray(pesanan)) {
+      } catch {}
+
+      try {
+        const pesanan = await adminFetch<any[]>("/pesanan");
+        if (!cancelled && Array.isArray(pesanan)) {
           setPesananCount(pesanan.filter((p: any) => p.status === "diproses" || p.status === "dikerjakan").length);
         }
+      } catch {}
+
+      try {
+        const chatSessions = await adminFetch<any[]>("/admin/chat/sessions?filter=open");
+        if (cancelled) return;
         if (Array.isArray(chatSessions)) {
-          const newChatCount = chatSessions.filter((s: any) => s.needsAdmin === true || s.status === "menunggu_admin").length;
+          const newChatCount = chatSessions.filter(
+            (s: any) => s.status === "menunggu_admin" || s.needsAdmin === true || s.needsAdmin === "true"
+          ).length;
           setChatCount(newChatCount);
           if (initializedRef.current && prevChatCountRef.current !== null && newChatCount > prevChatCountRef.current) {
             soundAdminAlert();
@@ -42,9 +50,7 @@ function usePendingCounts() {
           prevChatCountRef.current = newChatCount;
           initializedRef.current = true;
         }
-      } catch {
-        // silently ignore
-      }
+      } catch {}
     };
     load();
     const interval = setInterval(load, 8000);
@@ -165,7 +171,7 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
                         <span className="flex-1 text-left">{it.label}</span>
                         {it.badge > 0 && (
                           <span className={`min-w-[20px] h-5 rounded-full text-[10px] font-bold flex items-center justify-center px-1.5 ${
-                            active ? "bg-background/20 text-background" : "bg-primary text-primary-foreground"
+                            active ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"
                           }`}>
                             {it.badge > 99 ? "99+" : it.badge}
                           </span>
