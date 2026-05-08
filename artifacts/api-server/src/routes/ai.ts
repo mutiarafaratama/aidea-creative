@@ -18,28 +18,35 @@ const AI_MODEL = process.env.AI_MODEL ?? "qwen-turbo";
 
 type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
-async function chatComplete(messages: ChatMessage[], maxTokens = 500): Promise<string> {
+async function chatComplete(messages: ChatMessage[], maxTokens = 400): Promise<string> {
   if (!AI_API_KEY) throw new Error("AI_INTEGRATIONS_OPENAI_API_KEY missing");
-  const res = await fetch(`${AI_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${AI_API_KEY}`,
-      "User-Agent": "AideaCreative/1.0",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      max_tokens: maxTokens,
-      messages,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw Object.assign(new Error(`AI provider returned ${res.status}: ${text.slice(0, 200)}`), { status: res.status, body: text });
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 28_000);
+  try {
+    const res = await fetch(`${AI_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${AI_API_KEY}`,
+        "User-Agent": "AideaCreative/1.0",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        max_tokens: maxTokens,
+        messages,
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw Object.assign(new Error(`AI provider returned ${res.status}: ${text.slice(0, 200)}`), { status: res.status, body: text });
+    }
+    const json: any = await res.json();
+    return json?.choices?.[0]?.message?.content ?? "";
+  } finally {
+    clearTimeout(timeout);
   }
-  const json: any = await res.json();
-  return json?.choices?.[0]?.message?.content ?? "";
 }
 
 // Best-effort JSON extractor for models that don't support response_format.
@@ -120,9 +127,10 @@ router.post("/ai/chat", attachAuth, async (req, res) => {
     }
 
     const systemPrompt = await buildSystemPrompt();
+    const trimmedHistory = (body.history || []).slice(-10);
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
-      ...(body.history || []).map((h: any) => ({
+      ...trimmedHistory.map((h: any) => ({
         role: h.role as "user" | "assistant",
         content: h.content,
       })),

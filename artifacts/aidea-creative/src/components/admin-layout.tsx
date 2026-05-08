@@ -12,14 +12,16 @@ import { adminFetch } from "@/lib/admin-api";
 function usePendingCounts() {
   const [bookingCount, setBookingCount] = useState(0);
   const [pesananCount, setPesananCount] = useState(0);
+  const [chatCount, setChatCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [bookings, pesanan] = await Promise.all([
+        const [bookings, pesanan, chatSessions] = await Promise.all([
           adminFetch<any[]>("/dashboard/recent-bookings"),
           adminFetch<any[]>("/pesanan"),
+          adminFetch<any[]>("/admin/chat/sessions?filter=open"),
         ]);
         if (cancelled) return;
         if (Array.isArray(bookings)) {
@@ -27,6 +29,9 @@ function usePendingCounts() {
         }
         if (Array.isArray(pesanan)) {
           setPesananCount(pesanan.filter((p: any) => p.status === "diproses" || p.status === "dikerjakan").length);
+        }
+        if (Array.isArray(chatSessions)) {
+          setChatCount(chatSessions.filter((s: any) => s.needsAdmin === true || s.status === "menunggu_admin").length);
         }
       } catch {
         // silently ignore
@@ -40,7 +45,7 @@ function usePendingCounts() {
     };
   }, []);
 
-  return { bookingCount, pesananCount };
+  return { bookingCount, pesananCount, chatCount };
 }
 
 export function AdminLayout({ children, title, subtitle }: { children: ReactNode; title: string; subtitle?: string }) {
@@ -50,7 +55,7 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
   const [desktopOpen, setDesktopOpen] = useState(() => {
     try { return localStorage.getItem("admin-sidebar") !== "closed"; } catch { return true; }
   });
-  const { bookingCount, pesananCount } = usePendingCounts();
+  const { bookingCount, pesananCount, chatCount } = usePendingCounts();
 
   useEffect(() => {
     try { localStorage.setItem("admin-sidebar", desktopOpen ? "open" : "closed"); } catch {}
@@ -87,7 +92,7 @@ export function AdminLayout({ children, title, subtitle }: { children: ReactNode
       label: "Komunitas",
       items: [
         { href: "/dashboard/testimoni", label: "Testimoni", icon: Users, badge: 0 },
-        { href: "/dashboard/chat", label: "Chat AI & Inbox", icon: MessagesSquare, badge: 0 },
+        { href: "/dashboard/chat", label: "Chat AI & Inbox", icon: MessagesSquare, badge: chatCount },
       ],
     },
     {
