@@ -8,27 +8,28 @@ const router = Router();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 
+function getPublicOrigin(req: import("express").Request): string {
+  // Prioritas 1: APP_URL eksplisit (set manual di Railway)
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  // Prioritas 2: RAILWAY_PUBLIC_DOMAIN (otomatis dari Railway)
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  // Prioritas 3: Replit dev domain
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  // Fallback: reconstruct dari request headers (X-Forwarded-Host / hostname)
+  const host = (req.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim() || req.hostname;
+  const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim() || "https";
+  return `${proto}://${host}`;
+}
+
 function getRedirectUri(req: import("express").Request): string {
-  // Prioritas 1: GOOGLE_REDIRECT_URI eksplisit (Railway variable)
+  // GOOGLE_REDIRECT_URI eksplisit selalu menang (paling aman untuk produksi)
   const custom = process.env.GOOGLE_REDIRECT_URI;
-  if (custom) return custom;
-  // Prioritas 2: APP_URL (Railway variable)
-  const appUrl = process.env.APP_URL;
-  if (appUrl) return `${appUrl}/api/auth/google/callback`;
-  // Prioritas 3: Replit domain (dev environment)
-  const replitDomain = process.env.REPLIT_DEV_DOMAIN;
-  if (replitDomain) return `https://${replitDomain}/api/auth/google/callback`;
-  // Fallback: hostname dari request
-  return `https://${req.hostname}/api/auth/google/callback`;
+  if (custom) return custom.replace(/\/$/, "");
+  return `${getPublicOrigin(req)}/api/auth/google/callback`;
 }
 
 function getFrontendBase(req: import("express").Request): string {
-  // Prioritas 1: APP_URL eksplisit (Railway variable)
-  if (process.env.APP_URL) return process.env.APP_URL;
-  // Prioritas 2: Replit domain (dev environment)
-  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  // Fallback: hostname dari request
-  return `https://${req.hostname}`;
+  return getPublicOrigin(req);
 }
 
 router.get("/auth/google", (req, res) => {

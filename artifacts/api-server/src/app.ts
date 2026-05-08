@@ -9,6 +9,9 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Trust Railway / Replit reverse proxy so req.hostname and req.ip are correct
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

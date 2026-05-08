@@ -12,7 +12,12 @@ if (!connectionString) {
   );
 }
 
-const useSsl = /sslmode=require/i.test(connectionString);
+// Enable SSL for Supabase URLs or when sslmode=require is specified
+const useSsl =
+  /sslmode=require/i.test(connectionString) ||
+  /\.supabase\.co/i.test(connectionString) ||
+  /\.supabase\.com/i.test(connectionString) ||
+  /pooler\.supabase/i.test(connectionString);
 
 export const pool = new Pool({
   connectionString,
