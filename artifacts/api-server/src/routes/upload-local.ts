@@ -1,20 +1,15 @@
 import { Router, json, type Request, type Response } from "express";
 import { requireAdmin, requireAuth } from "../middlewares/auth";
 import { logger } from "../lib/logger";
-import { createClient } from "@supabase/supabase-js";
+import path from "path";
+import fs from "fs";
 
 const router = Router();
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const UPLOAD_DIR = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "uploads");
 
-function getSupabaseAdmin() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY belum dikonfigurasi.");
-  }
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-  });
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
 function safeFilename(name: string): string {
@@ -23,6 +18,14 @@ function safeFilename(name: string): string {
     .replace(/[^a-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return cleaned || "file";
+}
+
+function getPublicBaseUrl(req: Request): string {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  const host = (req.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim() || req.hostname;
+  const proto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim() || "https";
+  return `${proto}://${host}`;
 }
 
 router.post(
@@ -39,10 +42,8 @@ router.post(
         dataBase64?: string;
       };
 
-      const bucket = body.bucket || "produk";
-      const folder = (body.folder || "").replace(/^\/+|\/+$/g, "");
+      const folder = (body.folder || body.bucket || "produk").replace(/^\/+|\/+$/g, "");
       const filename = safeFilename(body.filename || `image-${Date.now()}`);
-      const contentType = body.contentType || "image/jpeg";
       const dataBase64 = body.dataBase64 || "";
 
       if (!dataBase64) {
@@ -62,25 +63,19 @@ router.post(
       const ext = filename.includes(".") ? filename.split(".").pop() : "bin";
       const baseName = filename.replace(/\.[^.]+$/, "");
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${baseName}.${ext}`;
-      const storagePath = folder ? `${folder}/${unique}` : unique;
 
-      const supabase = getSupabaseAdmin();
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(storagePath, buffer, { contentType, upsert: false });
+      const destDir = path.join(UPLOAD_DIR, folder);
+      ensureDir(destDir);
+      const destFile = path.join(destDir, unique);
+      fs.writeFileSync(destFile, buffer);
 
-      if (uploadError) {
-        logger.error({ uploadError }, "Supabase upload failed");
-        res.status(500).json({ error: `Upload gagal: ${uploadError.message}` });
-        return;
-      }
+      const storagePath = `${folder}/${unique}`;
+      const base = getPublicBaseUrl(req);
+      const url = `${base}/uploads/${storagePath}`;
 
-      const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-      const url = publicData.publicUrl;
-
-      res.json({ url, path: storagePath, bucket });
+      res.json({ url, path: storagePath, bucket: folder });
     } catch (err) {
-      logger.error({ err }, "Supabase upload error");
+      logger.error({ err }, "Local upload error");
       res.status(500).json({ error: "Upload gagal." });
     }
   },
@@ -88,30 +83,21 @@ router.post(
 
 router.post("/upload/supabase/destroy", requireAdmin, async (req, res) => {
   try {
-    const { path: filePath, bucket: bucketName } = (req.body ?? {}) as {
-      path?: string;
-      url?: string;
-      bucket?: string;
-    };
+    const { path: filePath } = (req.body ?? {}) as { path?: string; bucket?: string; url?: string };
 
     if (!filePath) {
       res.status(400).json({ error: "path diperlukan." });
       return;
     }
 
-    const bucket = bucketName || "produk";
-    const supabase = getSupabaseAdmin();
-    const { error } = await supabase.storage.from(bucket).remove([filePath]);
-
-    if (error) {
-      logger.error({ error }, "Supabase destroy failed");
-      res.status(500).json({ error: `Gagal menghapus file: ${error.message}` });
-      return;
+    const fullPath = path.join(UPLOAD_DIR, filePath);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
     }
 
     res.json({ ok: true });
   } catch (err) {
-    logger.error({ err }, "Supabase destroy error");
+    logger.error({ err }, "Local destroy error");
     res.status(500).json({ error: "Gagal menghapus file." });
   }
 });
@@ -124,9 +110,8 @@ router.post(
     try {
       const body = (req.body ?? {}) as { filename?: string; contentType?: string; dataBase64?: string };
       const userId = (req.authUser as any)?.id ?? "unknown";
-      const folder = String(userId).replace(/[^a-zA-Z0-9-]/g, "");
+      const folder = `avatars/${String(userId).replace(/[^a-zA-Z0-9-]/g, "")}`;
       const filename = safeFilename(body.filename || `avatar-${Date.now()}`);
-      const contentType = body.contentType || "image/jpeg";
       const dataBase64 = body.dataBase64 || "";
 
       if (!dataBase64) {
@@ -146,21 +131,15 @@ router.post(
       const ext = filename.includes(".") ? filename.split(".").pop() : "jpg";
       const baseName = filename.replace(/\.[^.]+$/, "");
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${baseName}.${ext}`;
+
+      const destDir = path.join(UPLOAD_DIR, folder);
+      ensureDir(destDir);
+      const destFile = path.join(destDir, unique);
+      fs.writeFileSync(destFile, buffer);
+
       const storagePath = `${folder}/${unique}`;
-
-      const supabase = getSupabaseAdmin();
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(storagePath, buffer, { contentType, upsert: false });
-
-      if (uploadError) {
-        logger.error({ uploadError }, "Avatar Supabase upload failed");
-        res.status(500).json({ error: `Upload gagal: ${uploadError.message}` });
-        return;
-      }
-
-      const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
-      const url = publicData.publicUrl;
+      const base = getPublicBaseUrl(req);
+      const url = `${base}/uploads/${storagePath}`;
 
       res.json({ url, path: storagePath, bucket: "avatars" });
     } catch (err) {
