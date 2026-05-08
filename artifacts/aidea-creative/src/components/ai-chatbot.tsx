@@ -63,6 +63,7 @@ export function AiChatbot() {
   const [status, setStatus] = useState<SessionStatus>("ai");
   const [pending, setPending] = useState(false);
   const [requestingAdmin, setRequestingAdmin] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
   const lastSeenRef = useRef<string | null>(null);
   const prevStatusRef = useRef<SessionStatus>("ai");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -129,12 +130,16 @@ export function AiChatbot() {
   const onPointerUp = useCallback(() => {
     const moved = dragRef.current?.moved ?? false;
     dragRef.current = null;
-    if (!moved) setIsOpen(true);
+    if (!moved) {
+      setIsOpen(true);
+      setHasUnread(false);
+    }
   }, []);
 
   // Desktop: always click to open, no drag
   const onDesktopClick = useCallback(() => {
     setIsOpen(true);
+    setHasUnread(false);
   }, []);
 
   // Button position style
@@ -238,6 +243,7 @@ export function AiChatbot() {
           setMessages((prev) => {
             const seenIds = new Set(prev.filter((p) => p.id).map((p) => p.id));
             const additions = newOnes.filter((n) => !n.id || !seenIds.has(n.id));
+            if (additions.length && !isOpen) setHasUnread(true);
             return additions.length ? [...prev, ...additions] : prev;
           });
         }
@@ -320,24 +326,30 @@ export function AiChatbot() {
   return (
     <>
       {/* Floating button */}
-      <button
-        style={btnStyle}
-        className={`bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center transition-transform duration-200 ${
-          isOpen ? "scale-0 pointer-events-none" : "scale-100"
-        }`}
-        {...(mobile
-          ? {
-              onPointerDown,
-              onPointerMove,
-              onPointerUp,
-            }
-          : {
-              onClick: onDesktopClick,
-            })}
-        aria-label="Buka chat asisten"
+      <div
+        style={{ ...btnStyle, width: btnStyle.width, height: btnStyle.height }}
+        className={`transition-transform duration-200 ${isOpen ? "scale-0 pointer-events-none" : "scale-100"}`}
       >
-        <MessageCircle size={26} />
-      </button>
+        <button
+          style={{ width: "100%", height: "100%", borderRadius: "50%", touchAction: "none" }}
+          className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center relative"
+          {...(mobile
+            ? { onPointerDown, onPointerMove, onPointerUp }
+            : { onClick: onDesktopClick })}
+          aria-label="Buka chat asisten"
+        >
+          <MessageCircle size={26} />
+          {hasUnread && (
+            <span
+              className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center"
+              aria-label="Pesan baru"
+            >
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+            </span>
+          )}
+        </button>
+      </div>
 
       {/* Chat window */}
       <div
