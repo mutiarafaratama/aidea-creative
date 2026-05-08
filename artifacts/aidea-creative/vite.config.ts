@@ -203,7 +203,6 @@ export default defineConfig({
       "react-dom/client",
       "wouter",
       "@tanstack/react-query",
-      "@supabase/supabase-js",
       "lucide-react",
       "framer-motion",
       "@workspace/api-client-react",
