@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Bot, Loader2, ShieldCheck, UserPlus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ function newSessionId() {
 }
 
 function clampPos(x: number, y: number): { x: number; y: number } {
+  if (typeof window === "undefined") return { x, y };
   const maxX = Math.max(8, window.innerWidth - 64);
   const maxY = Math.max(8, window.innerHeight - 64);
   return {
@@ -63,6 +64,10 @@ export function AiChatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [btnPos, setBtnPos] = useState<{ x: number; y: number } | null>(loadSavedPos);
+  const [isMobileView, setIsMobileView] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 640 : false
+  );
+
   const dragInfoRef = useRef<{
     startX: number;
     startY: number;
@@ -71,17 +76,16 @@ export function AiChatbot() {
     moved: boolean;
   } | null>(null);
 
-  const isMobile = () => window.innerWidth < 640;
-
-  const getDefaultPos = () => ({
+  const getDefaultPos = useCallback(() => ({
     x: window.innerWidth - 80,
     y: window.innerHeight - 80,
-  });
+  }), []);
 
-  const getCurrentPos = () => btnPos ?? getDefaultPos();
+  const getCurrentPos = useCallback(() => btnPos ?? getDefaultPos(), [btnPos, getDefaultPos]);
 
   useEffect(() => {
     const handleResize = () => {
+      setIsMobileView(window.innerWidth < 640);
       setBtnPos((prev) => {
         if (!prev) return null;
         return clampPos(prev.x, prev.y);
@@ -269,7 +273,7 @@ export function AiChatbot() {
       ? { text: "Anda terhubung dengan admin", cls: "bg-emerald-500/10 text-emerald-700" }
       : null;
 
-  const chatWindowStyle: React.CSSProperties = isMobile()
+  const chatWindowStyle: React.CSSProperties = isMobileView
     ? {
         position: "fixed",
         left: 8,
@@ -279,6 +283,7 @@ export function AiChatbot() {
         width: "auto",
         height: "min(520px, calc(100dvh - 80px))",
         maxHeight: "calc(100dvh - 80px)",
+        zIndex: 9999,
       }
     : {
         position: "fixed",
@@ -287,22 +292,24 @@ export function AiChatbot() {
         width: 384,
         height: 520,
         maxHeight: "calc(100vh - 48px)",
+        zIndex: 9999,
       };
 
   return (
     <>
+      {/* Floating button */}
       <button
         style={{
           ...btnStyle,
-          zIndex: 50,
+          zIndex: 9999,
           width: 56,
           height: 56,
           borderRadius: "50%",
           touchAction: "none",
         }}
-        className={`bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center ${
+        className={`bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center transition-transform duration-200 ${
           isOpen ? "scale-0 pointer-events-none" : "scale-100"
-        } transition-transform duration-200`}
+        }`}
         onPointerDown={onBtnPointerDown}
         onPointerMove={onBtnPointerMove}
         onPointerUp={onBtnPointerUp}
@@ -311,11 +318,12 @@ export function AiChatbot() {
         <MessageCircle size={26} />
       </button>
 
+      {/* Chat window */}
       <div
-        className={`bg-card border border-border rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ${
+        className={`bg-card border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right ${
           isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
         }`}
-        style={{ ...chatWindowStyle, zIndex: 50 }}
+        style={chatWindowStyle}
       >
         {/* Header */}
         <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between shrink-0">

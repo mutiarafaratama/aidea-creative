@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "FteobaUDND3MsTevJFm5x"
@@ -42,3 +41,9 @@ id = "M1-28wRo1Rv21nO5XGLsC"
 uri = "file://artifacts/aidea-creative/public/images/product-album.png"
 type = "image"
 title = "Premium photo album"
+
+[[outputs]]
+id = "PBGf-6LdPgITtKWzkANDN"
+uri = "file://README.md"
+type = "text"
+title = "README Lengkap — AideaCreative Studio Foto"
