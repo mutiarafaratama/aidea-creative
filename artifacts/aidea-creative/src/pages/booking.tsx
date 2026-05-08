@@ -70,10 +70,11 @@ function hitungDiskon(harga: number, promo: PromoInfo | null, paketId: string): 
   if (promo.paketId && promo.paketId !== paketId) return 0;
   const now = new Date();
   if (promo.tanggalBerakhir && now > new Date(promo.tanggalBerakhir)) return 0;
-  if (promo.kuota != null && promo.terpakai >= promo.kuota) return 0;
-  if (!promo.tipeDiskon || !promo.nilaiDiskon) return 0;
-  if (promo.tipeDiskon === "persen") return Math.floor(harga * promo.nilaiDiskon / 100);
-  if (promo.tipeDiskon === "nominal") return Math.min(promo.nilaiDiskon, harga);
+  if (promo.kuota != null && promo.kuota > 0 && promo.terpakai >= promo.kuota) return 0;
+  if (!promo.tipeDiskon || promo.nilaiDiskon == null || promo.nilaiDiskon <= 0) return 0;
+  const h = Number(harga);
+  if (promo.tipeDiskon === "persen") return Math.floor(h * promo.nilaiDiskon / 100);
+  if (promo.tipeDiskon === "nominal") return Math.min(promo.nilaiDiskon, h);
   return 0;
 }
 
@@ -332,9 +333,9 @@ export default function Booking() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-4xl min-h-screen flex items-center justify-center">
+    <div className="container mx-auto px-4 py-8 md:py-16 max-w-4xl min-h-screen">
       <Card className="w-full border-border shadow-lg">
-        <div className="bg-primary/5 p-8 border-b border-border text-center">
+        <div className="bg-primary/5 p-5 md:p-8 border-b border-border text-center">
           <CardTitle className="text-3xl font-serif font-bold mb-2">Booking Jadwal</CardTitle>
           <CardDescription className="text-base text-muted-foreground">
             Isi formulir di bawah ini untuk mereservasi jadwal pemotretan Anda.
@@ -351,10 +352,10 @@ export default function Booking() {
             </div>
           )}
         </div>
-        <CardContent className="p-8">
+        <CardContent className="p-4 md:p-8">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 {/* Informasi Kontak */}
                 <div className="space-y-6">
                   <h3 className="font-serif font-semibold text-lg border-b border-border pb-2">
@@ -433,7 +434,7 @@ export default function Booking() {
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
-                          disabled={loadingPaket}
+                          disabled={loadingPaket || !!promoId}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -451,6 +452,9 @@ export default function Booking() {
                               ))}
                           </SelectContent>
                         </Select>
+                        {promoId && (
+                          <p className="text-xs text-muted-foreground">Paket terkunci sesuai promo yang dipilih.</p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -482,8 +486,9 @@ export default function Booking() {
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent
-                            className="w-auto p-0 rounded-2xl shadow-xl border-border overflow-hidden"
+                            className="w-[min(calc(100vw-2rem),340px)] p-0 rounded-2xl shadow-xl border-border overflow-hidden"
                             align="start"
+                            sideOffset={4}
                           >
                             <Calendar
                               mode="single"
@@ -493,7 +498,7 @@ export default function Booking() {
                                 form.setValue("jamSesi", "");
                               }}
                               disabled={isDateDisabled}
-                              className="min-w-[300px]"
+                              className="w-full"
                               initialFocus
                             />
                           </PopoverContent>
