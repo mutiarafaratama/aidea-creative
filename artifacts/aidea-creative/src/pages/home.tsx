@@ -127,6 +127,18 @@ function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolea
           </Link>
         </motion.div>
 
+        {/* Choice chips — Paket & Pricelist */}
+        <div className="flex gap-2 mb-8">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
+            Paket Foto
+          </span>
+          <Link href="/paket?tab=pricelist">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white text-foreground px-4 py-1.5 text-sm font-medium hover:border-primary hover:text-primary transition-colors cursor-pointer">
+              Pricelist
+            </span>
+          </Link>
+        </div>
+
         {n === 0 ? (
           <div className="text-center text-muted-foreground py-16">
             <Camera className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />

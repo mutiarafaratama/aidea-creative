@@ -1,6 +1,7 @@
 import { Router, json, type Request, type Response } from "express";
 import { requireAdmin, requireAuth } from "../middlewares/auth";
 import { logger } from "../lib/logger";
+import { createClient } from "@supabase/supabase-js";
 import path from "path";
 import fs from "fs";
 
@@ -28,6 +29,13 @@ function getPublicBaseUrl(req: Request): string {
   return `${proto}://${host}`;
 }
 
+function getSupabaseAdmin() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
 router.post(
   "/upload/supabase",
   requireAdmin,
@@ -42,7 +50,8 @@ router.post(
         dataBase64?: string;
       };
 
-      const folder = (body.folder || body.bucket || "produk").replace(/^\/+|\/+$/g, "");
+      const bucket = (body.bucket || "produk").replace(/^\/+|\/+$/g, "");
+      const folder = (body.folder || "").replace(/^\/+|\/+$/g, "");
       const filename = safeFilename(body.filename || `image-${Date.now()}`);
       const dataBase64 = body.dataBase64 || "";
 
@@ -63,41 +72,73 @@ router.post(
       const ext = filename.includes(".") ? filename.split(".").pop() : "bin";
       const baseName = filename.replace(/\.[^.]+$/, "");
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${baseName}.${ext}`;
+      const storagePath = folder ? `${folder}/${unique}` : unique;
 
-      const destDir = path.join(UPLOAD_DIR, folder);
-      ensureDir(destDir);
-      const destFile = path.join(destDir, unique);
-      fs.writeFileSync(destFile, buffer);
+      const supabase = getSupabaseAdmin();
 
-      const storagePath = `${folder}/${unique}`;
-      const base = getPublicBaseUrl(req);
-      const url = `${base}/uploads/${storagePath}`;
+      if (supabase) {
+        const { error } = await supabase.storage
+          .from(bucket)
+          .upload(storagePath, buffer, {
+            contentType: body.contentType || "application/octet-stream",
+            upsert: true,
+          });
 
-      res.json({ url, path: storagePath, bucket: folder });
+        if (error) {
+          logger.error({ err: error }, "Supabase storage upload error");
+          res.status(500).json({ error: `Upload gagal: ${error.message}` });
+          return;
+        }
+
+        const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+        const url = publicData.publicUrl;
+
+        res.json({ url, path: storagePath, bucket });
+      } else {
+        const localFolder = folder || bucket;
+        const destDir = path.join(UPLOAD_DIR, localFolder);
+        ensureDir(destDir);
+        const destFile = path.join(destDir, unique);
+        fs.writeFileSync(destFile, buffer);
+
+        const localPath = `${localFolder}/${unique}`;
+        const base = getPublicBaseUrl(req);
+        const url = `${base}/uploads/${localPath}`;
+
+        res.json({ url, path: localPath, bucket });
+      }
     } catch (err) {
-      logger.error({ err }, "Local upload error");
+      logger.error({ err }, "Upload error");
       res.status(500).json({ error: "Upload gagal." });
     }
   },
 );
 
-router.post("/upload/supabase/destroy", requireAdmin, async (req, res) => {
+router.post("/upload/supabase/destroy", requireAdmin, json({ limit: "1mb" }), async (req, res) => {
   try {
-    const { path: filePath } = (req.body ?? {}) as { path?: string; bucket?: string; url?: string };
+    const body = (req.body ?? {}) as { path?: string; bucket?: string; url?: string };
+    const supabase = getSupabaseAdmin();
 
-    if (!filePath) {
-      res.status(400).json({ error: "path diperlukan." });
-      return;
-    }
-
-    const fullPath = path.join(UPLOAD_DIR, filePath);
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
+    if (supabase) {
+      const fileUrl = body.url || "";
+      const match = fileUrl.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
+      if (match) {
+        const bucketName = match[1];
+        const filePath = match[2];
+        await supabase.storage.from(bucketName).remove([filePath]);
+      } else if (body.bucket && body.path) {
+        await supabase.storage.from(body.bucket).remove([body.path]);
+      }
+    } else if (body.path) {
+      const fullPath = path.join(UPLOAD_DIR, body.path);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
     }
 
     res.json({ ok: true });
   } catch (err) {
-    logger.error({ err }, "Local destroy error");
+    logger.error({ err }, "Destroy error");
     res.status(500).json({ error: "Gagal menghapus file." });
   }
 });
