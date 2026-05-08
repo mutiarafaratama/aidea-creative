@@ -5,7 +5,10 @@ import * as z from "zod";
 import { useListPaket, useCreateBooking } from "@workspace/api-client-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { CalendarIcon, Loader2, CheckCircle2, Clock, PartyPopper, Copy, MessageCircle, AlertTriangle } from "lucide-react";
+import {
+  CalendarIcon, Loader2, CheckCircle2, Clock, PartyPopper, Copy,
+  MessageCircle, AlertTriangle, Tag, BadgePercent, XCircle
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -14,21 +17,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-type JadwalSlot = { tanggal: string; jamMulai: string; jamSelesai: string };
+type JadwalSlot = { tanggal: string; jamMulai: string; jamSelesai: string; isTersedia: boolean };
 type DayRule = { isBuka: boolean; jamBuka: string; jamTutup: string; slotMenit: number };
 type BlacklistEntry = { tanggal: string; alasan: string };
+type PromoInfo = {
+  id: string;
+  judul: string;
+  badge: string | null;
+  tipeDiskon: string | null;
+  nilaiDiskon: number | null;
+  paketId: string | null;
+  kuota: number | null;
+  terpakai: number;
+  tanggalBerakhir: string | null;
+  isAktif: boolean;
+};
 type BookedResult = {
   kodeBooking: string;
   namaPaket: string;
   tanggalSesi: Date;
   jamSesi: string;
   totalHarga: number;
+  hargaAsli: number;
+  diskonAmount: number;
+  namaPromo: string | null;
 };
 
 const bookingSchema = z.object({
@@ -42,6 +61,22 @@ const bookingSchema = z.object({
   konsepFoto: z.string().optional(),
 });
 
+function formatRp(n: number) {
+  return "Rp " + n.toLocaleString("id-ID");
+}
+
+function hitungDiskon(harga: number, promo: PromoInfo | null, paketId: string): number {
+  if (!promo || !promo.isAktif) return 0;
+  if (promo.paketId && promo.paketId !== paketId) return 0;
+  const now = new Date();
+  if (promo.tanggalBerakhir && now > new Date(promo.tanggalBerakhir)) return 0;
+  if (promo.kuota != null && promo.terpakai >= promo.kuota) return 0;
+  if (!promo.tipeDiskon || !promo.nilaiDiskon) return 0;
+  if (promo.tipeDiskon === "persen") return Math.floor(harga * promo.nilaiDiskon / 100);
+  if (promo.tipeDiskon === "nominal") return Math.min(promo.nilaiDiskon, harga);
+  return 0;
+}
+
 export default function Booking() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
@@ -49,11 +84,14 @@ export default function Booking() {
   const { data: paketList, isLoading: loadingPaket } = useListPaket();
   const createBooking = useCreateBooking();
 
-  const [jamTersedia, setJamTersedia] = useState<string[]>([]);
+  const [jamSlots, setJamSlots] = useState<JadwalSlot[]>([]);
   const [loadingJam, setLoadingJam] = useState(false);
   const [bookedResult, setBookedResult] = useState<BookedResult | null>(null);
   const [closedDays, setClosedDays] = useState<Set<number>>(new Set());
   const [blacklistDates, setBlacklistDates] = useState<Map<string, string>>(new Map());
+  const [promoInfo, setPromoInfo] = useState<PromoInfo | null>(null);
+  const [promoId, setPromoId] = useState<string | null>(null);
+  const [loadingPromo, setLoadingPromo] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/jadwal/aturan`)
@@ -95,7 +133,17 @@ export default function Booking() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const paketIdParam = searchParams.get("paket");
+    const promoParam = searchParams.get("promo");
     if (paketIdParam) form.setValue("paketId", paketIdParam);
+    if (promoParam) {
+      setPromoId(promoParam);
+      setLoadingPromo(true);
+      fetch(`${API_BASE}/api/promo/${promoParam}`)
+        .then((r) => r.json())
+        .then((data) => setPromoInfo(data))
+        .catch(() => setPromoInfo(null))
+        .finally(() => setLoadingPromo(false));
+    }
   }, [form]);
 
   useEffect(() => {
@@ -106,10 +154,11 @@ export default function Booking() {
   }, [user, profile, form]);
 
   const selectedTanggal = form.watch("tanggalSesi");
+  const selectedPaketId = form.watch("paketId");
 
   useEffect(() => {
     if (!selectedTanggal) {
-      setJamTersedia([]);
+      setJamSlots([]);
       return;
     }
     const tanggalStr = format(selectedTanggal, "yyyy-MM-dd");
@@ -117,12 +166,9 @@ export default function Booking() {
     fetch(`${API_BASE}/api/jadwal?tanggal=${tanggalStr}`)
       .then((r) => r.json())
       .then((data: JadwalSlot[]) => {
-        const slots = Array.isArray(data)
-          ? data.map((j) => `${j.jamMulai} - ${j.jamSelesai}`)
-          : [];
-        setJamTersedia(slots);
+        setJamSlots(Array.isArray(data) ? data : []);
       })
-      .catch(() => setJamTersedia([]))
+      .catch(() => setJamSlots([]))
       .finally(() => setLoadingJam(false));
   }, [selectedTanggal]);
 
@@ -138,25 +184,30 @@ export default function Booking() {
           jamSesi: values.jamSesi,
           catatanPelanggan: values.catatanPelanggan || undefined,
           konsepFoto: values.konsepFoto || undefined,
-        },
+          ...(promoId ? { promoId } : {}),
+        } as any,
       },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           const paket = Array.isArray(paketList)
             ? paketList.find((p) => p.id === values.paketId)
             : undefined;
           setBookedResult({
             kodeBooking: data.kodeBooking,
-            namaPaket: (data as any).namaPaket ?? paket?.namaPaket ?? "—",
+            namaPaket: data.namaPaket ?? paket?.namaPaket ?? "—",
             tanggalSesi: values.tanggalSesi,
             jamSesi: values.jamSesi,
-            totalHarga: Number((data as any).totalHarga ?? paket?.harga ?? 0),
+            totalHarga: Number(data.totalHarga ?? paket?.harga ?? 0),
+            hargaAsli: Number(data.hargaAsli ?? data.totalHarga ?? paket?.harga ?? 0),
+            diskonAmount: Number(data.diskonAmount ?? 0),
+            namaPromo: data.namaPromo ?? null,
           });
         },
-        onError: () => {
+        onError: (err: any) => {
+          const msg = err?.response?.data?.error ?? "Terjadi kesalahan saat memproses booking Anda. Silakan coba lagi.";
           toast({
             title: "Gagal",
-            description: "Terjadi kesalahan saat memproses booking Anda. Silakan coba lagi.",
+            description: msg,
             variant: "destructive",
           });
         },
@@ -164,10 +215,14 @@ export default function Booking() {
     );
   };
 
-  const selectedPaketId = form.watch("paketId");
   const selectedPaket = Array.isArray(paketList)
     ? paketList.find((p) => p.id === selectedPaketId)
     : undefined;
+
+  const diskonCalc = selectedPaket && promoInfo
+    ? hitungDiskon(selectedPaket.harga, promoInfo, selectedPaketId)
+    : 0;
+  const totalAfterDiskon = selectedPaket ? selectedPaket.harga - diskonCalc : 0;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -185,10 +240,13 @@ export default function Booking() {
   const isDateBlocked = selectedTanggalStr ? blacklistDates.has(selectedTanggalStr) : false;
   const blockedAlasan = selectedTanggalStr ? blacklistDates.get(selectedTanggalStr) : undefined;
 
+  const availableSlots = jamSlots.filter((s) => s.isTersedia);
+  const bookedSlots = jamSlots.filter((s) => !s.isTersedia);
+
   if (bookedResult) {
     const waNumber = "6285279232879";
     const waText = encodeURIComponent(
-      `Halo AideaCreative! Saya baru saja melakukan booking.\nKode: *${bookedResult.kodeBooking}*\nPaket: ${bookedResult.namaPaket}\nTanggal: ${format(bookedResult.tanggalSesi, "EEEE, dd MMMM yyyy", { locale: idLocale })}\nJam: ${bookedResult.jamSesi}\n\nMohon konfirmasinya, terima kasih.`
+      `Halo AideaCreative! Saya baru saja melakukan booking.\nKode: *${bookedResult.kodeBooking}*\nPaket: ${bookedResult.namaPaket}\nTanggal: ${format(bookedResult.tanggalSesi, "EEEE, dd MMMM yyyy", { locale: idLocale })}\nJam: ${bookedResult.jamSesi}${bookedResult.namaPromo ? `\nPromo: ${bookedResult.namaPromo}` : ""}\nTotal: Rp ${bookedResult.totalHarga.toLocaleString("id-ID")}\n\nMohon konfirmasinya, terima kasih.`
     );
 
     return (
@@ -224,8 +282,20 @@ export default function Booking() {
                 <div className="font-semibold">{bookedResult.namaPaket}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Total</div>
-                <div className="font-semibold">Rp {bookedResult.totalHarga.toLocaleString("id-ID")}</div>
+                <div className="text-xs text-muted-foreground mb-1">Total Bayar</div>
+                {bookedResult.diskonAmount > 0 ? (
+                  <div>
+                    <div className="font-bold text-base text-primary">{formatRp(bookedResult.totalHarga)}</div>
+                    <div className="text-xs text-muted-foreground line-through">{formatRp(bookedResult.hargaAsli)}</div>
+                    {bookedResult.namaPromo && (
+                      <div className="text-xs text-green-600 flex items-center gap-0.5 mt-0.5">
+                        <Tag className="h-3 w-3" /> {bookedResult.namaPromo}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="font-semibold">{formatRp(bookedResult.totalHarga)}</div>
+                )}
               </div>
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Tanggal Sesi</div>
@@ -269,6 +339,17 @@ export default function Booking() {
           <CardDescription className="text-base text-muted-foreground">
             Isi formulir di bawah ini untuk mereservasi jadwal pemotretan Anda.
           </CardDescription>
+          {promoInfo && (
+            <div className="mt-3 inline-flex items-center gap-2 bg-green-500/10 text-green-700 border border-green-200 rounded-lg px-3 py-1.5 text-sm">
+              <BadgePercent className="h-4 w-4" />
+              <span className="font-medium">Promo: {promoInfo.judul}</span>
+              {promoInfo.tipeDiskon === "persen" ? (
+                <Badge className="bg-green-600 text-white border-0 text-xs">{promoInfo.nilaiDiskon}% OFF</Badge>
+              ) : promoInfo.tipeDiskon === "nominal" ? (
+                <Badge className="bg-green-600 text-white border-0 text-xs">Hemat {formatRp(promoInfo.nilaiDiskon!)}</Badge>
+              ) : null}
+            </div>
+          )}
         </div>
         <CardContent className="p-8">
           <Form {...form}>
@@ -329,10 +410,7 @@ export default function Booking() {
                       <FormItem>
                         <FormLabel>Konsep Foto (Opsional)</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Contoh: Rustic, Minimalis, Outdoor"
-                            {...field}
-                          />
+                          <Input placeholder="Contoh: Rustic, Minimalis, Outdoor" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -360,9 +438,7 @@ export default function Booking() {
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue
-                                placeholder={
-                                  loadingPaket ? "Memuat paket..." : "Pilih Paket Foto"
-                                }
+                                placeholder={loadingPaket ? "Memuat paket..." : "Pilih Paket Foto"}
                               />
                             </SelectTrigger>
                           </FormControl>
@@ -370,7 +446,7 @@ export default function Booking() {
                             {Array.isArray(paketList) &&
                               paketList.map((paket) => (
                                 <SelectItem key={paket.id} value={paket.id}>
-                                  {paket.namaPaket} — Rp {paket.harga.toLocaleString("id-ID")}
+                                  {paket.namaPaket} — {formatRp(paket.harga)}
                                 </SelectItem>
                               ))}
                           </SelectContent>
@@ -397,9 +473,7 @@ export default function Booking() {
                                 )}
                               >
                                 {field.value ? (
-                                  format(field.value, "EEEE, dd MMMM yyyy", {
-                                    locale: idLocale,
-                                  })
+                                  format(field.value, "EEEE, dd MMMM yyyy", { locale: idLocale })
                                 ) : (
                                   <span>Pilih Tanggal</span>
                                 )}
@@ -448,23 +522,53 @@ export default function Booking() {
                               <span className="block text-xs mt-0.5">Silakan pilih tanggal lain.</span>
                             </div>
                           </div>
-                        ) : jamTersedia.length > 0 ? (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Pilih jam tersedia" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {jamTersedia.map((jam) => (
-                                <SelectItem key={jam} value={jam}>
-                                  <div className="flex items-center gap-2">
-                                    <Clock size={14} /> {jam}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                        ) : jamSlots.length > 0 ? (
+                          <div className="space-y-2">
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Pilih jam tersedia" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {availableSlots.map((slot) => {
+                                  const jam = `${slot.jamMulai} - ${slot.jamSelesai}`;
+                                  return (
+                                    <SelectItem key={jam} value={jam}>
+                                      <div className="flex items-center gap-2">
+                                        <Clock size={14} className="text-green-500" /> {jam}
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                                {bookedSlots.length > 0 && (
+                                  <>
+                                    {availableSlots.length > 0 && (
+                                      <div className="px-2 py-1 text-xs text-muted-foreground border-t border-border mt-1 pt-2">
+                                        Sudah terpesan:
+                                      </div>
+                                    )}
+                                    {bookedSlots.map((slot) => {
+                                      const jam = `${slot.jamMulai} - ${slot.jamSelesai}`;
+                                      return (
+                                        <SelectItem key={jam} value={jam} disabled>
+                                          <div className="flex items-center gap-2 text-muted-foreground">
+                                            <XCircle size={14} className="text-red-400" /> {jam} — Terpesan
+                                          </div>
+                                        </SelectItem>
+                                      );
+                                    })}
+                                  </>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            {bookedSlots.length > 0 && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <XCircle className="h-3 w-3 text-red-400" />
+                                {bookedSlots.length} slot sudah terpesan pada hari ini
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <FormControl>
                             <Input
@@ -504,17 +608,30 @@ export default function Booking() {
               </div>
 
               {selectedPaket && (
-                <div className="bg-muted p-4 rounded-lg flex justify-between items-center border border-border">
-                  <div>
-                    <div className="text-sm text-muted-foreground">Total Pembayaran</div>
-                    <div className="font-bold text-2xl">
-                      Rp {selectedPaket.harga.toLocaleString("id-ID")}
+                <div className="bg-muted p-4 rounded-lg border border-border space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Paket</div>
+                      <div className="font-semibold">{selectedPaket.namaPaket}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {selectedPaket.durasiSesi} menit · {selectedPaket.jumlahFoto} foto
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div className="text-sm font-medium">{selectedPaket.namaPaket}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {selectedPaket.durasiSesi} menit · {selectedPaket.jumlahFoto} foto
+                    <div className="text-right">
+                      {diskonCalc > 0 ? (
+                        <>
+                          <div className="text-sm text-muted-foreground line-through">{formatRp(selectedPaket.harga)}</div>
+                          <div className="font-bold text-2xl text-primary">{formatRp(totalAfterDiskon)}</div>
+                          <div className="text-xs text-green-600 flex items-center gap-0.5 justify-end">
+                            <Tag className="h-3 w-3" /> Hemat {formatRp(diskonCalc)}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-sm text-muted-foreground">Total Pembayaran</div>
+                          <div className="font-bold text-2xl">{formatRp(selectedPaket.harga)}</div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

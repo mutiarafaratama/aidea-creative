@@ -2,6 +2,7 @@ import { pgTable, uuid, text, boolean, timestamp, integer } from "drizzle-orm/pg
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { paketLayananTable } from "./paket_layanan";
 
 export const promoTable = pgTable("promo", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -18,9 +19,16 @@ export const promoTable = pgTable("promo", {
   tanggalBerakhir: timestamp("tanggal_berakhir"),
   isAktif: boolean("is_aktif").notNull().default(true),
   urutan: integer("urutan").notNull().default(0),
+  // Diskon booking
+  paketId: uuid("paket_id").references(() => paketLayananTable.id),
+  tipeDiskon: text("tipe_diskon"),
+  nilaiDiskon: integer("nilai_diskon"),
+  syarat: text("syarat"),
+  kuota: integer("kuota"),
+  terpakai: integer("terpakai").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertPromoSchema = createInsertSchema(promoTable).omit({ id: true, createdAt: true });
+export const insertPromoSchema = createInsertSchema(promoTable).omit({ id: true, createdAt: true, terpakai: true });
 export type InsertPromo = z.infer<typeof insertPromoSchema>;
 export type Promo = typeof promoTable.$inferSelect;

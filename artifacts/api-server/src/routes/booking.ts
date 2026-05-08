@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { bookingTable, paketLayananTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { bookingTable, paketLayananTable, promoTable } from "@workspace/db";
+import { eq, desc, and, ne, sql } from "drizzle-orm";
 import { attachAuth, requireAdmin } from "../middlewares/auth";
 
 const serverKey = process.env.MIDTRANS_SERVER_KEY?.trim();
 const clientKey = process.env.VITE_MIDTRANS_CLIENT_KEY?.trim();
+const ADMIN_WA = process.env.ADMIN_WA_NUMBER ?? "6285279232879";
 
 function getSnap() {
   if (!serverKey) return null;
@@ -27,6 +28,7 @@ function generateKodeBooking(): string {
 const formatBooking = (
   r: typeof bookingTable.$inferSelect,
   namaPaket?: string | null,
+  namaPromo?: string | null,
 ) => ({
   id: r.id,
   kodeBooking: r.kodeBooking,
@@ -42,22 +44,46 @@ const formatBooking = (
   konsepFoto: r.konsepFoto,
   status: r.status,
   totalHarga: r.totalHarga,
+  hargaAsli: r.hargaAsli ?? r.totalHarga,
+  diskonAmount: r.diskonAmount ?? 0,
+  promoId: r.promoId ?? null,
+  namaPromo: namaPromo ?? null,
   statusPembayaran: r.statusPembayaran,
   alasanPembatalan: r.alasanPembatalan ?? null,
   dibatalkanOleh: r.dibatalkanOleh ?? null,
   createdAt: r.createdAt.toISOString(),
+  adminWa: ADMIN_WA,
 });
+
+// Helper: cek apakah slot sudah terisi
+async function isSlotBooked(tanggalSesi: string, jamSesi: string, excludeBookingId?: string): Promise<boolean> {
+  const conditions = [
+    eq(bookingTable.tanggalSesi, tanggalSesi),
+    eq(bookingTable.jamSesi, jamSesi),
+  ];
+  if (excludeBookingId) {
+    conditions.push(ne(bookingTable.id, excludeBookingId));
+  }
+
+  const rows = await db
+    .select({ id: bookingTable.id, status: bookingTable.status })
+    .from(bookingTable)
+    .where(and(...conditions));
+
+  return rows.some((r) => r.status === "menunggu" || r.status === "dikonfirmasi");
+}
 
 router.get("/booking/me", attachAuth, async (req, res) => {
   try {
     if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
     const rows = await db
-      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket })
+      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
       .from(bookingTable)
       .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
+      .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
       .where(eq(bookingTable.pelangganId, req.authUser.id))
       .orderBy(desc(bookingTable.createdAt));
-    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket)));
+    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket, r.namaPromo)));
   } catch (err) {
     req.log.error({ err }, "Failed to list my bookings");
     res.status(500).json({ error: "Internal server error" });
@@ -67,11 +93,12 @@ router.get("/booking/me", attachAuth, async (req, res) => {
 router.get("/booking", async (req, res) => {
   try {
     const rows = await db
-      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket })
+      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
       .from(bookingTable)
       .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
+      .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
       .orderBy(desc(bookingTable.createdAt));
-    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket)));
+    res.json(rows.map((r) => formatBooking(r.booking, r.namaPaket, r.namaPromo)));
   } catch (err) {
     req.log.error({ err }, "Failed to list booking");
     res.status(500).json({ error: "Internal server error" });
@@ -81,12 +108,61 @@ router.get("/booking", async (req, res) => {
 router.post("/booking", attachAuth, async (req, res) => {
   try {
     const body = req.body;
+
+    // 1. Validasi paket
     const [paket] = await db
       .select()
       .from(paketLayananTable)
       .where(eq(paketLayananTable.id, body.paketId));
     if (!paket) return res.status(400).json({ error: "Paket tidak ditemukan" });
 
+    // 2. CEK KONFLIK JADWAL — slot yang sama tidak boleh double booking
+    const konflikt = await isSlotBooked(body.tanggalSesi, body.jamSesi);
+    if (konflikt) {
+      return res.status(409).json({
+        error: "Jadwal sudah dipesan orang lain. Silakan pilih tanggal atau jam yang lain.",
+      });
+    }
+
+    // 3. Hitung diskon dari promo (jika ada)
+    let hargaAsli = paket.harga;
+    let diskonAmount = 0;
+    let totalHarga = paket.harga;
+    let promoId: string | null = null;
+    let promoRow: typeof promoTable.$inferSelect | null = null;
+
+    if (body.promoId) {
+      const [promo] = await db.select().from(promoTable).where(eq(promoTable.id, body.promoId));
+      if (promo && promo.isAktif) {
+        // Validasi periode
+        const now = new Date();
+        if (promo.tanggalMulai && now < promo.tanggalMulai) {
+          return res.status(400).json({ error: "Promo belum berlaku." });
+        }
+        if (promo.tanggalBerakhir && now > promo.tanggalBerakhir) {
+          return res.status(400).json({ error: "Promo sudah berakhir." });
+        }
+        // Validasi paket (jika promo hanya untuk paket tertentu)
+        if (promo.paketId && promo.paketId !== body.paketId) {
+          return res.status(400).json({ error: "Promo ini tidak berlaku untuk paket yang dipilih." });
+        }
+        // Validasi kuota
+        if (promo.kuota != null && promo.terpakai >= promo.kuota) {
+          return res.status(400).json({ error: "Kuota promo sudah habis." });
+        }
+        // Hitung diskon
+        if (promo.tipeDiskon === "persen" && promo.nilaiDiskon) {
+          diskonAmount = Math.floor(paket.harga * promo.nilaiDiskon / 100);
+        } else if (promo.tipeDiskon === "nominal" && promo.nilaiDiskon) {
+          diskonAmount = Math.min(promo.nilaiDiskon, paket.harga);
+        }
+        totalHarga = paket.harga - diskonAmount;
+        promoId = promo.id;
+        promoRow = promo;
+      }
+    }
+
+    // 4. Buat booking
     const [row] = await db
       .insert(bookingTable)
       .values({
@@ -101,27 +177,40 @@ router.post("/booking", attachAuth, async (req, res) => {
         catatanPelanggan: body.catatanPelanggan ?? null,
         konsepFoto: body.konsepFoto ?? null,
         status: "menunggu",
-        totalHarga: paket.harga,
+        totalHarga,
+        hargaAsli,
+        diskonAmount,
+        promoId,
         statusPembayaran: "belum_bayar",
       })
       .returning();
-    res.status(201).json(formatBooking(row, paket.namaPaket));
+
+    // 5. Increment terpakai pada promo jika digunakan
+    if (promoId) {
+      await db
+        .update(promoTable)
+        .set({ terpakai: sql`${promoTable.terpakai} + 1` })
+        .where(eq(promoTable.id, promoId));
+    }
+
+    res.status(201).json(formatBooking(row, paket.namaPaket, promoRow?.judul ?? null));
   } catch (err) {
     req.log.error({ err }, "Failed to create booking");
-    res.status(400).json({ error: "Bad request" });
+    res.status(400).json({ error: "Gagal membuat booking." });
   }
 });
 
 router.get("/booking/:id", async (req, res) => {
   try {
     const rows = await db
-      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket })
+      .select({ booking: bookingTable, namaPaket: paketLayananTable.namaPaket, namaPromo: promoTable.judul })
       .from(bookingTable)
       .leftJoin(paketLayananTable, eq(bookingTable.paketId, paketLayananTable.id))
+      .leftJoin(promoTable, eq(bookingTable.promoId, promoTable.id))
       .where(eq(bookingTable.id, req.params.id));
     if (!rows.length) return res.status(404).json({ error: "Not found" });
-    const { booking, namaPaket } = rows[0];
-    res.json(formatBooking(booking, namaPaket));
+    const { booking, namaPaket, namaPromo } = rows[0];
+    res.json(formatBooking(booking, namaPaket, namaPromo));
   } catch (err) {
     req.log.error({ err }, "Failed to get booking");
     res.status(404).json({ error: "Not found" });
@@ -151,7 +240,13 @@ router.put("/booking/:id", requireAdmin, async (req, res) => {
       .from(paketLayananTable)
       .where(eq(paketLayananTable.id, row.paketId));
 
-    res.json(formatBooking(row, paketRow?.namaPaket));
+    let namaPromo: string | null = null;
+    if (row.promoId) {
+      const [promoRow] = await db.select({ judul: promoTable.judul }).from(promoTable).where(eq(promoTable.id, row.promoId));
+      namaPromo = promoRow?.judul ?? null;
+    }
+
+    res.json(formatBooking(row, paketRow?.namaPaket, namaPromo));
   } catch (err) {
     req.log.error({ err }, "Failed to update booking status");
     res.status(400).json({ error: "Bad request" });
@@ -181,6 +276,14 @@ router.post("/booking/:id/cancel", attachAuth, async (req, res) => {
       .where(eq(bookingTable.id, req.params.id))
       .returning();
 
+    // Kembalikan kuota promo jika ada
+    if (row.promoId) {
+      await db
+        .update(promoTable)
+        .set({ terpakai: sql`GREATEST(0, ${promoTable.terpakai} - 1)` })
+        .where(eq(promoTable.id, row.promoId));
+    }
+
     const [paketRow] = await db
       .select({ namaPaket: paketLayananTable.namaPaket })
       .from(paketLayananTable)
@@ -200,6 +303,13 @@ router.delete("/booking/:id", requireAdmin, async (req, res) => {
       .where(eq(bookingTable.id, req.params.id))
       .returning();
     if (!row) return res.status(404).json({ error: "Not found" });
+    // Kembalikan kuota promo jika ada
+    if (row.promoId) {
+      await db
+        .update(promoTable)
+        .set({ terpakai: sql`GREATEST(0, ${promoTable.terpakai} - 1)` })
+        .where(eq(promoTable.id, row.promoId));
+    }
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete booking");
@@ -207,7 +317,7 @@ router.delete("/booking/:id", requireAdmin, async (req, res) => {
   }
 });
 
-// POST /booking/:id/payment — buat snap token Midtrans untuk booking
+// POST /booking/:id/payment — buat snap token Midtrans
 router.post("/booking/:id/payment", attachAuth, async (req, res) => {
   try {
     if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
@@ -248,14 +358,14 @@ router.post("/booking/:id/payment", attachAuth, async (req, res) => {
       }
     }
 
-    res.json({ snapToken, kodeBooking: booking.kodeBooking });
+    res.json({ snapToken, kodeBooking: booking.kodeBooking, adminWa: ADMIN_WA });
   } catch (err) {
     req.log.error({ err }, "Failed to create booking payment");
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /booking/:id/verify-payment — verifikasi status pembayaran
+// POST /booking/:id/verify-payment
 router.post("/booking/:id/verify-payment", attachAuth, async (req, res) => {
   try {
     if (!req.authUser) return res.status(401).json({ error: "Unauthorized" });
@@ -291,6 +401,18 @@ router.post("/booking/:id/verify-payment", attachAuth, async (req, res) => {
     res.json(formatBooking(updated, paketRow?.namaPaket));
   } catch (err) {
     req.log.error({ err }, "Failed to verify booking payment");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /booking/check-slot — cek ketersediaan slot
+router.get("/booking/check-slot", async (req, res) => {
+  try {
+    const { tanggal, jam } = req.query as { tanggal?: string; jam?: string };
+    if (!tanggal || !jam) return res.status(400).json({ error: "tanggal dan jam diperlukan" });
+    const booked = await isSlotBooked(tanggal, jam);
+    res.json({ tersedia: !booked });
+  } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
 });

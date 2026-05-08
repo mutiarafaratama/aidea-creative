@@ -1,16 +1,10 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { jadwalTersediaTable, pengaturanSitusTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { jadwalTersediaTable, pengaturanSitusTable, bookingTable } from "@workspace/db";
+import { eq, sql, and } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
-
-// ---------- Recurring weekly rules ----------
-//
-// Stored in pengaturan_situs under key "jadwalAturan" as:
-//   { "0": { isBuka, jamBuka, jamTutup, slotMenit }, "1": {...}, ... }
-// Day index: 0=Minggu, 1=Senin, ..., 6=Sabtu (matches Date.getDay()).
 
 type DayRule = {
   isBuka: boolean;
@@ -78,10 +72,7 @@ function minutesToTime(m: number): string {
   return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
-function buildSlots(
-  rule: DayRule,
-  afterMinutes?: number,
-): { jamMulai: string; jamSelesai: string }[] {
+function buildSlots(rule: DayRule, afterMinutes?: number): { jamMulai: string; jamSelesai: string }[] {
   if (!rule.isBuka) return [];
   const start = timeToMinutes(rule.jamBuka);
   const end = timeToMinutes(rule.jamTutup);
@@ -114,7 +105,21 @@ function dayOfWeek(tanggal: string): number {
 
 const HARI_LABEL = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-// ---------- Public read endpoints ----------
+// Ambil jam yang sudah dipesan pada tanggal tertentu (status aktif = menunggu/dikonfirmasi)
+async function getBookedSlots(tanggal: string): Promise<Set<string>> {
+  const rows = await db
+    .select({ jamSesi: bookingTable.jamSesi, status: bookingTable.status })
+    .from(bookingTable)
+    .where(eq(bookingTable.tanggalSesi, tanggal));
+
+  const booked = new Set<string>();
+  for (const r of rows) {
+    if (r.status === "menunggu" || r.status === "dikonfirmasi") {
+      booked.add(r.jamSesi);
+    }
+  }
+  return booked;
+}
 
 router.get("/jadwal/aturan", async (_req, res) => {
   const rules = await loadRules();
@@ -151,9 +156,14 @@ router.get("/jadwal", async (req, res) => {
     const blacklistSet = new Set(blacklist.map((b) => b.tanggal));
 
     if (!tanggal || !/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) {
+      // Kembalikan slot 30 hari ke depan — filter slot yang sudah terisi
       const out: any[] = [];
       const today = todayWIB();
       const currentMinutes = nowWIBMinutes();
+
+      // Ambil semua booking aktif 30 hari ke depan
+      const bookedByDate = new Map<string, Set<string>>();
+
       for (let i = 0; i < 30; i++) {
         const d = new Date(today);
         d.setUTCDate(today.getUTCDate() + i);
@@ -165,13 +175,46 @@ router.get("/jadwal", async (req, res) => {
         const rule = rules[String(d.getUTCDay())];
         if (!rule?.isBuka) continue;
         const afterMin = i === 0 ? currentMinutes : undefined;
+        const slots = buildSlots(rule, afterMin);
+        if (slots.length > 0) {
+          bookedByDate.set(tgl, new Set());
+        }
+      }
+
+      // Batch query semua booking aktif sekaligus
+      const activeDates = Array.from(bookedByDate.keys());
+      if (activeDates.length > 0) {
+        const allBookings = await db
+          .select({ tanggalSesi: bookingTable.tanggalSesi, jamSesi: bookingTable.jamSesi, status: bookingTable.status })
+          .from(bookingTable)
+          .where(sql`${bookingTable.tanggalSesi} = ANY(${sql.raw(`ARRAY[${activeDates.map((d) => `'${d}'`).join(",")}]::text[]`)}) AND ${bookingTable.status} IN ('menunggu', 'dikonfirmasi')`);
+
+        for (const b of allBookings) {
+          const set = bookedByDate.get(b.tanggalSesi);
+          if (set) set.add(b.jamSesi);
+        }
+      }
+
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setUTCDate(today.getUTCDate() + i);
+        const yyyy = d.getUTCFullYear();
+        const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(d.getUTCDate()).padStart(2, "0");
+        const tgl = `${yyyy}-${mm}-${dd}`;
+        if (blacklistSet.has(tgl)) continue;
+        const rule = rules[String(d.getUTCDay())];
+        if (!rule?.isBuka) continue;
+        const afterMin = i === 0 ? currentMinutes : undefined;
+        const booked = bookedByDate.get(tgl) ?? new Set<string>();
+
         for (const slot of buildSlots(rule, afterMin)) {
           out.push({
             id: `${tgl}-${slot.jamMulai}`,
             tanggal: tgl,
             jamMulai: slot.jamMulai,
             jamSelesai: slot.jamSelesai,
-            isTersedia: true,
+            isTersedia: !booked.has(`${slot.jamMulai} - ${slot.jamSelesai}`),
             createdAt: new Date().toISOString(),
           });
         }
@@ -191,27 +234,32 @@ router.get("/jadwal", async (req, res) => {
       res.json([]);
       return;
     }
+
     const todayStr = (() => {
       const d = todayWIB();
       return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
     })();
     const afterMin = tanggal === todayStr ? nowWIBMinutes() : undefined;
-    const slots = buildSlots(rule, afterMin).map((s) => ({
-      id: `${tanggal}-${s.jamMulai}`,
-      tanggal,
-      jamMulai: s.jamMulai,
-      jamSelesai: s.jamSelesai,
-      isTersedia: true,
-      createdAt: new Date().toISOString(),
-    }));
+    const booked = await getBookedSlots(tanggal);
+
+    const slots = buildSlots(rule, afterMin).map((s) => {
+      const jamLabel = `${s.jamMulai} - ${s.jamSelesai}`;
+      return {
+        id: `${tanggal}-${s.jamMulai}`,
+        tanggal,
+        jamMulai: s.jamMulai,
+        jamSelesai: s.jamSelesai,
+        isTersedia: !booked.has(jamLabel),
+        createdAt: new Date().toISOString(),
+      };
+    });
+
     res.json(slots);
   } catch (err) {
     req.log.error({ err }, "Failed to list jadwal");
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-// ---------- Admin write endpoints ----------
 
 router.put("/admin/jadwal/aturan", requireAdmin, async (req, res) => {
   try {
@@ -250,8 +298,6 @@ router.put("/admin/jadwal/blackout", requireAdmin, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-// ---------- Legacy per-date endpoints ----------
 
 const formatLegacy = (r: typeof jadwalTersediaTable.$inferSelect) => ({
   id: r.id,

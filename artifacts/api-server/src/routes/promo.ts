@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { promoTable } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { promoTable, paketLayananTable } from "@workspace/db";
+import { eq, asc, and, sql } from "drizzle-orm";
 
 const router = Router();
 
-const formatPromo = (r: typeof promoTable.$inferSelect) => ({
+const formatPromo = (r: typeof promoTable.$inferSelect, namaPaket?: string | null) => ({
   id: r.id,
   judul: r.judul,
   deskripsi: r.deskripsi,
@@ -20,15 +20,64 @@ const formatPromo = (r: typeof promoTable.$inferSelect) => ({
   tanggalBerakhir: r.tanggalBerakhir ? r.tanggalBerakhir.toISOString() : null,
   isAktif: r.isAktif,
   urutan: r.urutan,
+  paketId: r.paketId ?? null,
+  namaPaket: namaPaket ?? null,
+  tipeDiskon: r.tipeDiskon ?? null,
+  nilaiDiskon: r.nilaiDiskon ?? null,
+  syarat: r.syarat ?? null,
+  kuota: r.kuota ?? null,
+  terpakai: r.terpakai,
   createdAt: r.createdAt.toISOString(),
 });
 
 router.get("/promo", async (req, res) => {
   try {
-    const rows = await db.select().from(promoTable).orderBy(asc(promoTable.urutan), asc(promoTable.createdAt));
-    res.json(rows.map(formatPromo));
+    const rows = await db
+      .select({ promo: promoTable, namaPaket: paketLayananTable.namaPaket })
+      .from(promoTable)
+      .leftJoin(paketLayananTable, eq(promoTable.paketId, paketLayananTable.id))
+      .orderBy(asc(promoTable.urutan), asc(promoTable.createdAt));
+    res.json(rows.map((r) => formatPromo(r.promo, r.namaPaket)));
   } catch (err) {
     req.log.error({ err }, "Failed to list promo");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/promo/:id", async (req, res) => {
+  try {
+    const rows = await db
+      .select({ promo: promoTable, namaPaket: paketLayananTable.namaPaket })
+      .from(promoTable)
+      .leftJoin(paketLayananTable, eq(promoTable.paketId, paketLayananTable.id))
+      .where(eq(promoTable.id, req.params.id));
+    if (!rows.length) return res.status(404).json({ error: "Not found" });
+    const { promo, namaPaket } = rows[0];
+
+    // Sertakan detail paket jika ada
+    let paketDetail = null;
+    if (promo.paketId) {
+      const [paket] = await db
+        .select()
+        .from(paketLayananTable)
+        .where(eq(paketLayananTable.id, promo.paketId));
+      if (paket) {
+        paketDetail = {
+          id: paket.id,
+          namaPaket: paket.namaPaket,
+          deskripsi: paket.deskripsi,
+          harga: paket.harga,
+          durasiSesi: paket.durasiSesi,
+          jumlahFoto: paket.jumlahFoto,
+          fasilitas: paket.fasilitas,
+          fotoUrl: paket.fotoUrl,
+        };
+      }
+    }
+
+    res.json({ ...formatPromo(promo, namaPaket), paketDetail });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get promo");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -52,6 +101,11 @@ router.post("/promo", async (req, res) => {
         tanggalBerakhir: body.tanggalBerakhir ? new Date(body.tanggalBerakhir) : null,
         isAktif: body.isAktif ?? true,
         urutan: body.urutan ?? 0,
+        paketId: body.paketId ?? null,
+        tipeDiskon: body.tipeDiskon ?? null,
+        nilaiDiskon: body.nilaiDiskon != null ? Number(body.nilaiDiskon) : null,
+        syarat: body.syarat ?? null,
+        kuota: body.kuota != null ? Number(body.kuota) : null,
       })
       .returning();
     res.status(201).json(formatPromo(row));
@@ -80,6 +134,11 @@ router.put("/promo/:id", async (req, res) => {
         tanggalBerakhir: body.tanggalBerakhir ? new Date(body.tanggalBerakhir) : null,
         isAktif: body.isAktif,
         urutan: body.urutan ?? 0,
+        paketId: body.paketId ?? null,
+        tipeDiskon: body.tipeDiskon ?? null,
+        nilaiDiskon: body.nilaiDiskon != null ? Number(body.nilaiDiskon) : null,
+        syarat: body.syarat ?? null,
+        kuota: body.kuota != null ? Number(body.kuota) : null,
       })
       .where(eq(promoTable.id, req.params.id))
       .returning();

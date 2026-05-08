@@ -5,6 +5,7 @@ import { z } from "zod/v4";
 import { bookingStatusEnum, paymentStatusEnum } from "./enums";
 import { profilesTable } from "./profiles";
 import { paketLayananTable } from "./paket_layanan";
+import { promoTable } from "./promo";
 
 export const bookingTable = pgTable("booking", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -20,6 +21,9 @@ export const bookingTable = pgTable("booking", {
   konsepFoto: text("konsep_foto"),
   status: bookingStatusEnum("status").notNull().default("menunggu"),
   totalHarga: integer("total_harga").notNull(),
+  hargaAsli: integer("harga_asli"),
+  diskonAmount: integer("diskon_amount").notNull().default(0),
+  promoId: uuid("promo_id").references(() => promoTable.id),
   statusPembayaran: paymentStatusEnum("status_pembayaran").notNull().default("belum_bayar"),
   alasanPembatalan: text("alasan_pembatalan"),
   dibatalkanOleh: text("dibatalkan_oleh"),

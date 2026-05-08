@@ -40,6 +40,7 @@ const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const Profil = lazy(() => import("@/pages/profil"));
+const PromoDetail = lazy(() => import("@/pages/promo-detail"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,6 +82,7 @@ function MainRoutes() {
             </ProtectedRoute>
           </Route>
           <Route path="/testimoni" component={Testimoni} />
+          <Route path="/promo/:id" component={PromoDetail} />
           <Route path="/profil">
             <ProtectedRoute>
               <Profil />
