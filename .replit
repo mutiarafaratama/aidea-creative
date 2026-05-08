@@ -67,7 +67,7 @@ outputType = "console"
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
-integrations = ["javascript_database:1.0.0"]
+integrations = ["javascript_database:1.0.0", "javascript_openai_ai_integrations:2.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -80,10 +80,6 @@ externalPort = 80
 [[ports]]
 localPort = 5000
 externalPort = 5000
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
 
 [[ports]]
 localPort = 8099
@@ -100,5 +96,5 @@ PORT = "5000"
 BASE_PATH = "/"
 NODE_ENV = "development"
 UPLOAD_DIR = "/home/runner/workspace/uploads"
-AI_MODEL = "qwen-turbo"
+AI_MODEL = "gpt-4o-mini"
 ADMIN_EMAILS = "tiarafaratama@gmail.com"
