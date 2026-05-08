@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const SESSION_KEY = "aidea_chat_session_v1";
-const BTN_POS_KEY = "aidea_chat_btn_pos";
+const MOBILE_BTN_POS_KEY = "aidea_chat_btn_pos_mobile";
 
 type ChatMessage = {
   id?: string;
@@ -18,25 +18,29 @@ function newSessionId() {
   return `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function clampPos(x: number, y: number): { x: number; y: number } {
+function clampPos(x: number, y: number, btnSize = 56): { x: number; y: number } {
   if (typeof window === "undefined") return { x, y };
-  const maxX = Math.max(8, window.innerWidth - 64);
-  const maxY = Math.max(8, window.innerHeight - 64);
   return {
-    x: Math.max(8, Math.min(maxX, x)),
-    y: Math.max(8, Math.min(maxY, y)),
+    x: Math.max(8, Math.min(window.innerWidth - btnSize - 8, x)),
+    y: Math.max(8, Math.min(window.innerHeight - btnSize - 8, y)),
   };
 }
 
-function loadSavedPos(): { x: number; y: number } | null {
+function loadMobilePos(): { x: number; y: number } | null {
   try {
-    const s = localStorage.getItem(BTN_POS_KEY);
+    const s = localStorage.getItem(MOBILE_BTN_POS_KEY);
     if (s) {
       const parsed = JSON.parse(s);
-      return clampPos(parsed.x, parsed.y);
+      if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+        return clampPos(parsed.x, parsed.y);
+      }
     }
   } catch {}
   return null;
+}
+
+function isMobile() {
+  return typeof window !== "undefined" && window.innerWidth < 768;
 }
 
 export function AiChatbot() {
@@ -63,12 +67,18 @@ export function AiChatbot() {
   const prevStatusRef = useRef<SessionStatus>("ai");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [btnPos, setBtnPos] = useState<{ x: number; y: number } | null>(loadSavedPos);
-  const [isMobileView, setIsMobileView] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 640 : false
-  );
+  // Separate mobile drag state from desktop fixed position
+  const [mobile, setMobile] = useState(() => isMobile());
+  const [mobilePos, setMobilePos] = useState<{ x: number; y: number }>(() => {
+    const saved = loadMobilePos();
+    if (saved) return saved;
+    if (typeof window !== "undefined") {
+      return { x: window.innerWidth - 80, y: window.innerHeight - 80 };
+    }
+    return { x: 320, y: 600 };
+  });
 
-  const dragInfoRef = useRef<{
+  const dragRef = useRef<{
     startX: number;
     startY: number;
     btnX: number;
@@ -76,71 +86,109 @@ export function AiChatbot() {
     moved: boolean;
   } | null>(null);
 
-  const getDefaultPos = useCallback(() => ({
-    x: window.innerWidth - 80,
-    y: window.innerHeight - 80,
-  }), []);
-
-  const getCurrentPos = useCallback(() => btnPos ?? getDefaultPos(), [btnPos, getDefaultPos]);
-
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobileView(window.innerWidth < 640);
-      setBtnPos((prev) => {
-        if (!prev) return null;
-        return clampPos(prev.x, prev.y);
-      });
+    const onResize = () => {
+      const nowMobile = isMobile();
+      setMobile(nowMobile);
+      if (nowMobile) {
+        setMobilePos((prev) => clampPos(prev.x, prev.y));
+      }
     };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const onBtnPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (isOpen) return;
+  // --- Drag handlers (mobile only) ---
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!mobile || isOpen) return;
     e.preventDefault();
-    const pos = getCurrentPos();
-    dragInfoRef.current = {
+    dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      btnX: pos.x,
-      btnY: pos.y,
+      btnX: mobilePos.x,
+      btnY: mobilePos.y,
       moved: false,
     };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
+  }, [mobile, isOpen, mobilePos]);
 
-  const onBtnPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!dragInfoRef.current) return;
-    const dx = e.clientX - dragInfoRef.current.startX;
-    const dy = e.clientY - dragInfoRef.current.startY;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragInfoRef.current.moved = true;
-    if (dragInfoRef.current.moved) {
-      const { x, y } = clampPos(
-        dragInfoRef.current.btnX + dx,
-        dragInfoRef.current.btnY + dy
-      );
-      setBtnPos({ x, y });
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragRef.current.moved = true;
+    if (dragRef.current.moved) {
+      const clamped = clampPos(dragRef.current.btnX + dx, dragRef.current.btnY + dy);
+      setMobilePos(clamped);
       try {
-        localStorage.setItem(BTN_POS_KEY, JSON.stringify({ x, y }));
+        localStorage.setItem(MOBILE_BTN_POS_KEY, JSON.stringify(clamped));
       } catch {}
     }
-  };
+  }, []);
 
-  const onBtnPointerUp = () => {
-    const moved = dragInfoRef.current?.moved ?? false;
-    dragInfoRef.current = null;
+  const onPointerUp = useCallback(() => {
+    const moved = dragRef.current?.moved ?? false;
+    dragRef.current = null;
     if (!moved) setIsOpen(true);
-  };
+  }, []);
 
-  const btnStyle: React.CSSProperties = btnPos
-    ? { position: "fixed", left: btnPos.x, top: btnPos.y, right: "auto", bottom: "auto" }
-    : { position: "fixed", right: 24, bottom: 24 };
+  // Desktop: always click to open, no drag
+  const onDesktopClick = useCallback(() => {
+    setIsOpen(true);
+  }, []);
 
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  useEffect(() => {
-    if (isOpen) scrollToBottom();
-  }, [messages, isOpen]);
+  // Button position style
+  const btnStyle: React.CSSProperties = mobile
+    ? {
+        position: "fixed",
+        left: mobilePos.x,
+        top: mobilePos.y,
+        right: "auto",
+        bottom: "auto",
+        zIndex: 9998,
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+        touchAction: "none",
+      }
+    : {
+        position: "fixed",
+        right: 24,
+        bottom: 24,
+        left: "auto",
+        top: "auto",
+        zIndex: 9998,
+        width: 56,
+        height: 56,
+        borderRadius: "50%",
+      };
 
+  // Chat window position style
+  const chatWindowStyle: React.CSSProperties = mobile
+    ? {
+        position: "fixed",
+        left: 8,
+        right: 8,
+        bottom: 16,
+        top: "auto",
+        width: "auto",
+        height: "min(520px, calc(100dvh - 80px))",
+        maxHeight: "calc(100dvh - 80px)",
+        zIndex: 9999,
+      }
+    : {
+        position: "fixed",
+        right: 24,
+        bottom: 24,
+        left: "auto",
+        top: "auto",
+        width: 384,
+        height: 520,
+        maxHeight: "calc(100vh - 48px)",
+        zIndex: 9999,
+      };
+
+  // --- Polling for admin messages ---
   useEffect(() => {
     const shouldPoll = isOpen || status === "admin" || status === "menunggu_admin";
     if (!shouldPoll) return;
@@ -160,7 +208,6 @@ export function AiChatbot() {
         if (newStatus && newStatus !== oldStatus) {
           prevStatusRef.current = newStatus;
           setStatus(newStatus);
-
           if (
             (oldStatus === "admin" || oldStatus === "menunggu_admin") &&
             (newStatus === "ai" || newStatus === "selesai")
@@ -183,11 +230,7 @@ export function AiChatbot() {
 
         const newOnes: ChatMessage[] = (data.messages ?? [])
           .filter((m: any) => m.pengirim === "admin")
-          .map((m: any) => ({
-            id: m.id,
-            role: "admin" as const,
-            content: m.pesan,
-          }));
+          .map((m: any) => ({ id: m.id, role: "admin" as const, content: m.pesan }));
         if ((data.messages ?? []).length > 0) {
           lastSeenRef.current = data.messages[data.messages.length - 1].createdAt;
         }
@@ -206,6 +249,10 @@ export function AiChatbot() {
     return () => clearInterval(t);
   }, [isOpen, sessionId, status]);
 
+  useEffect(() => {
+    if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || pending) return;
@@ -222,10 +269,7 @@ export function AiChatbot() {
           message: userMessage,
           history: messages
             .filter((m) => m.role !== "admin" && m.role !== "system")
-            .map((m) => ({
-              role: m.role === "admin" ? "assistant" : m.role,
-              content: m.content,
-            })),
+            .map((m) => ({ role: m.role === "admin" ? "assistant" : m.role, content: m.content })),
         }),
       });
       const data = await res.json();
@@ -273,46 +317,23 @@ export function AiChatbot() {
       ? { text: "Anda terhubung dengan admin", cls: "bg-emerald-500/10 text-emerald-700" }
       : null;
 
-  const chatWindowStyle: React.CSSProperties = isMobileView
-    ? {
-        position: "fixed",
-        left: 8,
-        right: 8,
-        bottom: 16,
-        top: "auto",
-        width: "auto",
-        height: "min(520px, calc(100dvh - 80px))",
-        maxHeight: "calc(100dvh - 80px)",
-        zIndex: 9999,
-      }
-    : {
-        position: "fixed",
-        right: 24,
-        bottom: 24,
-        width: 384,
-        height: 520,
-        maxHeight: "calc(100vh - 48px)",
-        zIndex: 9999,
-      };
-
   return (
     <>
       {/* Floating button */}
       <button
-        style={{
-          ...btnStyle,
-          zIndex: 9999,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          touchAction: "none",
-        }}
+        style={btnStyle}
         className={`bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center transition-transform duration-200 ${
           isOpen ? "scale-0 pointer-events-none" : "scale-100"
         }`}
-        onPointerDown={onBtnPointerDown}
-        onPointerMove={onBtnPointerMove}
-        onPointerUp={onBtnPointerUp}
+        {...(mobile
+          ? {
+              onPointerDown,
+              onPointerMove,
+              onPointerUp,
+            }
+          : {
+              onClick: onDesktopClick,
+            })}
         aria-label="Buka chat asisten"
       >
         <MessageCircle size={26} />
@@ -363,10 +384,7 @@ export function AiChatbot() {
               );
             }
             return (
-              <div
-                key={idx}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
+              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                     msg.role === "user"
