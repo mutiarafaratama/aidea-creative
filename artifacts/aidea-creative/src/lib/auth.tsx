@@ -25,7 +25,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (opts: { email: string; password: string; namaLengkap: string; noTelepon?: string }) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
-  handleOAuthToken: (token: string) => Promise<void>;
+  handleOAuthToken: (token: string) => Promise<{ user: AuthUser; profile: Profile } | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -211,6 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setProfileChecked(true);
     setIsLoading(false);
+    return result;
   };
 
   const value = useMemo<AuthContextValue>(

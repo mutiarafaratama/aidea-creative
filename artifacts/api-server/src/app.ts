@@ -53,9 +53,9 @@ if (process.env.NODE_ENV === "production") {
       immutable: true,
       index: false,
     }));
-    // Catch-all: serve index.html for all non-API routes (SPA fallback)
-    // Use regex to be compatible with Express 5 path-to-regexp v8
-    app.get(/.*/, (_req, res) => {
+    // Catch-all: serve index.html for non-API routes (SPA fallback)
+    // Explicitly exclude /api/* so Express API routes always win
+    app.get(/^(?!\/api(\/|$)).*/, (_req, res) => {
       res.sendFile(path.join(frontendDist, "index.html"));
     });
   } else {

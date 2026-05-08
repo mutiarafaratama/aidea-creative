@@ -19,10 +19,15 @@ export default function AuthCallback() {
     }
 
     if (token) {
-      handleOAuthToken(token).then(() => {
+      handleOAuthToken(token).then((result: any) => {
         const safeRedirect =
           redirect.startsWith("/") && !redirect.startsWith("//") ? redirect : "/";
-        setLocation(safeRedirect);
+        // Redirect admin to dashboard if no specific redirect is given
+        if (safeRedirect === "/" && result?.profile?.role === "admin") {
+          setLocation("/dashboard");
+        } else {
+          setLocation(safeRedirect);
+        }
       });
       return;
     }

@@ -98,6 +98,11 @@ router.post("/auth/login", async (req, res) => {
       return;
     }
 
+    if (!userAuth.passwordHash) {
+      res.status(401).json({ error: "Akun ini terdaftar via Google. Gunakan tombol 'Login dengan Google'." });
+      return;
+    }
+
     const valid = await bcrypt.compare(password, userAuth.passwordHash);
     if (!valid) {
       res.status(401).json({ error: "Email atau password salah." });
