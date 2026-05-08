@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useSiteSettings } from "@/lib/settings";
 import { PromoModal } from "@/components/promo-modal";
+import { PricelistSection } from "@/components/pricelist-section";
 
 const heroColumns = [
   [
@@ -75,6 +76,7 @@ const slideVariants = {
 function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolean }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [dir, setDir] = useState(1);
+  const [activeHomeTab, setActiveHomeTab] = useState<"paket" | "pricelist">("paket");
   const touchStartX = useRef<number | null>(null);
   const n = packages.length;
 
@@ -129,17 +131,31 @@ function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolea
 
         {/* Choice chips — Paket & Pricelist */}
         <div className="flex gap-2 mb-8">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-sm font-semibold shadow-sm">
+          <button
+            onClick={() => setActiveHomeTab("paket")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+              activeHomeTab === "paket"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "border border-border bg-white text-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
             Paket Foto
-          </span>
-          <Link href="/paket?tab=pricelist">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white text-foreground px-4 py-1.5 text-sm font-medium hover:border-primary hover:text-primary transition-colors cursor-pointer">
-              Pricelist
-            </span>
-          </Link>
+          </button>
+          <button
+            onClick={() => setActiveHomeTab("pricelist")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+              activeHomeTab === "pricelist"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "border border-border bg-white text-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
+            Pricelist
+          </button>
         </div>
 
-        {n === 0 ? (
+        {activeHomeTab === "pricelist" ? (
+          <PricelistSection />
+        ) : n === 0 ? (
           <div className="text-center text-muted-foreground py-16">
             <Camera className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
             <p>Belum ada paket tersedia.</p>
