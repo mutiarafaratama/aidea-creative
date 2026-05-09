@@ -1,21 +1,15 @@
 import { useState } from "react";
 import { useListProduk } from "@workspace/api-client-react";
-import { ShoppingBag, Search, ChevronLeft, ChevronRight, X, ShoppingCart, Minus, Plus } from "lucide-react";
+import { ShoppingBag, Search, ChevronLeft, ChevronRight, ShoppingCart, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { useCart } from "@/contexts/cart-context";
 import { CartButton, CartDrawer } from "@/components/cart-drawer";
 import { AppImage } from "@/components/app-image";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile.tsx";
 
 const kategoriLabel: Record<string, string> = {
   cetak_foto: "Cetak Foto",
@@ -36,29 +30,20 @@ type Produk = {
   gambarUrl?: string[] | null;
 };
 
-// ─── Shared product detail content ─────────────────────────────────────────
-function ProductDetailContent({
-  produk,
-  onClose,
-  variant,
-}: {
-  produk: Produk;
-  onClose: () => void;
-  variant: "sheet" | "dialog";
-}) {
+// ─── Bottom sheet product detail — always Vaul Drawer ──────────────────────
+function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => void }) {
   const { addToCart, items, setIsOpen: setCartOpen } = useCart();
-  const { toast } = useToast();
   const images = (produk.gambarUrl ?? []).filter(Boolean);
-  const [idx, setIdx] = useState(0);
+  const [imgIdx, setImgIdx] = useState(0);
   const [qty, setQty] = useState(1);
   const total = images.length;
-  const current = images[idx];
+  const current = images[imgIdx];
   const inCart = items.find((i) => i.produkId === produk.id);
 
-  const prev = () => setIdx((i) => (i - 1 + total) % total);
-  const next = () => setIdx((i) => (i + 1) % total);
+  const prev = () => setImgIdx((i) => (i - 1 + total) % total);
+  const next = () => setImgIdx((i) => (i + 1) % total);
 
-  const handleAddToCart = () => {
+  const handleAdd = () => {
     addToCart(
       {
         produkId: produk.id,
@@ -73,335 +58,200 @@ function ProductDetailContent({
     setCartOpen(true);
   };
 
-  if (variant === "sheet") {
-    return (
-      <div className="flex flex-col h-full overflow-hidden">
-        {/* Image gallery */}
-        <div className="relative bg-muted shrink-0" style={{ height: "52vw", minHeight: 200, maxHeight: 300 }}>
-          {current ? (
-            <AppImage
-              src={current}
-              alt={produk.namaProduk}
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <ShoppingBag className="text-muted-foreground/20" size={56} />
-            </div>
-          )}
+  return (
+    <Drawer open onOpenChange={(o) => { if (!o) onClose(); }} shouldScaleBackground={false}>
+      {/* DrawerContent: fixed inset-x-0 bottom-0, full-width bottom sheet */}
+      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl mt-0 max-h-[92dvh] flex flex-col">
+        <DrawerTitle className="sr-only">{produk.namaProduk}</DrawerTitle>
+        {/* shadcn DrawerContent renders a drag handle pill automatically above children */}
+        <div className="flex flex-col flex-1 overflow-hidden">
 
-          {/* Prev / Next */}
-          {total > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={prev}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 bg-background/85 backdrop-blur border border-border/60 rounded-full h-9 w-9 flex items-center justify-center shadow-md"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                onClick={next}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-background/85 backdrop-blur border border-border/60 rounded-full h-9 w-9 flex items-center justify-center shadow-md"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </>
-          )}
-
-          {/* Out of stock overlay */}
-          {produk.stok === 0 && (
-            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
-              <span className="bg-destructive text-destructive-foreground px-3 py-1 text-xs font-bold rounded-full">
-                Habis Terjual
-              </span>
-            </div>
-          )}
-
-          {/* Dot indicators */}
-          {total > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setIdx(i)}
-                  style={{
-                    width: i === idx ? 18 : 6,
-                    height: 6,
-                    borderRadius: 999,
-                    background: i === idx ? "hsl(var(--primary))" : "rgba(0,0,0,0.25)",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    transition: "all 0.25s ease",
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Scrollable info area */}
-        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-2">
-          {/* Category + size badges */}
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-              {kategoriLabel[produk.kategori] ?? produk.kategori}
-            </span>
-            {produk.ukuran && (
-              <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-full">
-                {produk.ukuran}
-              </span>
-            )}
-            {produk.stok > 0 && produk.stok < 5 && (
-              <span className="text-[11px] font-bold bg-destructive/10 text-destructive px-2.5 py-1 rounded-full">
-                Sisa {produk.stok}
-              </span>
-            )}
-          </div>
-
-          {/* Name + price */}
-          <h2 className="text-xl font-bold leading-snug mb-1">{produk.namaProduk}</h2>
-          <div className="text-2xl font-bold text-primary mb-3">
-            Rp {produk.harga.toLocaleString("id-ID")}
-          </div>
-
-          {/* Description */}
-          {produk.deskripsi && (
-            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed mb-3">
-              {produk.deskripsi}
-            </p>
-          )}
-
-          {/* Stock info */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
-            <div className={`h-2 w-2 rounded-full ${produk.stok > 0 ? "bg-green-500" : "bg-destructive"}`} />
-            {produk.stok > 0
-              ? <span>Stok tersedia: <span className="font-semibold text-foreground">{produk.stok}</span></span>
-              : <span className="text-destructive font-medium">Stok habis</span>
-            }
-          </div>
-
-          {/* Thumbnail strip */}
-          {total > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-              {images.map((src, i) => (
-                <button
-                  key={`${src}-${i}`}
-                  type="button"
-                  onClick={() => setIdx(i)}
-                  className={`shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
-                    i === idx ? "border-primary shadow-sm shadow-primary/20" : "border-border opacity-60 hover:opacity-100"
-                  }`}
-                >
-                  <AppImage src={src} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Qty selector */}
-          {produk.stok > 0 && (
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-sm text-muted-foreground">Jumlah:</span>
-              <div className="flex items-center border border-border rounded-xl bg-muted/40">
-                <button
-                  type="button"
-                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40 rounded-l-xl"
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  disabled={qty <= 1}
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="w-10 text-center font-bold text-sm">{qty}</span>
-                <button
-                  type="button"
-                  className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40 rounded-r-xl"
-                  onClick={() => setQty((q) => Math.min(produk.stok, q + 1))}
-                  disabled={qty >= produk.stok}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+          {/* ── Image gallery ── */}
+          <div
+            className="relative bg-muted shrink-0 w-full overflow-hidden"
+            style={{ height: "clamp(200px, 55vw, 320px)" }}
+          >
+            {current ? (
+              <AppImage
+                src={current}
+                alt={produk.namaProduk}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <ShoppingBag className="text-muted-foreground/20" size={64} />
               </div>
-              <span className="ml-auto text-base font-bold text-primary">
-                Rp {(produk.harga * qty).toLocaleString("id-ID")}
+            )}
+
+            {/* Prev / Next arrows */}
+            {total > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={prev}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-background/85 backdrop-blur border border-border/50 rounded-full h-9 w-9 flex items-center justify-center shadow-md"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={next}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-background/85 backdrop-blur border border-border/50 rounded-full h-9 w-9 flex items-center justify-center shadow-md"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
+            )}
+
+            {/* Stok habis badge */}
+            {produk.stok === 0 && (
+              <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center">
+                <span className="bg-destructive text-destructive-foreground px-3 py-1.5 text-sm font-bold rounded-full">
+                  Habis Terjual
+                </span>
+              </div>
+            )}
+
+            {/* Dot indicators */}
+            {total > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setImgIdx(i)}
+                    style={{
+                      width: i === imgIdx ? 20 : 6,
+                      height: 6,
+                      borderRadius: 999,
+                      background: i === imgIdx ? "hsl(var(--primary))" : "rgba(0,0,0,0.22)",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      transition: "all 0.25s ease",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Scrollable product info ── */}
+          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-2 overscroll-contain">
+            {/* Badges row */}
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                {kategoriLabel[produk.kategori] ?? produk.kategori}
               </span>
+              {produk.ukuran && (
+                <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+                  {produk.ukuran}
+                </span>
+              )}
+              {produk.stok > 0 && produk.stok < 5 && (
+                <span className="text-[11px] font-bold bg-destructive/10 text-destructive px-2.5 py-1 rounded-full">
+                  Sisa {produk.stok}
+                </span>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Pinned footer CTA */}
-        <div className="shrink-0 px-5 pt-3 pb-6 border-t border-border bg-background">
-          <Button
-            className="w-full h-13 text-base font-semibold rounded-2xl shadow-lg shadow-primary/20"
-            style={{ height: 52 }}
-            disabled={produk.stok === 0}
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="h-5 w-5 mr-2" />
-            {produk.stok === 0
-              ? "Stok Habis"
-              : inCart
-                ? `Tambah Lagi — Rp ${(produk.harga * qty).toLocaleString("id-ID")}`
-                : `Tambah ke Keranjang — Rp ${(produk.harga * qty).toLocaleString("id-ID")}`}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+            {/* Name */}
+            <h2 className="text-xl font-bold leading-snug mb-1">{produk.namaProduk}</h2>
 
-  // ── Desktop dialog layout (2-column) ──────────────────────────────────────
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2">
-      <div className="relative bg-muted aspect-square md:aspect-auto md:min-h-[400px] flex items-center justify-center">
-        {current ? (
-          <AppImage src={current} alt={produk.namaProduk} className="max-h-full max-w-full object-contain p-6" />
-        ) : (
-          <ShoppingBag className="text-muted-foreground opacity-20" size={80} />
-        )}
-        {total > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center shadow"
+            {/* Price */}
+            <div className="text-2xl font-extrabold text-primary mb-3">
+              Rp {produk.harga.toLocaleString("id-ID")}
+            </div>
+
+            {/* Description */}
+            {produk.deskripsi && (
+              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed mb-4">
+                {produk.deskripsi}
+              </p>
+            )}
+
+            {/* Stock dot */}
+            <div className="flex items-center gap-1.5 text-xs mb-4">
+              <div className={`h-2 w-2 rounded-full shrink-0 ${produk.stok > 0 ? "bg-green-500" : "bg-destructive"}`} />
+              {produk.stok > 0
+                ? <span className="text-muted-foreground">Stok tersedia: <span className="font-semibold text-foreground">{produk.stok}</span></span>
+                : <span className="font-medium text-destructive">Stok habis</span>
+              }
+            </div>
+
+            {/* Thumbnail strip */}
+            {total > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+                {images.map((src, i) => (
+                  <button
+                    key={`${src}-${i}`}
+                    type="button"
+                    onClick={() => setImgIdx(i)}
+                    className={`shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
+                      i === imgIdx
+                        ? "border-primary shadow shadow-primary/20"
+                        : "border-border opacity-55 hover:opacity-100"
+                    }`}
+                  >
+                    <AppImage src={src} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Quantity selector */}
+            {produk.stok > 0 && (
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-sm text-muted-foreground shrink-0">Jumlah:</span>
+                <div className="flex items-center border border-border rounded-2xl bg-muted/30 overflow-hidden">
+                  <button
+                    type="button"
+                    className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition disabled:opacity-30"
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    disabled={qty <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="w-10 text-center font-bold text-sm select-none">{qty}</span>
+                  <button
+                    type="button"
+                    className="h-10 w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition disabled:opacity-30"
+                    onClick={() => setQty((q) => Math.min(produk.stok, q + 1))}
+                    disabled={qty >= produk.stok}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <span className="ml-auto text-base font-bold text-primary">
+                  Rp {(produk.harga * qty).toLocaleString("id-ID")}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ── Pinned CTA footer ── */}
+          <div className="shrink-0 px-5 pt-3 pb-8 border-t border-border bg-background">
+            <Button
+              className="w-full rounded-2xl font-semibold text-base shadow-lg shadow-primary/20"
+              style={{ height: 52 }}
+              disabled={produk.stok === 0}
+              onClick={handleAdd}
             >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center shadow"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur px-2 py-0.5 rounded-full text-xs border border-border">
-              {idx + 1} / {total}
-            </div>
-          </>
-        )}
-        {produk.stok === 0 && (
-          <div className="absolute top-3 left-3 bg-destructive text-destructive-foreground px-2 py-1 text-xs font-bold rounded">
-            Habis Terjual
+              <ShoppingCart className="h-5 w-5 mr-2.5" />
+              {produk.stok === 0
+                ? "Stok Habis"
+                : inCart
+                  ? `Tambah Lagi · Rp ${(produk.harga * qty).toLocaleString("id-ID")}`
+                  : `Tambah ke Keranjang · Rp ${(produk.harga * qty).toLocaleString("id-ID")}`
+              }
+            </Button>
           </div>
-        )}
-      </div>
-
-      <div className="p-6 flex flex-col">
-        <div className="text-xs text-muted-foreground mb-1 uppercase tracking-wider flex items-center gap-2 flex-wrap">
-          <span>{kategoriLabel[produk.kategori] ?? produk.kategori}</span>
-          {produk.ukuran && (
-            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold normal-case text-[11px]">
-              {produk.ukuran}
-            </span>
-          )}
         </div>
-        <h2 className="text-2xl font-serif font-bold leading-tight mb-3">{produk.namaProduk}</h2>
-        <div className="text-2xl font-bold text-primary mb-4">Rp {produk.harga.toLocaleString("id-ID")}</div>
-        <p className="text-sm text-muted-foreground whitespace-pre-line mb-4">{produk.deskripsi || "Tidak ada deskripsi."}</p>
-        <div className="text-xs text-muted-foreground mb-6">
-          {produk.stok > 0
-            ? <>Stok tersedia: <span className="font-semibold text-foreground">{produk.stok}</span></>
-            : "Stok habis"}
-        </div>
-
-        {total > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-            {images.map((src, i) => (
-              <button
-                key={`${src}-${i}`}
-                type="button"
-                onClick={() => setIdx(i)}
-                className={`shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 ${
-                  i === idx ? "border-primary" : "border-border opacity-70 hover:opacity-100"
-                }`}
-              >
-                <AppImage src={src} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {produk.stok > 0 && (
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-sm text-muted-foreground">Jumlah:</span>
-            <div className="flex items-center border border-border rounded-lg">
-              <button
-                type="button"
-                className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                disabled={qty <= 1}
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="w-10 text-center font-semibold text-sm">{qty}</span>
-              <button
-                type="button"
-                className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40"
-                onClick={() => setQty((q) => Math.min(produk.stok, q + 1))}
-                disabled={qty >= produk.stok}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            <span className="text-sm font-bold text-primary ml-auto">
-              Rp {(produk.harga * qty).toLocaleString("id-ID")}
-            </span>
-          </div>
-        )}
-
-        <div className="mt-auto flex gap-2 pt-4 border-t border-border">
-          <Button variant="outline" onClick={onClose} className="flex-none">
-            <X className="h-4 w-4 mr-1" /> Tutup
-          </Button>
-          <Button
-            className="flex-1"
-            disabled={produk.stok === 0}
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="h-4 w-4 mr-1.5" />
-            {inCart ? "Tambah Lagi" : "Tambah ke Keranjang"}
-          </Button>
-        </div>
-      </div>
-    </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
-// ─── ProductDetail — bottom sheet on mobile, dialog on desktop ─────────────
-function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => void }) {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <Drawer
-        open
-        onOpenChange={(open) => { if (!open) onClose(); }}
-        shouldScaleBackground={false}
-      >
-        <DrawerContent
-          className="p-0 gap-0 outline-none rounded-t-3xl overflow-hidden"
-          style={{ maxHeight: "92dvh" }}
-        >
-          <DrawerTitle className="sr-only">{produk.namaProduk}</DrawerTitle>
-          <ProductDetailContent produk={produk} onClose={onClose} variant="sheet" />
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl p-0 overflow-hidden gap-0 max-h-[90vh] overflow-y-auto">
-        <DialogTitle className="sr-only">{produk.namaProduk}</DialogTitle>
-        <ProductDetailContent produk={produk} onClose={onClose} variant="dialog" />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Toko page ─────────────────────────────────────────────────────────────
+// ─── Toko page ──────────────────────────────────────────────────────────────
 export default function Toko() {
   const { data: produkList, isLoading } = useListProduk();
   const { addToCart } = useCart();
@@ -463,18 +313,16 @@ export default function Toko() {
       {/* Product grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {isLoading ? (
-          Array(8)
-            .fill(0)
-            .map((_, i) => (
-              <Card key={i} className="overflow-hidden border-border">
-                <Skeleton className="h-36 w-full rounded-none" />
-                <CardContent className="p-3">
-                  <Skeleton className="h-4 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-1/2 mb-3" />
-                  <Skeleton className="h-8 w-full" />
-                </CardContent>
-              </Card>
-            ))
+          Array(8).fill(0).map((_, i) => (
+            <Card key={i} className="overflow-hidden border-border">
+              <Skeleton className="h-36 w-full rounded-none" />
+              <CardContent className="p-3">
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2 mb-3" />
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+            </Card>
+          ))
         ) : filteredProducts.length > 0 ? (
           filteredProducts.map((produk) => {
             const gambarPertama = Array.isArray(produk.gambarUrl) ? produk.gambarUrl[0] : null;
