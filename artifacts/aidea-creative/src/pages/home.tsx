@@ -28,6 +28,7 @@ import { useSiteSettings } from "@/lib/settings";
 import { AppImage } from "@/components/app-image";
 import { resolveUploadUrl } from "@/lib/upload-url";
 import { PromoModal } from "@/components/promo-modal";
+import { PricelistSection } from "@/components/pricelist-section";
 
 const heroColumns = [
   [
@@ -75,6 +76,7 @@ const slideVariants = {
 };
 
 function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolean }) {
+  const [activeTab, setActiveTab] = useState<"paket" | "pricelist">("paket");
   const [activeIdx, setActiveIdx] = useState(0);
   const [dir, setDir] = useState(1);
   const touchStartX = useRef<number | null>(null);
@@ -120,28 +122,49 @@ function PaketCarousel({ packages, loading }: { packages: any[]; loading: boolea
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-3 py-1.5 mb-3">
               <TrendingUp className="h-3.5 w-3.5 text-primary" />
-              <span className="text-primary text-[11px] font-bold uppercase tracking-widest">Rekomendasi untuk Kamu</span>
+              <span className="text-primary text-[11px] font-bold uppercase tracking-widest">
+                {activeTab === "pricelist" ? "Harga Transparan" : "Rekomendasi untuk Kamu"}
+              </span>
             </div>
-            <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">Paket pilihan.</h2>
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
+              {activeTab === "pricelist" ? "Pricelist." : "Paket pilihan."}
+            </h2>
           </div>
-          <Link href="/paket" className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/70 transition-colors">
-            Semua paket <ArrowRight className="h-4 w-4" />
-          </Link>
+          {activeTab === "paket" && (
+            <Link href="/paket" className="hidden sm:inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/70 transition-colors">
+              Semua paket <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </motion.div>
 
         {/* Choice chips — Paket & Pricelist */}
         <div className="flex gap-2 mb-8">
-          <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold bg-primary text-primary-foreground shadow-sm">
+          <button
+            onClick={() => setActiveTab("paket")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+              activeTab === "paket"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "border border-border bg-white text-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
             Paket Foto
-          </span>
-          <Link href="/paket?tab=pricelist">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white text-foreground px-4 py-1.5 text-sm font-medium hover:border-primary hover:text-primary transition-colors cursor-pointer">
-              Pricelist
-            </span>
-          </Link>
+          </button>
+          <button
+            onClick={() => setActiveTab("pricelist")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+              activeTab === "pricelist"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "border border-border bg-white text-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
+            Pricelist
+          </button>
         </div>
 
-        {n === 0 ? (
+        {/* ── Pricelist view ── */}
+        {activeTab === "pricelist" ? (
+          <PricelistSection />
+        ) : n === 0 ? (
           <div className="text-center text-muted-foreground py-16">
             <Camera className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
             <p>Belum ada paket tersedia.</p>
