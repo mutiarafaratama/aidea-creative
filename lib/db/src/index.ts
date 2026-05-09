@@ -4,24 +4,17 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const connectionString = process.env.SUPABASE_DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error(
-    "SUPABASE_DATABASE_URL harus diisi. Tambahkan connection string Supabase di Replit Secrets.",
+    "DATABASE_URL harus diisi. Tambahkan connection string PostgreSQL di Replit Secrets.",
   );
 }
 
-const useSsl =
-  /sslmode=require/i.test(connectionString) ||
-  /\.supabase\.co/i.test(connectionString) ||
-  /\.supabase\.com/i.test(connectionString) ||
-  /pooler\.supabase/i.test(connectionString) ||
-  /neon\.tech/i.test(connectionString);
-
 export const pool = new Pool({
   connectionString,
-  ssl: useSsl ? { rejectUnauthorized: false } : false,
+  ssl: false,
   max: 5,
   idleTimeoutMillis: 0,
   keepAlive: true,
