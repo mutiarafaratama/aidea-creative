@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   useListPaket, getListPaketQueryKey, useCreatePaket, useUpdatePaket, useDeletePaket,
   useListKategori,
@@ -53,6 +53,10 @@ export default function AdminPaket() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading, error, refetch, isFetching } = useListPaket();
+  useEffect(() => {
+    const t = setInterval(() => refetch(), 8000);
+    return () => clearInterval(t);
+  }, [refetch]);
   const { data: kategoriData } = useListKategori();
   const createM = useCreatePaket();
   const updateM = useUpdatePaket();

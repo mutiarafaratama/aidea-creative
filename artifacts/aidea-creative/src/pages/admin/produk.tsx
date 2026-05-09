@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useListProduk, getListProdukQueryKey, useCreateProduk, useUpdateProduk, useDeleteProduk } from "@workspace/api-client-react";
 import { adminFetch } from "@/lib/admin-api";
 import { useQueryClient } from "@tanstack/react-query";
@@ -68,6 +68,10 @@ export default function AdminProduk() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading, error, refetch, isFetching } = useListProduk();
+  useEffect(() => {
+    const t = setInterval(() => refetch(), 8000);
+    return () => clearInterval(t);
+  }, [refetch]);
   const createM = useCreateProduk();
   const updateM = useUpdateProduk();
   const deleteM = useDeleteProduk();

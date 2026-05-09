@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useListPortfolio, getListPortfolioQueryKey, useCreatePortfolio, useDeletePortfolio } from "@workspace/api-client-react";
 import type { Portfolio } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,6 +41,10 @@ export default function AdminPortfolio() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading, error, refetch, isFetching } = useListPortfolio();
+  useEffect(() => {
+    const t = setInterval(() => refetch(), 8000);
+    return () => clearInterval(t);
+  }, [refetch]);
   const createM = useCreatePortfolio();
   const deleteM = useDeletePortfolio();
 

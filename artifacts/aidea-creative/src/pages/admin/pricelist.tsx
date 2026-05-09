@@ -38,6 +38,8 @@ function usePricelist() {
       const res = await adminFetch<PricelistItem[]>("/pricelist");
       return Array.isArray(res) ? res : [];
     },
+    refetchInterval: 8000,
+    staleTime: 0,
   });
 }
 

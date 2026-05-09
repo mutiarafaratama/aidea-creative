@@ -25,7 +25,15 @@ export default function AdminTestimoni() {
     } catch (err: any) { toast({ title: "Gagal", description: err?.message, variant: "destructive" }); }
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const t = setInterval(() => {
+      adminFetch<Testi[]>("/testimoni?all=true")
+        .then((res) => setItems(Array.isArray(res) ? res : []))
+        .catch(() => {});
+    }, 8000);
+    return () => clearInterval(t);
+  }, []);
 
   const setApproved = async (id: string, isApproved: boolean) => {
     try {

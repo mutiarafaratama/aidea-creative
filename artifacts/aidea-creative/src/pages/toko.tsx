@@ -60,11 +60,11 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
 
   return (
     <Drawer open onOpenChange={(o) => { if (!o) onClose(); }} shouldScaleBackground={false}>
-      {/* DrawerContent: fixed inset-x-0 bottom-0, full-width bottom sheet */}
-      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl mt-0 max-h-[92dvh] flex flex-col">
+      {/* DrawerContent: full-width bottom sheet, scrollable */}
+      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl mt-0 overflow-y-auto overscroll-contain max-h-[92dvh]">
         <DrawerTitle className="sr-only">{produk.namaProduk}</DrawerTitle>
-        {/* shadcn DrawerContent renders a drag handle pill automatically above children */}
-        <div className="flex flex-col flex-1 overflow-hidden">
+        {/* shadcn DrawerContent already renders drag handle above children */}
+        <div>
 
           {/* ── Image gallery ── */}
           <div
@@ -228,8 +228,8 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
             )}
           </div>
 
-          {/* ── Pinned CTA footer ── */}
-          <div className="shrink-0 px-5 pt-3 pb-8 border-t border-border bg-background">
+          {/* ── Sticky CTA footer ── */}
+          <div className="sticky bottom-0 px-5 pt-3 pb-8 border-t border-border bg-background">
             <Button
               className="w-full rounded-2xl font-semibold text-base shadow-lg shadow-primary/20"
               style={{ height: 52 }}
