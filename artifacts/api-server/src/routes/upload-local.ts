@@ -27,6 +27,27 @@ function safeFilename(name: string): string {
   return cleaned || "file";
 }
 
+async function ensureBucket(supabase: ReturnType<typeof createClient>, bucket: string): Promise<void> {
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if (listError) {
+    logger.warn({ listError }, "Could not list buckets, attempting upload anyway");
+    return;
+  }
+  const exists = (buckets ?? []).some((b) => b.name === bucket);
+  if (!exists) {
+    const { error: createError } = await supabase.storage.createBucket(bucket, {
+      public: true,
+      allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+      fileSizeLimit: 20 * 1024 * 1024,
+    });
+    if (createError && !createError.message.includes("already exists")) {
+      logger.warn({ createError, bucket }, "Could not create bucket");
+    } else {
+      logger.info({ bucket }, "Supabase storage bucket created");
+    }
+  }
+}
+
 async function uploadToSupabase(
   dataBase64: string,
   bucket: string,
@@ -35,6 +56,8 @@ async function uploadToSupabase(
   contentType: string,
 ): Promise<{ url: string; path: string }> {
   const supabase = getSupabaseAdmin();
+
+  await ensureBucket(supabase, bucket);
 
   const cleaned = dataBase64.includes(",") ? dataBase64.split(",", 2)[1] : dataBase64;
   const buffer = Buffer.from(cleaned, "base64");
