@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, X, ImageOff, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ImageOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { resolveUploadUrl } from "@/lib/upload-url";
 
 type PricelistItem = {
   id: string;
@@ -111,7 +112,7 @@ function PricelistModal({
               style={{ minHeight: 300, maxHeight: "75dvh" }}
             >
               <img
-                src={currentItem.gambarUrl}
+                src={resolveUploadUrl(currentItem.gambarUrl) ?? currentItem.gambarUrl}
                 alt={`${group.kategori} ${idx + 1}`}
                 className="max-w-full max-h-full object-contain"
                 style={{ maxHeight: "72dvh" }}
@@ -188,7 +189,7 @@ function CategoryCard({
       <div className="relative overflow-hidden rounded-2xl border border-border/60 shadow-sm hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-400 bg-muted aspect-[3/4]">
         {cover && !imgError ? (
           <img
-            src={cover}
+            src={resolveUploadUrl(cover) ?? cover}
             alt={label}
             className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
             onError={() => setImgError(true)}

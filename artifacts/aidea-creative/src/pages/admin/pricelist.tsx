@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { SupabaseUploader } from "@/components/supabase-uploader";
+import { AppImage } from "@/components/app-image";
 import { adminFetch } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -180,7 +181,7 @@ export default function AdminPricelist() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {currentItems.map((item, i) => (
             <div key={item.id} className="group relative rounded-xl overflow-hidden border border-border bg-muted aspect-[3/4]">
-              <img
+              <AppImage
                 src={item.gambarUrl}
                 alt={`${activeTab} ${i + 1}`}
                 className="w-full h-full object-cover"
