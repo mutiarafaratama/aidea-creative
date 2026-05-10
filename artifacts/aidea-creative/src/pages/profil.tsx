@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { useSiteSettings } from "@/lib/settings";
+import { useSiteSettings, type SiteSettings } from "@/lib/settings";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -208,7 +208,13 @@ function formatTanggal(str: string) {
   }
 }
 
-function printInvoicePesanan(p: PesananRow) {
+function fmtPhone(raw?: string) {
+  if (!raw) return "";
+  const s = raw.trim();
+  return s.startsWith("+") ? s : `+${s}`;
+}
+
+function printInvoicePesanan(p: PesananRow, settings?: SiteSettings) {
   const formatRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
   const tglPesan = format(new Date(p.createdAt || p.created_at), "dd MMMM yyyy, HH:mm", { locale: idLocale });
   const kodePesanan = p.kodePesanan || p.kode_pesanan;
@@ -295,8 +301,8 @@ ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 
       <div class="brand">AideaCreative</div>
       <div class="brand-sub">Smart Photo Studio</div>
       <div class="brand-info">
-        Jl. A. Yani No. 12, Pringsewu, Lampung<br>
-        +62 852-7923-2879 &nbsp;|&nbsp; aidea.creative@gmail.com
+        ${settings?.contactAddress ?? "Jl. A. Yani No. 12, Pringsewu, Lampung"}<br>
+        ${fmtPhone(settings?.contactWhatsapp) || "+62 852-7923-2879"} &nbsp;|&nbsp; ${settings?.contactEmail ?? "aidea.creative@gmail.com"}
       </div>
     </div>
     <div class="inv-right">
@@ -374,7 +380,7 @@ ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 
   if (w) { w.document.write(html); w.document.close(); }
 }
 
-function printInvoice(b: BookingRow) {
+function printInvoice(b: BookingRow, settings?: SiteSettings) {
   const formatRp = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
   const tglBooking = format(new Date(b.created_at), "dd MMMM yyyy, HH:mm", { locale: idLocale });
   const tglSesi = formatTanggal(b.tanggal_sesi);
@@ -458,9 +464,9 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
       <div class="brand-name">AideaCreative</div>
       <div class="brand-sub">Smart Photo Studio</div>
       <div class="brand-contact">
-        Jl. A. Yani No. 12, Pringsewu, Lampung<br>
-        📞 +62 852-7923-2879<br>
-        ✉ aidea.creative@gmail.com
+        ${settings?.contactAddress ?? "Jl. A. Yani No. 12, Pringsewu, Lampung"}<br>
+        📞 ${fmtPhone(settings?.contactWhatsapp) || "+62 852-7923-2879"}<br>
+        ✉ ${settings?.contactEmail ?? "aidea.creative@gmail.com"}
       </div>
     </div>
     <div class="inv-meta">
@@ -533,7 +539,7 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
     <div class="foot-l">
       Dokumen ini diterbitkan otomatis oleh sistem AideaCreative.<br>
       Harap simpan struk ini sebagai bukti reservasi Anda.<br>
-      Untuk pertanyaan: +62 852-7923-2879
+      Untuk pertanyaan: ${fmtPhone(settings?.contactWhatsapp) || "+62 852-7923-2879"}
     </div>
     <div class="foot-r">
       <div class="foot-thanks">Terima kasih! 🙏</div>
@@ -1676,7 +1682,7 @@ export default function Profil() {
                 )}
                 <Button
                   className="w-full gap-2"
-                  onClick={() => printInvoicePesanan(selectedPesanan)}
+                  onClick={() => printInvoicePesanan(selectedPesanan, siteSettings)}
                 >
                   <Printer className="h-4 w-4" />
                   Lihat / Cetak Invoice
@@ -1894,7 +1900,7 @@ export default function Profil() {
                 )}
                 <Button
                   className="w-full gap-2"
-                  onClick={() => printInvoice(selectedBooking)}
+                  onClick={() => printInvoice(selectedBooking, siteSettings)}
                 >
                   <Printer className="h-4 w-4" />
                   Cetak / Unduh Struk
