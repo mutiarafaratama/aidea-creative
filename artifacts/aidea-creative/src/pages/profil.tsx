@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { soundStatusUpdate, vibrate, unlockAudio } from "@/lib/notify-sound";
-import { ToastAction } from "@/components/ui/toast";
 import {
   AlertTriangle,
   Ban,
@@ -557,6 +556,16 @@ export default function Profil() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("booking");
+
+  useEffect(() => {
+    const unlock = () => { unlockAudio(); };
+    document.addEventListener("click", unlock, { once: true });
+    document.addEventListener("touchstart", unlock, { once: true, passive: true });
+    return () => {
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", unlock);
+    };
+  }, []);
   const { data: siteSettings } = useSiteSettings();
 
   const [namaLengkap, setNamaLengkap] = useState("");
@@ -715,25 +724,19 @@ export default function Profil() {
               vibrate([200, 50, 200]);
               toast({
                 title: "Status booking diperbarui",
-                description: `${item.kode_booking}: ${STATUS_BOOKING_MAP[item.status] ?? item.status}`,
-                action: (
-                  <ToastAction altText="Lihat" onClick={() => setActiveTab("booking")}>
-                    Lihat
-                  </ToastAction>
-                ),
-              });
+                description: `${item.kode_booking}: ${STATUS_BOOKING_MAP[item.status] ?? item.status} — Ketuk untuk lihat`,
+                className: "cursor-pointer",
+                onClick: () => setActiveTab("booking"),
+              } as any);
             } else if (prev.statusPembayaran !== item.status_pembayaran) {
               soundStatusUpdate();
               vibrate([200, 50, 200]);
               toast({
                 title: "Status pembayaran booking diperbarui",
-                description: `${item.kode_booking}: ${BAYAR_MAP[item.status_pembayaran] ?? item.status_pembayaran}`,
-                action: (
-                  <ToastAction altText="Lihat" onClick={() => setActiveTab("booking")}>
-                    Lihat
-                  </ToastAction>
-                ),
-              });
+                description: `${item.kode_booking}: ${BAYAR_MAP[item.status_pembayaran] ?? item.status_pembayaran} — Ketuk untuk lihat`,
+                className: "cursor-pointer",
+                onClick: () => setActiveTab("booking"),
+              } as any);
             }
           }
         });
@@ -783,13 +786,10 @@ export default function Profil() {
             vibrate([200, 50, 200]);
             toast({
               title: "Status pesanan diperbarui",
-              description: `${item.kodePesanan ?? item.kode_pesanan}: ${STATUS_LABEL_MAP[item.status] ?? item.status}`,
-              action: (
-                <ToastAction altText="Lihat" onClick={() => setActiveTab("pesanan")}>
-                  Lihat
-                </ToastAction>
-              ),
-            });
+              description: `${item.kodePesanan ?? item.kode_pesanan}: ${STATUS_LABEL_MAP[item.status] ?? item.status} — Ketuk untuk lihat`,
+              className: "cursor-pointer",
+              onClick: () => setActiveTab("pesanan"),
+            } as any);
           }
         });
         prevPesananStatusRef.current = new Map(mapped.map((x: any) => [x.id, x.status]));
