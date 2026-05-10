@@ -24,7 +24,7 @@ router.post("/push/subscribe", requireAuth, async (req: any, res) => {
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return res.status(400).json({ error: "Invalid subscription object" });
   }
-  const userId = req.user?.id;
+  const userId = req.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
   try {
@@ -43,7 +43,7 @@ router.post("/push/subscribe", requireAuth, async (req: any, res) => {
 
 router.delete("/push/unsubscribe", requireAuth, async (req: any, res) => {
   const { endpoint } = req.body ?? {};
-  const userId = req.user?.id;
+  const userId = req.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   if (!endpoint) return res.status(400).json({ error: "Missing endpoint" });
   try {

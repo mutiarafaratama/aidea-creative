@@ -25,14 +25,14 @@ function usePendingCounts() {
       try {
         const bookings = await adminFetch<any[]>("/dashboard/recent-bookings");
         if (!cancelled && Array.isArray(bookings)) {
-          setBookingCount(bookings.filter((b: any) => b.status === "menunggu").length);
+          setBookingCount(bookings.filter((b: any) => b.status !== "selesai" && b.status !== "dibatalkan").length);
         }
       } catch {}
 
       try {
         const pesanan = await adminFetch<any[]>("/pesanan");
         if (!cancelled && Array.isArray(pesanan)) {
-          setPesananCount(pesanan.filter((p: any) => p.status === "diproses" || p.status === "dikerjakan").length);
+          setPesananCount(pesanan.filter((p: any) => p.status !== "selesai" && p.status !== "dibatalkan").length);
         }
       } catch {}
 

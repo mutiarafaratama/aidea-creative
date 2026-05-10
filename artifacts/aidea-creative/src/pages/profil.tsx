@@ -241,43 +241,43 @@ function printInvoicePesanan(p: PesananRow, settings?: SiteSettings) {
 <html lang="id">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Invoice ${kodePesanan}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;color:#1e293b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.toolbar{background:#1d4ed8;padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
-.btn{background:#fff;color:#1d4ed8;border:none;padding:8px 22px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.toolbar{background:#1d4ed8;padding:12px 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.btn{background:#fff;color:#1d4ed8;border:none;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
 .btn:hover{opacity:.88}
-.btn-ghost{background:transparent;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
-.wrap{max-width:680px;margin:28px auto 56px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
-.head{background:#1d4ed8;color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.btn-ghost{background:transparent;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
+.wrap{max-width:680px;margin:20px auto 48px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.head{background:#1d4ed8;color:#fff;padding:24px 28px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .brand{font-size:17px;font-weight:700;letter-spacing:-.2px}
 .brand-sub{font-size:8px;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-top:2px}
 .brand-info{font-size:11px;opacity:.65;margin-top:12px;line-height:1.8}
-.inv-right{text-align:right}
+.inv-right{text-align:right;flex-shrink:0}
 .inv-label{font-size:8px;letter-spacing:2.5px;text-transform:uppercase;opacity:.6}
-.inv-no{font-size:20px;font-weight:800;letter-spacing:-.5px;margin:2px 0}
+.inv-no{font-size:18px;font-weight:800;letter-spacing:-.5px;margin:2px 0;word-break:break-all}
 .inv-date{font-size:10.5px;opacity:.55}
-.status-row{padding:8px 32px;background:#eff6ff;border-bottom:1px solid #dbeafe;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status-row{padding:8px 28px;background:#eff6ff;border-bottom:1px solid #dbeafe;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pill{padding:3px 10px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-.body{padding:24px 32px}
+.body{padding:20px 28px}
 .section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
 .info-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
 .inf-label{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.inf-val{font-size:12px;font-weight:500;color:#1e293b}
+.inf-val{font-size:12px;font-weight:500;color:#1e293b;word-break:break-word}
 .inf-row{margin-bottom:8px}
 .inf-row:last-child{margin-bottom:0}
-.notice{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:#1d4ed8;display:flex;align-items:flex-start;gap:8px}
-.notice-icon{font-size:14px;line-height:1;flex-shrink:0;margin-top:1px}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;color:#1d4ed8}
 table{width:100%;border-collapse:collapse;margin-bottom:18px}
 thead{background:#1d4ed8;color:#fff}
-thead th{padding:8px 12px;font-size:9.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-align:left}
+thead th{padding:8px 10px;font-size:9.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;text-align:left}
 thead th.right{text-align:right}
 tbody tr{border-bottom:1px solid #f1f5f9}
 tbody tr:last-child{border-bottom:none}
-td{padding:10px 12px;font-size:12px;vertical-align:top}
-td.num{width:28px;color:#94a3b8;font-size:11px}
+td{padding:9px 10px;font-size:12px;vertical-align:top}
+td.num{width:24px;color:#94a3b8;font-size:11px}
 td.right{text-align:right}
 td.bold{font-weight:600}
 .sub{font-size:10px;color:#94a3b8;margin-top:2px}
@@ -285,17 +285,31 @@ td.bold{font-weight:600}
 .total-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.8}
 .total-amt{font-size:20px;font-weight:800;letter-spacing:-.5px}
 ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#64748b;line-height:1.7;margin-bottom:18px}` : ""}
-.foot{border-top:1px solid #e2e8f0;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc}
+.foot{border-top:1px solid #e2e8f0;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;gap:12px}
 .foot-l{font-size:10px;color:#94a3b8;line-height:1.8}
-.foot-r{text-align:right}
+.foot-r{text-align:right;flex-shrink:0}
 .foot-thanks{font-size:12px;font-weight:700;color:#1d4ed8}
 .foot-sub{font-size:10px;color:#94a3b8;margin-top:1px}
+@media (max-width:600px){
+  .wrap{margin:0;border-radius:0;box-shadow:none}
+  .head{flex-direction:column;gap:10px;padding:18px 16px}
+  .inv-right{text-align:left}
+  .status-row{padding:8px 16px}
+  .body{padding:14px 16px}
+  .info-grid{grid-template-columns:1fr}
+  .foot{flex-direction:column;align-items:flex-start;padding:12px 16px}
+  .foot-r{text-align:left}
+  table{font-size:11px}
+  td{padding:7px 8px;font-size:11px}
+  thead th{padding:7px 8px;font-size:9px}
+  .total-amt{font-size:17px}
+}
 @media print{body{background:#fff}.toolbar{display:none!important}.wrap{margin:0;border-radius:0;box-shadow:none;max-width:100%}}
 </style>
 </head>
 <body>
 <div class="toolbar">
-  <button class="btn" onclick="window.print()">🖨 Cetak / Simpan PDF</button>
+  <button class="btn" onclick="window.print()">Cetak / Simpan PDF</button>
   <button class="btn-ghost" onclick="window.close()">Tutup</button>
 </div>
 <div class="wrap">
@@ -338,8 +352,7 @@ ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 
     </div>
 
     <div class="notice">
-      <span class="notice-icon">🏪</span>
-      <span>Pengambilan pesanan dilakukan langsung di studio kami. Harap tunjukkan invoice ini saat pengambilan.</span>
+      Pengambilan pesanan dilakukan langsung di studio kami. Harap tunjukkan invoice ini saat pengambilan.
     </div>
 
     <div class="section-title">Rincian Produk</div>
@@ -371,7 +384,7 @@ ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 
       Simpan sebagai bukti pesanan Anda.
     </div>
     <div class="foot-r">
-      <div class="foot-thanks">Terima kasih! 🙏</div>
+      <div class="foot-thanks">Terima kasih</div>
       <div class="foot-sub">Studio kami siap melayani Anda.</div>
     </div>
   </div>
@@ -442,13 +455,30 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
 .total-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.8}
 .total-amt{font-size:22px;font-weight:800;letter-spacing:-.5px}
 .note-box{border:1.5px dashed #d1d5db;border-radius:10px;padding:12px 14px;font-size:11.5px;color:#6b7280;line-height:1.7;margin-bottom:22px}
-.footer{border-top:1px solid #e5e7eb;padding:18px 36px;display:flex;justify-content:space-between;align-items:flex-end;background:#f8fafc}
+.footer{border-top:1px solid #e5e7eb;padding:18px 36px;display:flex;justify-content:space-between;align-items:flex-end;background:#f8fafc;gap:12px}
 .foot-l{font-size:10px;color:#9ca3af;line-height:1.8}
-.foot-r{text-align:right}
+.foot-r{text-align:right;flex-shrink:0}
 .foot-thanks{font-size:13px;font-weight:700;color:#1e40af}
 .foot-sub{font-size:10px;color:#9ca3af;margin-top:2px}
 .watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:72px;font-weight:900;text-transform:uppercase;letter-spacing:6px;opacity:.035;pointer-events:none;white-space:nowrap;color:#1e3a8a}
 .page-body{position:relative}
+@media (max-width:600px){
+  .page{margin:0;border-radius:0;box-shadow:none}
+  .header{flex-direction:column;gap:10px;padding:18px 16px}
+  .inv-meta{text-align:left}
+  .inv-title{font-size:26px}
+  .status-bar{padding:8px 16px}
+  .body{padding:16px 16px}
+  .info-grid{grid-template-columns:1fr}
+  .footer{flex-direction:column;align-items:flex-start;padding:14px 16px}
+  .foot-r{text-align:left}
+  .no-print{padding:10px 14px}
+  .btn-print,.btn-close{padding:8px 14px;font-size:13px}
+  table{font-size:11px}
+  tbody td{padding:8px 10px;font-size:11px}
+  thead th{padding:7px 10px}
+  .total-amt{font-size:18px}
+}
 @media print{
   body{background:white}
   .no-print{display:none!important}
@@ -458,7 +488,7 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
 </head>
 <body>
 <div class="no-print">
-  <button class="btn-print" onclick="window.print()">🖨&nbsp; Cetak / Simpan PDF</button>
+  <button class="btn-print" onclick="window.print()">Cetak / Simpan PDF</button>
   <button class="btn-close" onclick="window.close()">Tutup</button>
 </div>
 <div class="page">
@@ -468,8 +498,8 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
       <div class="brand-sub">Smart Photo Studio</div>
       <div class="brand-contact">
         ${settings?.contactAddress ?? "Jl. A. Yani No. 12, Pringsewu, Lampung"}<br>
-        📞 ${fmtPhone(settings?.contactWhatsapp) || "+62 852-7923-2879"}<br>
-        ✉ ${settings?.contactEmail ?? "aidea.creative@gmail.com"}
+        ${fmtPhone(settings?.contactWhatsapp) || "+62 852-7923-2879"}<br>
+        ${settings?.contactEmail ?? "aidea.creative@gmail.com"}
       </div>
     </div>
     <div class="inv-meta">
@@ -545,7 +575,7 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
       Untuk pertanyaan: ${fmtPhone(settings?.contactWhatsapp) || "+62 852-7923-2879"}
     </div>
     <div class="foot-r">
-      <div class="foot-thanks">Terima kasih! 🙏</div>
+      <div class="foot-thanks">Terima kasih</div>
       <div class="foot-sub">Kami tidak sabar bertemu Anda.</div>
     </div>
   </div>

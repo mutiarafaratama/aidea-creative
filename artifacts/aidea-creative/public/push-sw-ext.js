@@ -12,7 +12,7 @@ self.addEventListener("push", (event) => {
     badge: "/pwa-192.png",
     vibrate: [200, 50, 200],
     data: { url: payload.url || "/profil" },
-    requireInteraction: false,
+    requireInteraction: true,
     tag: payload.tag || "aidea-notif",
     renotify: true,
   };
@@ -22,14 +22,15 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/profil";
+  const relUrl = (event.notification.data && event.notification.data.url) || "/profil";
+  const absUrl = relUrl.startsWith("http") ? relUrl : self.location.origin + relUrl;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       const existing = clients.find((c) => {
-        try { return new URL(c.url).pathname === url || c.url.includes(url); } catch { return false; }
+        try { return c.url === absUrl || new URL(c.url).pathname === relUrl; } catch { return false; }
       });
       if (existing) return existing.focus();
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(absUrl);
     })
   );
 });
