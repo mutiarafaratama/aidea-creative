@@ -91,12 +91,10 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-VITE_MIDTRANS_CLIENT_KEY = "Mid-client-mtXT-6umS02pM65w"
 PORT = "5000"
 BASE_PATH = "/"
 NODE_ENV = "development"
 UPLOAD_DIR = "/home/runner/workspace/uploads"
 AI_MODEL = "qwen-turbo"
-ADMIN_EMAILS = "tiarafaratama@gmail.com"
 VAPID_PUBLIC_KEY = "BAtO79XmlvHCizgZcKT8pnnxoJz4yVWPfZt62Pbgz2akBc3LyhIoycQSLreK26-7mubIK8IVbdsaDi_bQIi0rFU"
 VITE_VAPID_PUBLIC_KEY = "BAtO79XmlvHCizgZcKT8pnnxoJz4yVWPfZt62Pbgz2akBc3LyhIoycQSLreK26-7mubIK8IVbdsaDi_bQIi0rFU"
