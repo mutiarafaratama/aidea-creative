@@ -13,6 +13,8 @@ import {
   Clock,
   Image,
   TrendingUp,
+  X,
+  ZoomIn,
 } from "lucide-react";
 import {
   useListTestimoni,
@@ -475,6 +477,39 @@ export default function Home() {
     track.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
   }, [promoIdx]);
 
+  /* ─── Portfolio Lightbox ─── */
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const lbDragX = useRef<number | null>(null);
+
+  const openLightbox = (idx: number) => setLightboxIdx(idx);
+  const closeLightbox = () => setLightboxIdx(null);
+  const lbPrev = useCallback(() => {
+    setLightboxIdx((i) => (i === null ? null : (i - 1 + galleryItems.length) % galleryItems.length));
+  }, [galleryItems.length]);
+  const lbNext = useCallback(() => {
+    setLightboxIdx((i) => (i === null ? null : (i + 1) % galleryItems.length));
+  }, [galleryItems.length]);
+
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+      else if (e.key === "ArrowLeft") lbPrev();
+      else if (e.key === "ArrowRight") lbNext();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxIdx, lbPrev, lbNext]);
+
+  useEffect(() => {
+    if (lightboxIdx !== null) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [lightboxIdx]);
+
   return (
     <div className="w-full overflow-hidden">
       {/* ── HERO ── */}
@@ -779,6 +814,7 @@ export default function Home() {
                   viewport={{ once: true, margin: "-80px" }}
                   transition={{ duration: 0.6, delay: (i % 4) * 0.08 }}
                   className={`break-inside-avoid relative group overflow-hidden rounded-2xl ${img.h} bg-muted cursor-pointer`}
+                  onClick={() => openLightbox(i)}
                 >
                   <img
                     src={img.src}
@@ -787,6 +823,11 @@ export default function Home() {
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
+                      <ZoomIn className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
                   {img.label && (
                     <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
                       <span className="inline-flex items-center gap-1.5 text-white font-semibold text-sm">
@@ -932,6 +973,87 @@ export default function Home() {
         promoId={selectedPromoId}
         onClose={() => setSelectedPromoId(null)}
       />
+
+      {/* ── PORTFOLIO LIGHTBOX ── */}
+      <AnimatePresence>
+        {lightboxIdx !== null && galleryItems[lightboxIdx] && (
+          <motion.div
+            key="lightbox-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/92 backdrop-blur-sm"
+            onClick={closeLightbox}
+          >
+            {/* Close button */}
+            <button
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 z-10 bg-white/10 hover:bg-white/25 text-white rounded-full p-2.5 transition-colors"
+              aria-label="Tutup"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Counter */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm font-medium tabular-nums select-none">
+              {lightboxIdx + 1} / {galleryItems.length}
+            </div>
+
+            {/* Prev arrow */}
+            {galleryItems.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); lbPrev(); }}
+                className="absolute left-3 md:left-6 z-10 bg-white/10 hover:bg-white/25 text-white rounded-full p-3 transition-colors"
+                aria-label="Foto sebelumnya"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Next arrow */}
+            {galleryItems.length > 1 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); lbNext(); }}
+                className="absolute right-3 md:right-6 z-10 bg-white/10 hover:bg-white/25 text-white rounded-full p-3 transition-colors"
+                aria-label="Foto berikutnya"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* Image */}
+            <motion.div
+              key={lightboxIdx}
+              initial={{ opacity: 0, scale: 0.93 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.93 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="relative max-w-[92vw] max-h-[82vh] flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => { lbDragX.current = e.clientX; }}
+              onPointerUp={(e) => {
+                if (lbDragX.current === null) return;
+                const diff = e.clientX - lbDragX.current;
+                if (Math.abs(diff) > 40) { diff < 0 ? lbNext() : lbPrev(); }
+                lbDragX.current = null;
+              }}
+            >
+              <img
+                src={galleryItems[lightboxIdx].src}
+                alt={galleryItems[lightboxIdx].label}
+                className="max-w-[92vw] max-h-[78vh] w-auto h-auto object-contain rounded-xl shadow-2xl select-none"
+                draggable={false}
+              />
+              {galleryItems[lightboxIdx].label && (
+                <div className="mt-3 text-white/80 text-sm font-medium tracking-wide">
+                  {galleryItems[lightboxIdx].label}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
