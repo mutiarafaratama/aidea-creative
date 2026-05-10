@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
+import { soundStatusUpdate, vibrate, unlockAudio } from "@/lib/notify-sound";
+import { ToastAction } from "@/components/ui/toast";
 import {
   AlertTriangle,
   Ban,
@@ -554,6 +556,7 @@ export default function Profil() {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("booking");
   const { data: siteSettings } = useSiteSettings();
 
   const [namaLengkap, setNamaLengkap] = useState("");
@@ -708,14 +711,28 @@ export default function Profil() {
           const prev = prevMap.get(item.id);
           if (prev) {
             if (prev.status !== item.status) {
+              soundStatusUpdate();
+              vibrate([200, 50, 200]);
               toast({
-                title: "Status booking diperbarui!",
+                title: "Status booking diperbarui",
                 description: `${item.kode_booking}: ${STATUS_BOOKING_MAP[item.status] ?? item.status}`,
+                action: (
+                  <ToastAction altText="Lihat" onClick={() => setActiveTab("booking")}>
+                    Lihat
+                  </ToastAction>
+                ),
               });
             } else if (prev.statusPembayaran !== item.status_pembayaran) {
+              soundStatusUpdate();
+              vibrate([200, 50, 200]);
               toast({
-                title: "Status pembayaran diperbarui!",
+                title: "Status pembayaran booking diperbarui",
                 description: `${item.kode_booking}: ${BAYAR_MAP[item.status_pembayaran] ?? item.status_pembayaran}`,
+                action: (
+                  <ToastAction altText="Lihat" onClick={() => setActiveTab("booking")}>
+                    Lihat
+                  </ToastAction>
+                ),
               });
             }
           }
@@ -762,9 +779,16 @@ export default function Profil() {
         mapped.forEach((item: any) => {
           const prevStatus = prevMap.get(item.id);
           if (prevStatus && prevStatus !== item.status) {
+            soundStatusUpdate();
+            vibrate([200, 50, 200]);
             toast({
-              title: "Status pesanan diperbarui!",
+              title: "Status pesanan diperbarui",
               description: `${item.kodePesanan ?? item.kode_pesanan}: ${STATUS_LABEL_MAP[item.status] ?? item.status}`,
+              action: (
+                <ToastAction altText="Lihat" onClick={() => setActiveTab("pesanan")}>
+                  Lihat
+                </ToastAction>
+              ),
             });
           }
         });
@@ -1219,7 +1243,7 @@ export default function Profil() {
         )}
 
         {/* ── Main tabs ── */}
-        <Tabs defaultValue="booking" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-4 h-auto">
             <TabsTrigger value="profil" className="gap-1.5 py-2.5 text-xs sm:text-sm">
               <User className="h-3.5 w-3.5" />

@@ -110,14 +110,22 @@ export default function AdminPesanan() {
         const prevMap = prevStatusRef.current;
         const newOrders = data.filter((p) => !prevMap.has(p.id));
         if (newOrders.length > 0) {
+          import("@/lib/notify-sound").then(({ soundAdminAlert, vibrate }) => {
+            soundAdminAlert();
+            vibrate([300, 100, 300]);
+          });
           toast({
-            title: `${newOrders.length} pesanan baru masuk`,
+            title: newOrders.length === 1 ? "Pesanan baru masuk" : `${newOrders.length} pesanan baru masuk`,
             description: newOrders.map((p) => p.kodePesanan).join(", "),
           });
         }
         data.forEach((p) => {
           const prev = prevMap.get(p.id);
           if (prev && prev !== p.status) {
+            import("@/lib/notify-sound").then(({ soundStatusUpdate, vibrate }) => {
+              soundStatusUpdate();
+              vibrate([200, 50, 200]);
+            });
             toast({
               title: "Status pesanan berubah",
               description: `${p.kodePesanan}: ${STATUS_LABELS[prev] ?? prev} → ${STATUS_LABELS[p.status] ?? p.status}`,

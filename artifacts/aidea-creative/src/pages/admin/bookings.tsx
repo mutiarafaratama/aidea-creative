@@ -66,8 +66,12 @@ export default function AdminBookings() {
       bookings.forEach((b: any) => {
         const prevStatus = prev.get(b.id);
         if (prevStatus && prevStatus !== "lunas" && b.statusPembayaran === "lunas") {
+          import("@/lib/notify-sound").then(({ soundStatusUpdate, vibrate }) => {
+            soundStatusUpdate();
+            vibrate([200, 50, 200]);
+          });
           toast({
-            title: "💳 Pembayaran diterima!",
+            title: "Pembayaran diterima",
             description: `${b.namaPemesan} (${b.kodeBooking}) telah melunasi pembayaran.`,
             duration: 8000,
           });

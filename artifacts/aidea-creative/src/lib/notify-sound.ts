@@ -1,9 +1,11 @@
 /**
- * Lightweight Web Audio API notification sounds — no external files needed.
- * All sounds are synthesized in the browser.
+ * Notification sounds — tries custom audio file first, falls back to Web Audio synthesis.
+ * Place your sound file at /sounds/notif.mp3 (in public/sounds/)
  */
 
 let _ctx: AudioContext | null = null;
+let _customAudio: HTMLAudioElement | null = null;
+const CUSTOM_SOUND_SRC = "/sounds/notif.mp3";
 
 function getCtx(): AudioContext | null {
   try {
@@ -13,6 +15,47 @@ function getCtx(): AudioContext | null {
     return _ctx;
   } catch {
     return null;
+  }
+}
+
+function tryCustomAudio(): boolean {
+  try {
+    if (!_customAudio) {
+      const a = new Audio(CUSTOM_SOUND_SRC);
+      a.preload = "none";
+      _customAudio = a;
+    }
+    const clone = _customAudio.cloneNode() as HTMLAudioElement;
+    clone.volume = 0.7;
+    const p = clone.play();
+    if (p) {
+      p.catch(() => {});
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function checkCustomAudioExists(): Promise<boolean> {
+  try {
+    const res = await fetch(CUSTOM_SOUND_SRC, { method: "HEAD" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+let _hasCustomAudio: boolean | null = null;
+
+async function playNotifSound(fallback: () => void): Promise<void> {
+  if (_hasCustomAudio === null) {
+    _hasCustomAudio = await checkCustomAudioExists();
+  }
+  if (_hasCustomAudio) {
+    tryCustomAudio();
+  } else {
+    fallback();
   }
 }
 
@@ -46,29 +89,50 @@ function playTone(
   });
 }
 
-/** Lembut — untuk pesan masuk di chatbot */
-export function soundNewMessage() {
+function synthNewMessage() {
   playTone(880, 0.18, 0.2, "sine");
   setTimeout(() => playTone(1100, 0.15, 0.15, "sine"), 120);
 }
 
-/** Lebih tegas — untuk update status booking/pesanan */
-export function soundStatusUpdate() {
+function synthStatusUpdate() {
   playTone(660, 0.12, 0.22, "sine");
   setTimeout(() => playTone(880, 0.12, 0.22, "sine"), 100);
   setTimeout(() => playTone(1100, 0.18, 0.18, "sine"), 200);
 }
 
-/** Urgent — untuk notifikasi admin (permintaan chat baru) */
-export function soundAdminAlert() {
+function synthAdminAlert() {
   playTone(880, 0.1, 0.3, "square");
   setTimeout(() => playTone(880, 0.1, 0.3, "square"), 180);
   setTimeout(() => playTone(1100, 0.2, 0.25, "sine"), 380);
 }
 
+/** Lembut — untuk pesan masuk di chatbot */
+export function soundNewMessage() {
+  playNotifSound(synthNewMessage);
+}
+
+/** Tegas — untuk update status booking/pesanan */
+export function soundStatusUpdate() {
+  playNotifSound(synthStatusUpdate);
+}
+
+/** Urgent — untuk notifikasi admin */
+export function soundAdminAlert() {
+  playNotifSound(synthAdminAlert);
+}
+
+/** Vibrate helper — no-op on unsupported devices */
+export function vibrate(pattern: number | number[] = [200, 50, 200]) {
+  try {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  } catch { }
+}
+
 /**
- * Panggil ini saat user pertama berinteraksi dengan halaman untuk
- * "unlock" AudioContext (browser blokir audio sebelum user gesture).
+ * Panggil ini saat user pertama berinteraksi untuk "unlock" AudioContext.
+ * Reset _hasCustomAudio so the file check runs again if needed.
  */
 export function unlockAudio() {
   const ctx = getCtx();
