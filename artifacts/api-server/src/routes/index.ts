@@ -21,6 +21,7 @@ import chatRouter from "./chat";
 import meRouter from "./me";
 import pesananRouter from "./pesanan";
 import pricelistRouter from "./pricelist";
+import pushRouter from "./push";
 
 const router: IRouter = Router();
 
@@ -46,5 +47,6 @@ router.use(chatRouter);
 router.use(meRouter);
 router.use(pesananRouter);
 router.use(pricelistRouter);
+router.use(pushRouter);
 
 export default router;

@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { bookingTable, paketLayananTable, promoTable, pengaturanSitusTable } from "@workspace/db";
 import { eq, desc, and, ne, sql } from "drizzle-orm";
 import { attachAuth, requireAdmin } from "../middlewares/auth";
+import { sendPushToUser } from "./push";
 
 const serverKey = process.env.MIDTRANS_SERVER_KEY?.trim();
 const clientKey = process.env.VITE_MIDTRANS_CLIENT_KEY?.trim();
@@ -267,6 +268,24 @@ router.put("/booking/:id", requireAdmin, async (req, res) => {
     if (row.promoId) {
       const [promoRow] = await db.select({ judul: promoTable.judul }).from(promoTable).where(eq(promoTable.id, row.promoId));
       namaPromo = promoRow?.judul ?? null;
+    }
+
+    if (row.pelangganId) {
+      const STATUS_LABEL: Record<string, string> = { dikonfirmasi: "Dikonfirmasi", selesai: "Selesai", dibatalkan: "Dibatalkan", menunggu: "Menunggu Konfirmasi" };
+      const BAYAR_LABEL: Record<string, string> = { lunas: "Lunas", dp: "DP diterima", belum_bayar: "Belum Bayar" };
+      if (body.status && body.status !== "menunggu") {
+        sendPushToUser(row.pelangganId, {
+          title: "Status booking diperbarui",
+          body: `${row.kodeBooking}: ${STATUS_LABEL[row.status] ?? row.status}`,
+          url: "/profil",
+        });
+      } else if (body.statusPembayaran) {
+        sendPushToUser(row.pelangganId, {
+          title: "Status pembayaran booking diperbarui",
+          body: `${row.kodeBooking}: ${BAYAR_LABEL[row.statusPembayaran] ?? row.statusPembayaran}`,
+          url: "/profil",
+        });
+      }
     }
 
     res.json(formatBooking(row, paketRow?.namaPaket, namaPromo, adminWa));

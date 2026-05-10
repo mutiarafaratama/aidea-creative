@@ -97,6 +97,7 @@ export default defineConfig({
         clientsClaim: true,
         // Jangan intercept navigasi ke /api/* — biarkan Express yang handle
         navigateFallbackDenylist: [/^\/api\//],
+        importScripts: ["/push-sw-ext.js"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

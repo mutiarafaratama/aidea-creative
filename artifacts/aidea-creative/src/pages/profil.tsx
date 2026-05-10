@@ -4,6 +4,8 @@ import { soundStatusUpdate, vibrate, unlockAudio } from "@/lib/notify-sound";
 import {
   AlertTriangle,
   Ban,
+  Bell,
+  BellOff,
   CalendarCheck,
   CalendarDays,
   CheckCircle2,
@@ -42,6 +44,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
+import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { useSiteSettings, type SiteSettings } from "@/lib/settings";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -562,6 +565,7 @@ export default function Profil() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("booking");
+  const { status: pushStatus, isToggling: isPushToggling, toggle: togglePush } = usePushSubscription();
 
   useEffect(() => {
     const unlock = () => { unlockAudio(); };
@@ -1324,6 +1328,39 @@ export default function Profil() {
                     Simpan Perubahan
                   </Button>
                 </div>
+
+                <Separator />
+
+                {pushStatus !== "unsupported" && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-sm">Notifikasi Push</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {pushStatus === "subscribed"
+                          ? "Aktif — kamu akan dapat notifikasi meski aplikasi ditutup."
+                          : pushStatus === "denied"
+                          ? "Diblokir — aktifkan izin notifikasi di pengaturan browser."
+                          : "Dapatkan notifikasi status booking & pesanan langsung di HP."}
+                      </p>
+                    </div>
+                    <Button
+                      variant={pushStatus === "subscribed" ? "outline" : "default"}
+                      size="sm"
+                      onClick={togglePush}
+                      disabled={isPushToggling || pushStatus === "denied"}
+                      className="shrink-0 gap-2"
+                    >
+                      {isPushToggling ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : pushStatus === "subscribed" ? (
+                        <BellOff className="h-4 w-4" />
+                      ) : (
+                        <Bell className="h-4 w-4" />
+                      )}
+                      {pushStatus === "subscribed" ? "Matikan" : pushStatus === "denied" ? "Diblokir" : "Aktifkan"}
+                    </Button>
+                  </div>
+                )}
 
                 <Separator />
 

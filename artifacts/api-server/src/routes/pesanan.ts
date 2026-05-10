@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { sendPushToUser } from "./push";
 import { db } from "@workspace/db";
 import { pesananProdukTable, itemPesananTable, produkTable } from "@workspace/db";
 import { eq, desc, inArray } from "drizzle-orm";
@@ -280,6 +281,16 @@ router.put("/pesanan/:id/status", requireAdmin, async (req, res) => {
       .returning();
     if (!row) return res.status(404).json({ error: "Not found" });
     const items = await db.select().from(itemPesananTable).where(eq(itemPesananTable.pesananId, row.id));
+
+    if (row.pelangganId) {
+      const STATUS_LABEL: Record<string, string> = { dikerjakan: "Sedang Dikerjakan", siap_ambil: "Siap Diambil", dibatalkan: "Dibatalkan", selesai: "Selesai" };
+      sendPushToUser(row.pelangganId, {
+        title: "Status pesanan diperbarui",
+        body: `${row.kodePesanan}: ${STATUS_LABEL[row.status] ?? row.status}`,
+        url: "/profil",
+      });
+    }
+
     res.json(formatPesanan(row, items));
   } catch (err) {
     req.log.error({ err }, "Failed to update pesanan status");
