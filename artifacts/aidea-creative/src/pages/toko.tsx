@@ -60,9 +60,9 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
 
   return (
     <Drawer open onOpenChange={(o) => { if (!o) onClose(); }} shouldScaleBackground={false}>
-      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl flex flex-col h-[92dvh] max-h-[92dvh]">
+      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl max-h-[92dvh] overflow-hidden flex flex-col">
         <DrawerTitle className="sr-only">{produk.namaProduk}</DrawerTitle>
-        <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
 
           {/* ── Image gallery ── */}
           <div
@@ -134,7 +134,7 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
           </div>
 
           {/* ── Scrollable product info ── */}
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-4 pb-2">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-4 pb-2" data-vaul-no-drag>
             {/* Badges row */}
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
