@@ -60,11 +60,9 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
 
   return (
     <Drawer open onOpenChange={(o) => { if (!o) onClose(); }} shouldScaleBackground={false}>
-      {/* DrawerContent: full-width bottom sheet, scrollable */}
-      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl mt-0 overflow-y-auto overscroll-contain max-h-[92dvh]">
+      <DrawerContent className="p-0 outline-none border-0 rounded-t-3xl flex flex-col h-[92dvh] max-h-[92dvh]">
         <DrawerTitle className="sr-only">{produk.namaProduk}</DrawerTitle>
-        {/* shadcn DrawerContent already renders drag handle above children */}
-        <div>
+        <div className="flex flex-col flex-1 min-h-0">
 
           {/* ── Image gallery ── */}
           <div
@@ -136,7 +134,7 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
           </div>
 
           {/* ── Scrollable product info ── */}
-          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-2 overscroll-contain">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 pt-4 pb-2">
             {/* Badges row */}
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
@@ -228,8 +226,8 @@ function ProductDetail({ produk, onClose }: { produk: Produk; onClose: () => voi
             )}
           </div>
 
-          {/* ── Sticky CTA footer ── */}
-          <div className="sticky bottom-0 px-5 pt-3 pb-8 border-t border-border bg-background">
+          {/* ── CTA footer ── */}
+          <div className="shrink-0 px-5 pt-3 pb-8 border-t border-border bg-background">
             <Button
               className="w-full rounded-2xl font-semibold text-base shadow-lg shadow-primary/20"
               style={{ height: 52 }}

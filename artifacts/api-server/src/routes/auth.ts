@@ -144,6 +144,47 @@ router.post("/auth/logout", (req, res) => {
   res.json({ ok: true });
 });
 
+router.post("/auth/admin/set-password", async (req, res) => {
+  try {
+    const token =
+      req.headers.authorization?.startsWith("Bearer ")
+        ? req.headers.authorization.slice(7)
+        : (req.cookies?.["auth_token"] as string | undefined);
+    if (!token) { res.status(401).json({ error: "Tidak terautentikasi." }); return; }
+    const { verifyToken } = await import("../middlewares/auth");
+    const payload = verifyToken(token);
+    if (!payload) { res.status(401).json({ error: "Session tidak valid." }); return; }
+    const adminProfile = await ensureProfile(payload.id, payload.email);
+    const adminEmails = (process.env.ADMIN_EMAILS ?? "tiarafaratama@gmail.com")
+      .split(",").map((e) => e.trim().toLowerCase());
+    const isAdmin = adminProfile.role === "admin" || adminEmails.includes(payload.email.toLowerCase());
+    if (!isAdmin) { res.status(403).json({ error: "Akses ditolak." }); return; }
+
+    const { userId, newPassword } = req.body as { userId?: string; newPassword?: string };
+    if (!userId || !newPassword || newPassword.length < 6) {
+      res.status(400).json({ error: "userId dan newPassword (min 6 karakter) wajib diisi." });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    const [existing] = await db.select().from(usersAuthTable).where(eq(usersAuthTable.profileId, userId));
+    if (existing) {
+      await db.update(usersAuthTable).set({ passwordHash }).where(eq(usersAuthTable.profileId, userId));
+    } else {
+      const [profile] = await db.select().from(profilesTable).where(eq(profilesTable.id, userId));
+      if (!profile) { res.status(404).json({ error: "Pengguna tidak ditemukan." }); return; }
+      const email = `user-${userId.slice(0, 8)}@aidea.local`;
+      await db.insert(usersAuthTable).values({ profileId: userId, email, passwordHash });
+    }
+
+    res.json({ ok: true, message: "Kata sandi berhasil diperbarui." });
+  } catch (err) {
+    req.log?.error?.({ err }, "Set-password error");
+    res.status(500).json({ error: "Gagal mengatur kata sandi." });
+  }
+});
+
 router.get("/auth/me", async (req, res) => {
   try {
     const token =

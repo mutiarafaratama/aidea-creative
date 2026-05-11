@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, Lock, UserPlus } from "lucide-react";
+import { Loader2, Lock, UserPlus, KeyRound, MessageCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,7 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
   const { toast } = useToast();
   const { data: settings } = useSiteSettings();
   const isLogin = location.startsWith("/login");
+  const [showForgot, setShowForgot] = useState(false);
 
   const { data: portfolioList } = useListPortfolio();
   const sidePhotos = (() => {
@@ -202,7 +203,17 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                   </Button>
                 </form>
 
-                <div className="relative my-6">
+                <div className="mt-3 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgot(true)}
+                    className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                  >
+                    Lupa kata sandi?
+                  </button>
+                </div>
+
+                <div className="relative my-5">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
                   </div>
@@ -228,6 +239,47 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                   </button>
                 </p>
               </motion.div>
+
+              {showForgot && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <KeyRound className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base">Lupa Kata Sandi?</h3>
+                        <p className="text-xs text-muted-foreground">Kami bantu reset akun Anda</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+                      Reset kata sandi dilakukan oleh admin studio. Silakan hubungi kami via WhatsApp dengan menyebutkan email akun Anda, dan admin akan mengatur ulang kata sandi Anda.
+                    </p>
+                    <a
+                      href={`https://wa.me/${(settings?.contactWhatsapp ?? "628527923xxxx").replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Halo, saya ingin mereset kata sandi akun AideaCreative saya. Email: ")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button className="w-full gap-2 rounded-xl mb-3">
+                        <MessageCircle className="h-4 w-4" />
+                        Hubungi Admin via WhatsApp
+                      </Button>
+                    </a>
+                    <Button
+                      variant="ghost"
+                      className="w-full gap-2 rounded-xl text-muted-foreground"
+                      onClick={() => setShowForgot(false)}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Kembali ke Login
+                    </Button>
+                  </motion.div>
+                </div>
+              )}
             ) : (
               <motion.div
                 key="register"

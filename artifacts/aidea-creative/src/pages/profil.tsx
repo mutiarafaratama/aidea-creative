@@ -597,7 +597,11 @@ export default function Profil() {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("booking");
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tab");
+    return (t && ["profil", "booking", "pesanan", "testimoni"].includes(t)) ? t : "booking";
+  });
   const { status: pushStatus, isToggling: isPushToggling, toggle: togglePush } = usePushSubscription();
 
   useEffect(() => {

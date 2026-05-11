@@ -42,6 +42,8 @@ const BAYAR_LABEL: Record<string, string> = {
 };
 
 const PESANAN_LABEL: Record<string, string> = {
+  menunggu: "Menunggu Konfirmasi",
+  dikonfirmasi: "Dikonfirmasi — Silakan Bayar",
   diproses: "Diproses",
   dikerjakan: "Sedang Dikerjakan",
   siap_ambil: "Siap Diambil",
@@ -122,7 +124,7 @@ function usePelangganPoller(active: boolean) {
                       description: `${b.kodeBooking}: ${BOOKING_LABEL[b.status] ?? b.status} — Ketuk untuk lihat`,
                       duration: 7000,
                       className: "cursor-pointer",
-                      onClick: () => setLocation("/profil"),
+                      onClick: () => setLocation("/profil?tab=booking"),
                     } as any);
                   } else if (p.statusPembayaran !== b.statusPembayaran) {
                     soundStatusUpdate();
@@ -131,7 +133,7 @@ function usePelangganPoller(active: boolean) {
                       description: `${b.kodeBooking}: ${BAYAR_LABEL[b.statusPembayaran] ?? b.statusPembayaran} — Ketuk untuk lihat`,
                       duration: 7000,
                       className: "cursor-pointer",
-                      onClick: () => setLocation("/profil"),
+                      onClick: () => setLocation("/profil?tab=booking"),
                     } as any);
                   }
                 }
@@ -161,7 +163,7 @@ function usePelangganPoller(active: boolean) {
                     description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status} — Ketuk untuk lihat`,
                     duration: 7000,
                     className: "cursor-pointer",
-                    onClick: () => setLocation("/profil"),
+                    onClick: () => setLocation("/profil?tab=pesanan"),
                   } as any);
                 }
               });
