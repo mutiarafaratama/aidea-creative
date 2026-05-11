@@ -17,6 +17,7 @@ function MobilAiButton({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label="Buka Asisten Cerdas"
       className="lg:hidden fixed bottom-6 left-5 z-40 flex flex-col items-center gap-1 group"
+      style={{ transform: "translateZ(0)", willChange: "transform" }}
     >
       <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">
         Asisten AI

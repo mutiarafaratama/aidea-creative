@@ -6,7 +6,8 @@ import { soundNewMessage, soundStatusUpdate, unlockAudio } from "@/lib/notify-so
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const SESSION_KEY = "aidea_chat_session_v1";
-const MOBILE_BTN_POS_KEY = "aidea_chat_btn_pos_mobile";
+// v2: y = fromBottom (distance from bottom of viewport) — stable across browser chrome show/hide
+const MOBILE_BTN_POS_KEY = "aidea_chat_btn_pos_v2";
 
 type ChatMessage = {
   id?: string;
@@ -19,11 +20,12 @@ function newSessionId() {
   return `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function clampPos(x: number, y: number, btnSize = 56): { x: number; y: number } {
-  if (typeof window === "undefined") return { x, y };
+// x = distance from left, y = distance from BOTTOM of viewport
+function clampPos(x: number, fromBottom: number, btnSize = 56): { x: number; y: number } {
+  if (typeof window === "undefined") return { x, y: fromBottom };
   return {
     x: Math.max(8, Math.min(window.innerWidth - btnSize - 8, x)),
-    y: Math.max(8, Math.min(window.innerHeight - btnSize - 8, y)),
+    y: Math.max(8, Math.min(window.innerHeight - btnSize - 8, fromBottom)),
   };
 }
 
@@ -76,13 +78,14 @@ export function AiChatbot() {
 
   // ── Mobile drag state ────────────────────────────────────────────────
   const [mobile, setMobile] = useState(() => isMobile());
+  // mobilePos.y = fromBottom (distance from bottom of viewport, NOT from top)
   const [mobilePos, setMobilePos] = useState<{ x: number; y: number }>(() => {
     const saved = loadMobilePos();
     if (saved) return saved;
-    if (typeof window !== "undefined") return { x: window.innerWidth - 80, y: window.innerHeight - 80 };
-    return { x: 320, y: 600 };
+    if (typeof window !== "undefined") return { x: window.innerWidth - 80, y: 24 };
+    return { x: 300, y: 24 };
   });
-  const dragRef = useRef<{ startX: number; startY: number; btnX: number; btnY: number; moved: boolean } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; btnX: number; btnFromBottom: number; moved: boolean } | null>(null);
 
   useEffect(() => {
     const onResize = () => {
@@ -313,7 +316,7 @@ export function AiChatbot() {
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
     if (!mobile || isOpen) return;
     e.preventDefault();
-    dragRef.current = { startX: e.clientX, startY: e.clientY, btnX: mobilePos.x, btnY: mobilePos.y, moved: false };
+    dragRef.current = { startX: e.clientX, startY: e.clientY, btnX: mobilePos.x, btnFromBottom: mobilePos.y, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, [mobile, isOpen, mobilePos]);
 
@@ -323,7 +326,8 @@ export function AiChatbot() {
     const dy = e.clientY - dragRef.current.startY;
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragRef.current.moved = true;
     if (dragRef.current.moved) {
-      const clamped = clampPos(dragRef.current.btnX + dx, dragRef.current.btnY + dy);
+      // drag down (dy > 0) → fromBottom decreases; drag up (dy < 0) → fromBottom increases
+      const clamped = clampPos(dragRef.current.btnX + dx, dragRef.current.btnFromBottom - dy);
       setMobilePos(clamped);
       try { localStorage.setItem(MOBILE_BTN_POS_KEY, JSON.stringify(clamped)); } catch {}
     }
@@ -343,8 +347,8 @@ export function AiChatbot() {
 
   // ── Styles ───────────────────────────────────────────────────────────
   const btnStyle: React.CSSProperties = mobile
-    ? { position: "fixed", left: mobilePos.x, top: mobilePos.y, right: "auto", bottom: "auto", zIndex: 9998, width: 56, height: 56, borderRadius: "50%", touchAction: "none" }
-    : { position: "fixed", right: 24, bottom: 24, left: "auto", top: "auto", zIndex: 9998, width: 56, height: 56, borderRadius: "50%" };
+    ? { position: "fixed", left: mobilePos.x, bottom: mobilePos.y, right: "auto", top: "auto", zIndex: 9998, width: 56, height: 56, borderRadius: "50%", touchAction: "none", transform: "translateZ(0)", willChange: "transform" }
+    : { position: "fixed", right: 24, bottom: 24, left: "auto", top: "auto", zIndex: 9998, width: 56, height: 56, borderRadius: "50%", transform: "translateZ(0)" };
 
   const chatWindowStyle: React.CSSProperties = mobile
     ? { position: "fixed", left: 8, right: 8, bottom: 16, top: "auto", width: "auto", height: "min(520px, calc(100dvh - 80px))", maxHeight: "calc(100dvh - 80px)", zIndex: 9999 }
