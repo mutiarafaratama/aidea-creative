@@ -235,4 +235,9 @@
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
+  /* Cegah scroll background saat mobile menu terbuka, tanpa konflik Radix */
+  html.mobile-menu-open body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 }

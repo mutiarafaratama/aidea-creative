@@ -47,10 +47,17 @@ export function Layout({ children }: { children: ReactNode }) {
     setMobileMenuOpen(false);
   }, [location]);
 
+  // Gunakan CSS class di <html> alih-alih langsung manipulasi body.style.overflow
+  // agar tidak konflik dengan Radix UI scroll-lock yang juga atur body overflow.
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    const root = document.documentElement;
+    if (mobileMenuOpen) {
+      root.classList.add("mobile-menu-open");
+    } else {
+      root.classList.remove("mobile-menu-open");
+    }
     return () => {
-      document.body.style.overflow = "";
+      root.classList.remove("mobile-menu-open");
     };
   }, [mobileMenuOpen]);
 
@@ -164,7 +171,7 @@ export function Layout({ children }: { children: ReactNode }) {
         >
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-border px-5 py-5">
-              <Link href="/" className="flex items-center gap-2">
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
                 <img src="/images/logo.png" alt="AideaCreative" className="h-9 w-9 rounded-lg object-cover" />
                 <div>
                   <p className="font-serif text-lg font-bold leading-tight">AideaCreative</p>
@@ -187,7 +194,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                   Pilih paket dan booking sesi foto Anda langsung dari menu ini.
                 </p>
-                <Link href="/booking">
+                <Link href="/booking" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="mt-4 w-full rounded-full">Booking Sekarang</Button>
                 </Link>
               </div>
@@ -197,6 +204,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   <Link
                     key={link.name}
                     href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
                       location === link.href
                         ? "bg-primary text-primary-foreground shadow-sm"
@@ -213,7 +221,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <div className="border-t border-border px-5 pt-4 pb-8" style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom, 2rem))" }}>
               {user ? (
                 <div className="space-y-2.5">
-                  <Link href="/profil">
+                  <Link href="/profil" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full rounded-full justify-start gap-2">
                       <User className="h-4 w-4" /> Profil Saya
                       {profile?.nama_lengkap && (
@@ -222,7 +230,7 @@ export function Layout({ children }: { children: ReactNode }) {
                     </Button>
                   </Link>
                   {profile?.role === "admin" && (
-                    <Link href="/dashboard">
+                    <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
                       <Button className="w-full rounded-full justify-start gap-2 bg-foreground text-background hover:bg-foreground/90">
                         <LayoutDashboard className="h-4 w-4" /> Dashboard Admin
                       </Button>
@@ -234,10 +242,10 @@ export function Layout({ children }: { children: ReactNode }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Link href={`/login?redirect=${encodeURIComponent(location)}`}>
+                  <Link href={`/login?redirect=${encodeURIComponent(location)}`} onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="outline" className="w-full rounded-full">Login</Button>
                   </Link>
-                  <Link href={`/register?redirect=${encodeURIComponent(location)}`}>
+                  <Link href={`/register?redirect=${encodeURIComponent(location)}`} onClick={() => setMobileMenuOpen(false)}>
                     <Button className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90">Sign Up</Button>
                   </Link>
                 </div>
