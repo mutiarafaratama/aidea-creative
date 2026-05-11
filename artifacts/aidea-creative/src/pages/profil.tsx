@@ -663,9 +663,9 @@ export default function Profil() {
     const token = localStorage.getItem("auth_token");
     const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     Promise.all([
-      fetch("/api/booking/me", { headers }).then((r) => r.ok ? r.json() : []),
-      fetch("/api/pesanan/me", { headers }).then((r) => r.ok ? r.json() : []),
-      fetch("/api/testimoni/me", { headers }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/booking/me", { headers, cache: "no-store" }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/pesanan/me", { headers, cache: "no-store" }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/testimoni/me", { headers, cache: "no-store" }).then((r) => r.ok ? r.json() : []),
     ]).then(([b, p, t]) => {
       if (Array.isArray(b)) {
         const bMapped: BookingRow[] = b.map((x: any) => ({
@@ -737,7 +737,7 @@ export default function Profil() {
       try {
         const token = localStorage.getItem("auth_token");
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch("/api/booking/me", { headers });
+        const res = await fetch("/api/booking/me", { headers, cache: "no-store" });
         if (!res.ok) return;
         const b = await res.json();
         if (!Array.isArray(b)) return;
@@ -816,7 +816,7 @@ export default function Profil() {
       try {
         const token = localStorage.getItem("auth_token");
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await fetch("/api/pesanan/me", { headers });
+        const res = await fetch("/api/pesanan/me", { headers, cache: "no-store" });
         if (!res.ok) return;
         const p = await res.json();
         if (!Array.isArray(p)) return;

@@ -15,6 +15,7 @@ export async function adminFetch<T = any>(path: string, init: RequestInit = {}):
       ...(init.headers || {}),
     },
     credentials: "include",
+    cache: "no-store",
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");

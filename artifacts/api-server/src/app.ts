@@ -46,6 +46,14 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "1d" }));
 // Note: gambar baru diunggah ke Supabase Storage via /api/upload/supabase
 
+// Pastikan semua respons API tidak di-cache browser — penting untuk polling realtime
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 app.use("/api", router);
 
 // Serve frontend static build in production (Docker/Railway deployment)
