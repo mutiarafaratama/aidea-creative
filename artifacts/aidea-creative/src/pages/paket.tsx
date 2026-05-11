@@ -43,29 +43,37 @@ function MobilAiButton({ onOpen }: { onOpen: () => void }) {
   };
 
   const onUp = () => {
-    if (dragRef.current && !dragRef.current.moved) onOpen();
+    const didMove = dragRef.current?.moved ?? false;
     dragRef.current = null;
+    if (!didMove) onOpen();
+  };
+
+  const onClickFallback = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onOpen();
   };
 
   const btnStyle: React.CSSProperties = { position: "fixed", left: curPos.x, top: curPos.y, touchAction: "none" };
 
   return (
     <div
-      className="lg:hidden z-40 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing"
+      className="lg:hidden z-40 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
       style={btnStyle}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
+      onClick={onClickFallback}
+      role="button"
+      aria-label="Buka Asisten Cerdas"
     >
-      <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+      <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap pointer-events-none">
         Asisten AI
       </span>
-      <button
+      <div
         className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center pointer-events-none"
-        aria-label="Buka Asisten Cerdas"
       >
         <Sparkles size={20} />
-      </button>
+      </div>
     </div>
   );
 }

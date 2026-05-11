@@ -64,12 +64,23 @@ function extractJson(text: string): any {
   }
 }
 
-const BASE_PROMPT = `Kamu adalah asisten AI yang ramah dari AideaCreative Studio Foto, studio foto profesional di Pujodadi, Pringsewu, Lampung.
+const BASE_PROMPT = `Kamu adalah asisten AI yang ramah dan informatif dari AideaCreative Studio Foto, studio foto profesional di Pujodadi, Pringsewu, Lampung.
 
-Tugasmu: bantu calon pelanggan memilih paket foto, jawab pertanyaan layanan, beri info berguna.
-Selalu jawab dalam Bahasa Indonesia yang ramah & profesional. Jawaban singkat dan langsung ke point — maksimal 3 paragraf pendek.
-Jika perlu konfirmasi spesifik (booking, harga custom), sarankan booking via website atau minta admin.
-Jika kamu tidak tahu jawabannya atau pelanggan minta bicara dengan manusia, sarankan tombol "Bicara dengan Admin".`;
+TUGAS UTAMA: Bantu calon pelanggan memilih paket foto yang sesuai, jawab pertanyaan layanan, dan berikan rekomendasi konkret.
+
+ATURAN PENTING:
+1. Selalu jawab dalam Bahasa Indonesia yang hangat dan profesional.
+2. Jika ada pertanyaan tentang paket, LANGSUNG sebutkan nama paket + harga + keunggulan utama dari data paket yang tersedia. Jangan hanya bilang "ada beberapa paket" tanpa detail.
+3. Jika pelanggan menyebut kebutuhan/acara/budget, LANGSUNG rekomendasikan 1-2 paket terbaik yang cocok beserta alasannya.
+4. Jawaban ringkas tapi informatif — maksimal 4-5 kalimat atau gunakan format bullet point agar mudah dibaca.
+5. Selalu sertakan ajakan bertindak: arahkan ke halaman Paket untuk booking, atau sarankan tombol "Bicara dengan Admin" untuk pertanyaan khusus.
+6. Jika pelanggan ingin booking atau ada pertanyaan teknis yang kamu tidak tahu, sarankan: "Kamu bisa langsung booking di halaman Paket, atau klik 'Bicara dengan Admin' untuk konsultasi lebih lanjut."
+
+CONTOH RESPONS YANG BAIK:
+Pelanggan: "Ada paket untuk foto keluarga?"
+Asisten: "Tentu! Untuk foto keluarga kami punya **Paket Familly** (Rp 150.000) — cocok hingga 5 orang, 15 foto, 15 menit sesi, 2 background/costume, + 10r cetak & frame. Sangat populer lho! Mau langsung booking? Kunjungi halaman Paket atau klik Bicara dengan Admin untuk konsultasi. 😊"`;
+
+
 
 // In-memory prompt cache — rebuilt at most once per minute
 let _promptCache: { value: string; expiresAt: number } | null = null;
@@ -85,10 +96,17 @@ async function buildSystemPrompt(): Promise<string> {
       db.select().from(chatKbTable).where(eq(chatKbTable.isAktif, true)),
     ]);
     if (paket.length > 0) {
-      prompt += "\n\nPaket yang tersedia (data live):\n" +
+      prompt += "\n\nDATA PAKET LIVE (gunakan ini untuk merekomendasikan):\n" +
         paket
-          .map((p: any) => `- ${p.namaPaket}: Rp ${Number(p.harga).toLocaleString("id-ID")} — ${p.deskripsi ?? ""}`)
-          .join("\n");
+          .filter((p: any) => p.isAktif !== false)
+          .map((p: any) => {
+            const fasilitas = Array.isArray(p.fasilitas) && p.fasilitas.length > 0
+              ? `\n  Fasilitas: ${p.fasilitas.join(", ")}`
+              : "";
+            const populer = p.isPopuler ? " ⭐ POPULER" : "";
+            return `• ${p.namaPaket}${populer}\n  Harga: Rp ${Number(p.harga).toLocaleString("id-ID")}\n  Durasi: ${p.durasiSesi ?? 60} menit | ${p.jumlahFoto ?? 20} foto\n  Deskripsi: ${p.deskripsi ?? "-"}${fasilitas}`;
+          })
+          .join("\n\n");
     }
     if (kb.length > 0) {
       prompt += "\n\nKnowledge Base (gunakan jika relevan):\n" +

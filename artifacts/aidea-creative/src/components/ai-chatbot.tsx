@@ -335,6 +335,10 @@ export function AiChatbot() {
     if (!moved) { unlockAudio(); setIsOpen(true); setHasUnread(false); }
   }, []);
 
+  const onMobileClickFallback = useCallback(() => {
+    if (!dragRef.current) { unlockAudio(); setIsOpen(true); setHasUnread(false); }
+  }, []);
+
   const onDesktopClick = useCallback(() => { unlockAudio(); setIsOpen(true); setHasUnread(false); }, []);
 
   // ── Styles ───────────────────────────────────────────────────────────
@@ -363,7 +367,9 @@ export function AiChatbot() {
         <button
           style={{ width: "100%", height: "100%", borderRadius: "50%", touchAction: "none" }}
           className="bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center relative"
-          {...(mobile ? { onPointerDown, onPointerMove, onPointerUp } : { onClick: onDesktopClick })}
+          {...(mobile
+            ? { onPointerDown, onPointerMove, onPointerUp, onClick: onMobileClickFallback }
+            : { onClick: onDesktopClick })}
           aria-label="Buka chat asisten"
         >
           <MessageCircle size={26} />
