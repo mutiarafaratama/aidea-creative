@@ -441,38 +441,71 @@ export function AiChatbot() {
               <p className="text-xs">Memuat riwayat chat...</p>
             </div>
           ) : (
-            messages.map((msg, idx) => {
-              if (msg.role === "system") {
+            <>
+              {messages.map((msg, idx) => {
+                if (msg.role === "system") {
+                  return (
+                    <div key={idx} className="flex justify-center">
+                      <div className="flex items-start gap-1.5 max-w-[90%] bg-muted/60 border border-border/60 rounded-xl px-3 py-2">
+                        <Info size={12} className="text-muted-foreground mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">{msg.content}</p>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
-                  <div key={idx} className="flex justify-center">
-                    <div className="flex items-start gap-1.5 max-w-[90%] bg-muted/60 border border-border/60 rounded-xl px-3 py-2">
-                      <Info size={12} className="text-muted-foreground mt-0.5 shrink-0" />
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">{msg.content}</p>
+                  <div key={msg.id ?? idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : msg.role === "admin"
+                          ? "bg-emerald-500/10 border border-emerald-500/20 text-foreground rounded-bl-sm"
+                          : "bg-card border border-border text-foreground rounded-bl-sm"
+                      }`}
+                    >
+                      {msg.role === "admin" && (
+                        <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold mb-0.5">
+                          Admin
+                        </p>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     </div>
                   </div>
                 );
-              }
-              return (
-                <div key={msg.id ?? idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                        : msg.role === "admin"
-                        ? "bg-emerald-500/10 border border-emerald-500/20 text-foreground rounded-bl-sm"
-                        : "bg-card border border-border text-foreground rounded-bl-sm"
-                    }`}
-                  >
-                    {msg.role === "admin" && (
-                      <p className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold mb-0.5">
-                        Admin
-                      </p>
-                    )}
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              })}
+
+              {/* Quick-reply suggestions — tampil hanya saat chat masih fresh (belum ada pesan user) */}
+              {!pending && status === "ai" && messages.filter(m => m.role === "user").length === 0 && (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <p className="text-[10px] text-muted-foreground text-center">Pertanyaan cepat:</p>
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    {[
+                      "Paket foto keluarga",
+                      "Harga prewedding",
+                      "Foto produk UMKM",
+                      "Ada promo sekarang?",
+                      "Cara booking gimana?",
+                    ].map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => {
+                          setInput(suggestion);
+                          setTimeout(() => {
+                            const form = document.querySelector<HTMLFormElement>("#ai-chat-form");
+                            form?.requestSubmit();
+                          }, 50);
+                        }}
+                        className="text-[11px] px-3 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 active:bg-primary/20 transition-colors"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              );
-            })
+              )}
+            </>
           )}
           {pending && (
             <div className="flex justify-start">
@@ -505,6 +538,7 @@ export function AiChatbot() {
             </Button>
           )}
           <form
+            id="ai-chat-form"
             onSubmit={status === "admin" ? handleAdminMessage : handleSubmit}
             className="flex items-center gap-2"
           >
