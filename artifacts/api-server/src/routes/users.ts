@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { profilesTable, bookingTable, pesananProdukTable, itemPesananTable, testimoniTable, chatSessionTable, usersAuthTable } from "@workspace/db";
-import { eq, sql, inArray } from "drizzle-orm";
+import { profilesTable, bookingTable, pesananProdukTable, itemPesananTable, testimoniTable, chatSessionTable, usersAuthTable, passwordResetTokensTable } from "@workspace/db";
+import { eq, sql, inArray, and, gt, isNull } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 
 const router = Router();
@@ -78,6 +78,66 @@ router.delete("/admin/users/:id", requireAdmin, async (req, res) => {
     res.status(204).send();
   } catch (err: any) {
     res.status(500).json({ error: err?.message ?? "Gagal menghapus pengguna." });
+  }
+});
+
+// ── Admin: list pending reset requests ───────────────────────────────
+router.get("/admin/reset-requests", requireAdmin, async (_req, res) => {
+  try {
+    const now = new Date();
+    const rows = await db
+      .select({
+        id: passwordResetTokensTable.id,
+        profileId: passwordResetTokensTable.profileId,
+        token: passwordResetTokensTable.token,
+        expiresAt: passwordResetTokensTable.expiresAt,
+        createdAt: passwordResetTokensTable.createdAt,
+      })
+      .from(passwordResetTokensTable)
+      .where(and(isNull(passwordResetTokensTable.usedAt), gt(passwordResetTokensTable.expiresAt, now)));
+
+    if (rows.length === 0) { res.json([]); return; }
+
+    const profileIds = [...new Set(rows.map((r) => r.profileId))];
+    const profiles = await db.select({
+        id: profilesTable.id,
+        namaLengkap: profilesTable.namaLengkap,
+        noTelepon: profilesTable.noTelepon,
+      }).from(profilesTable).where(inArray(profilesTable.id, profileIds));
+    const auths = await db.select({
+        profileId: usersAuthTable.profileId,
+        email: usersAuthTable.email,
+      }).from(usersAuthTable).where(inArray(usersAuthTable.profileId, profileIds));
+
+    const profileMap = new Map(profiles.map((p) => [p.id, p]));
+    const emailMap = new Map(auths.map((a) => [a.profileId, a.email]));
+
+    const result = rows.map((r) => {
+      const p = profileMap.get(r.profileId);
+      return {
+        id: r.id,
+        token: r.token,
+        expiresAt: r.expiresAt.toISOString(),
+        createdAt: r.createdAt.toISOString(),
+        namaLengkap: p?.namaLengkap ?? "-",
+        noTelepon: p?.noTelepon ?? null,
+        email: emailMap.get(r.profileId) ?? null,
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Gagal memuat permintaan reset." });
+  }
+});
+
+// ── Admin: cancel a reset request ────────────────────────────────────
+router.delete("/admin/reset-requests/:id", requireAdmin, async (req, res) => {
+  try {
+    await db.delete(passwordResetTokensTable).where(eq(passwordResetTokensTable.id, req.params.id));
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Gagal membatalkan permintaan." });
   }
 });
 

@@ -17,3 +17,4 @@ export * from "./pengaturan_situs";
 export * from "./promo";
 export * from "./pricelist";
 export * from "./push_subscriptions";
+export * from "./password_reset_tokens";

@@ -44,6 +44,7 @@ const Register = lazy(() => import("@/pages/register"));
 const AdminLogin = lazy(() => import("@/pages/admin-login"));
 const Profil = lazy(() => import("@/pages/profil"));
 const PromoDetail = lazy(() => import("@/pages/promo-detail"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -137,6 +138,7 @@ function Router() {
         <Route path="/auth/callback" component={AuthCallback} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/reset-password" component={ResetPassword} />
         <Route path="/dashboard/login" component={AdminLogin} />
         <Route path="/dashboard"><ProtectedRoute requireAdmin><AdminBeranda /></ProtectedRoute></Route>
         <Route path="/dashboard/booking"><ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute></Route>

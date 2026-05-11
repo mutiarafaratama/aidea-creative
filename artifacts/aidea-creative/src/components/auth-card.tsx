@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Loader2, Lock, UserPlus, KeyRound, MessageCircle, ArrowLeft } from "lucide-react";
+import { Loader2, Lock, UserPlus, KeyRound, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +101,11 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoadingLogin, setIsLoadingLogin] = useState(false);
+
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotDone, setForgotDone] = useState(false);
+  const [forgotError, setForgotError] = useState("");
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -341,30 +346,87 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                   </div>
                   <div>
                     <h3 className="font-bold text-base">Lupa Kata Sandi?</h3>
-                    <p className="text-xs text-muted-foreground">Kami bantu reset akun Anda</p>
+                    <p className="text-xs text-muted-foreground">Masukkan email akun Anda</p>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                  Reset kata sandi dilakukan oleh admin studio. Silakan hubungi kami via WhatsApp dengan menyebutkan email akun Anda, dan admin akan mengatur ulang kata sandi Anda.
-                </p>
-                <a
-                  href={`https://wa.me/${(settings?.contactWhatsapp ?? "628527923xxxx").replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Halo, saya ingin mereset kata sandi akun AideaCreative saya. Email: ")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button className="w-full gap-2 rounded-xl mb-3">
-                    <MessageCircle className="h-4 w-4" />
-                    Hubungi Admin via WhatsApp
-                  </Button>
-                </a>
-                <Button
-                  variant="ghost"
-                  className="w-full gap-2 rounded-xl text-muted-foreground"
-                  onClick={() => setShowForgot(false)}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Kembali ke Login
-                </Button>
+
+                {forgotDone ? (
+                  <div className="flex flex-col items-center py-4 gap-3 text-center">
+                    <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+                    <div>
+                      <p className="font-semibold text-sm mb-1">Permintaan Terkirim!</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Admin kami akan segera menghubungi Anda via WhatsApp dan mengirimkan link reset kata sandi.
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="w-full gap-2 rounded-xl text-muted-foreground mt-2"
+                      onClick={() => { setShowForgot(false); setForgotDone(false); setForgotEmail(""); setForgotError(""); }}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      Kembali ke Login
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                      Masukkan email yang Anda gunakan saat daftar. Admin akan mengirimkan link reset via WhatsApp.
+                    </p>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        setForgotError("");
+                        if (!forgotEmail.trim()) { setForgotError("Email wajib diisi."); return; }
+                        setForgotLoading(true);
+                        try {
+                          const res = await fetch("/api/auth/forgot-password", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: forgotEmail.trim() }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) { setForgotError(data.error ?? "Gagal mengirim permintaan."); }
+                          else { setForgotDone(true); }
+                        } catch { setForgotError("Gagal menghubungi server."); }
+                        setForgotLoading(false);
+                      }}
+                      className="space-y-3"
+                    >
+                      <div className="space-y-1.5">
+                        <Label htmlFor="forgot-email" className="text-sm">Email</Label>
+                        <Input
+                          id="forgot-email"
+                          type="email"
+                          placeholder="nama@email.com"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      {forgotError && (
+                        <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg">{forgotError}</p>
+                      )}
+                      <Button type="submit" className="w-full gap-2 rounded-xl" disabled={forgotLoading}>
+                        {forgotLoading ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /> Mengirim...</>
+                        ) : (
+                          <><KeyRound className="h-4 w-4" /> Kirim Permintaan Reset</>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="w-full gap-2 rounded-xl text-muted-foreground"
+                        onClick={() => { setShowForgot(false); setForgotEmail(""); setForgotError(""); setForgotDone(false); }}
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Kembali ke Login
+                      </Button>
+                    </form>
+                  </>
+                )}
               </motion.div>
             </div>
           )}

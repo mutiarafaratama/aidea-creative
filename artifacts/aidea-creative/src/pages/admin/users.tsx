@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Trash2, ShieldCheck, User as UserIcon, Search, Loader2, KeyRound } from "lucide-react";
+import { Trash2, ShieldCheck, User as UserIcon, Search, Loader2, KeyRound, MessageCircle, Clock, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,16 @@ type AppUser = {
   createdAt: string;
 };
 
+type ResetRequest = {
+  id: string;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+  namaLengkap: string;
+  noTelepon: string | null;
+  email: string | null;
+};
+
 type SetPasswordDialog = { userId: string; namaLengkap: string; newPassword: string };
 
 export default function AdminUsers() {
@@ -33,6 +43,8 @@ export default function AdminUsers() {
   const [busy, setBusy] = useState<string | null>(null);
   const [pwDialog, setPwDialog] = useState<SetPasswordDialog | null>(null);
   const [pwLoading, setPwLoading] = useState(false);
+  const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
+  const [resetLoading, setResetLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -44,7 +56,34 @@ export default function AdminUsers() {
     }
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+
+  const loadResetRequests = async () => {
+    setResetLoading(true);
+    try {
+      const res = await adminFetch<ResetRequest[]>("/admin/reset-requests");
+      setResetRequests(Array.isArray(res) ? res : []);
+    } catch { setResetRequests([]); }
+    setResetLoading(false);
+  };
+
+  useEffect(() => { load(); loadResetRequests(); }, []);
+
+  const cancelReset = async (id: string) => {
+    try {
+      await adminFetch(`/admin/reset-requests/${id}`, { method: "DELETE" });
+      toast({ title: "Permintaan dibatalkan" });
+      loadResetRequests();
+    } catch (err: any) {
+      toast({ title: "Gagal", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  const buildWaLink = (req: ResetRequest) => {
+    const resetLink = `${window.location.origin}/reset-password?token=${req.token}`;
+    const phone = (req.noTelepon ?? "").replace(/[^0-9]/g, "").replace(/^0/, "62");
+    const msg = `Halo ${req.namaLengkap}, berikut link untuk reset kata sandi akun AideaCreative Studio Foto Anda:\n\n${resetLink}\n\nLink ini berlaku 60 menit. Jangan bagikan link ini ke siapapun.`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  };
 
   const setRole = async (id: string, role: "admin" | "pelanggan") => {
     setBusy(id);
@@ -190,6 +229,84 @@ export default function AdminUsers() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {/* ── Reset Password Requests ─────────────────────────────── */}
+      <Card className="mt-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <KeyRound className="h-4 w-4 text-primary" />
+              Permintaan Reset Kata Sandi
+              {resetRequests.length > 0 && (
+                <Badge className="bg-orange-500/10 text-orange-700 border-orange-400/30 ml-1" variant="outline">
+                  {resetRequests.length} menunggu
+                </Badge>
+              )}
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={loadResetRequests} disabled={resetLoading}>
+              {resetLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {resetLoading ? (
+            <div className="space-y-2"><Skeleton className="h-14 w-full" /><Skeleton className="h-14 w-full" /></div>
+          ) : resetRequests.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Tidak ada permintaan reset kata sandi yang aktif.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {resetRequests.map((req) => {
+                const expiresAt = new Date(req.expiresAt);
+                const minutesLeft = Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / 60000));
+                const hasPhone = !!(req.noTelepon?.trim());
+                return (
+                  <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30">
+                    <div className="h-9 w-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                      <UserIcon className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{req.namaLengkap}</p>
+                      <p className="text-xs text-muted-foreground truncate">{req.email ?? "—"} · {req.noTelepon ?? "No. WA tidak terdaftar"}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock className="h-3 w-3" />
+                        {minutesLeft > 0 ? `Berlaku ${minutesLeft} menit lagi` : "Kadaluarsa"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {hasPhone ? (
+                        <a href={buildWaLink(req)} target="_blank" rel="noopener noreferrer">
+                          <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            Kirim via WA
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs gap-1.5"
+                          onClick={() => {
+                            const link = `${window.location.origin}/reset-password?token=${req.token}`;
+                            navigator.clipboard.writeText(link).then(() =>
+                              toast({ title: "Link disalin!", description: "Kirimkan link ke pengguna secara manual." })
+                            );
+                          }}
+                        >
+                          Salin Link
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => cancelReset(req.id)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

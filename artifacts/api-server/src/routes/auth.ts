@@ -1,7 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db, profilesTable, usersAuthTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import crypto from "node:crypto";
+import { db, profilesTable, usersAuthTable, passwordResetTokensTable } from "@workspace/db";
+import { eq, and, gt, isNull } from "drizzle-orm";
 import { signToken, ensureProfile } from "../middlewares/auth";
 
 const router = Router();
@@ -182,6 +183,107 @@ router.post("/auth/admin/set-password", async (req, res) => {
   } catch (err) {
     req.log?.error?.({ err }, "Set-password error");
     res.status(500).json({ error: "Gagal mengatur kata sandi." });
+  }
+});
+
+// ── Forgot Password: user submits email → creates reset token ────────
+router.post("/auth/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) { res.status(400).json({ error: "Email wajib diisi." }); return; }
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const [userAuth] = await db.select().from(usersAuthTable).where(eq(usersAuthTable.email, normalizedEmail));
+    if (!userAuth) {
+      // Jangan bocorkan apakah email terdaftar atau tidak
+      res.json({ ok: true, message: "Jika email terdaftar, permintaan reset sudah dikirim ke admin." });
+      return;
+    }
+    if (!userAuth.passwordHash) {
+      res.status(400).json({ error: "Akun ini terdaftar via Google. Tidak perlu reset kata sandi." });
+      return;
+    }
+
+    // Invalidate existing unused tokens for this user
+    await db.delete(passwordResetTokensTable)
+      .where(and(
+        eq(passwordResetTokensTable.profileId, userAuth.profileId),
+        isNull(passwordResetTokensTable.usedAt)
+      ));
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 60 menit
+
+    await db.insert(passwordResetTokensTable).values({
+      profileId: userAuth.profileId,
+      token,
+      expiresAt,
+    });
+
+    res.json({ ok: true, message: "Permintaan reset kata sandi berhasil dikirim. Admin akan menghubungi Anda segera." });
+  } catch (err) {
+    req.log?.error?.({ err }, "Forgot-password error");
+    res.status(500).json({ error: "Gagal memproses permintaan." });
+  }
+});
+
+// ── Validate reset token ─────────────────────────────────────────────
+router.get("/auth/reset-password/validate", async (req, res) => {
+  try {
+    const token = (req.query.token as string) ?? "";
+    if (!token) { res.status(400).json({ valid: false, error: "Token tidak ditemukan." }); return; }
+
+    const [row] = await db.select({
+        id: passwordResetTokensTable.id,
+        profileId: passwordResetTokensTable.profileId,
+        expiresAt: passwordResetTokensTable.expiresAt,
+        usedAt: passwordResetTokensTable.usedAt,
+      })
+      .from(passwordResetTokensTable)
+      .where(eq(passwordResetTokensTable.token, token));
+
+    if (!row) { res.status(404).json({ valid: false, error: "Link reset tidak valid." }); return; }
+    if (row.usedAt) { res.status(400).json({ valid: false, error: "Link reset sudah pernah digunakan." }); return; }
+    if (row.expiresAt < new Date()) { res.status(400).json({ valid: false, error: "Link reset sudah kadaluarsa (berlaku 60 menit)." }); return; }
+
+    const [auth] = await db.select({ email: usersAuthTable.email })
+      .from(usersAuthTable).where(eq(usersAuthTable.profileId, row.profileId));
+
+    res.json({ valid: true, email: auth?.email ?? "" });
+  } catch (err) {
+    req.log?.error?.({ err }, "Validate-reset-token error");
+    res.status(500).json({ valid: false, error: "Gagal memvalidasi token." });
+  }
+});
+
+// ── Reset password using token ───────────────────────────────────────
+router.post("/auth/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body as { token?: string; newPassword?: string };
+    if (!token || !newPassword) { res.status(400).json({ error: "Token dan kata sandi baru wajib diisi." }); return; }
+    if (newPassword.length < 6) { res.status(400).json({ error: "Kata sandi minimal 6 karakter." }); return; }
+
+    const [row] = await db.select()
+      .from(passwordResetTokensTable)
+      .where(eq(passwordResetTokensTable.token, token));
+
+    if (!row) { res.status(404).json({ error: "Link reset tidak valid." }); return; }
+    if (row.usedAt) { res.status(400).json({ error: "Link reset sudah pernah digunakan." }); return; }
+    if (row.expiresAt < new Date()) { res.status(400).json({ error: "Link reset sudah kadaluarsa." }); return; }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.update(usersAuthTable)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(usersAuthTable.profileId, row.profileId));
+
+    await db.update(passwordResetTokensTable)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokensTable.id, row.id));
+
+    res.json({ ok: true, message: "Kata sandi berhasil diperbarui." });
+  } catch (err) {
+    req.log?.error?.({ err }, "Reset-password error");
+    res.status(500).json({ error: "Gagal mereset kata sandi." });
   }
 });
 
