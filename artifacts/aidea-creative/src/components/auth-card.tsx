@@ -239,47 +239,6 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
                   </button>
                 </p>
               </motion.div>
-
-              {showForgot && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <KeyRound className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-base">Lupa Kata Sandi?</h3>
-                        <p className="text-xs text-muted-foreground">Kami bantu reset akun Anda</p>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                      Reset kata sandi dilakukan oleh admin studio. Silakan hubungi kami via WhatsApp dengan menyebutkan email akun Anda, dan admin akan mengatur ulang kata sandi Anda.
-                    </p>
-                    <a
-                      href={`https://wa.me/${(settings?.contactWhatsapp ?? "628527923xxxx").replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Halo, saya ingin mereset kata sandi akun AideaCreative saya. Email: ")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button className="w-full gap-2 rounded-xl mb-3">
-                        <MessageCircle className="h-4 w-4" />
-                        Hubungi Admin via WhatsApp
-                      </Button>
-                    </a>
-                    <Button
-                      variant="ghost"
-                      className="w-full gap-2 rounded-xl text-muted-foreground"
-                      onClick={() => setShowForgot(false)}
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Kembali ke Login
-                    </Button>
-                  </motion.div>
-                </div>
-              )}
             ) : (
               <motion.div
                 key="register"
@@ -368,6 +327,47 @@ export function AuthCard({ initialMode }: { initialMode: "login" | "register" })
               </motion.div>
             )}
           </AnimatePresence>
+
+          {showForgot && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <KeyRound className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base">Lupa Kata Sandi?</h3>
+                    <p className="text-xs text-muted-foreground">Kami bantu reset akun Anda</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+                  Reset kata sandi dilakukan oleh admin studio. Silakan hubungi kami via WhatsApp dengan menyebutkan email akun Anda, dan admin akan mengatur ulang kata sandi Anda.
+                </p>
+                <a
+                  href={`https://wa.me/${(settings?.contactWhatsapp ?? "628527923xxxx").replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Halo, saya ingin mereset kata sandi akun AideaCreative saya. Email: ")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button className="w-full gap-2 rounded-xl mb-3">
+                    <MessageCircle className="h-4 w-4" />
+                    Hubungi Admin via WhatsApp
+                  </Button>
+                </a>
+                <Button
+                  variant="ghost"
+                  className="w-full gap-2 rounded-xl text-muted-foreground"
+                  onClick={() => setShowForgot(false)}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Kembali ke Login
+                </Button>
+              </motion.div>
+            </div>
+          )}
         </div>
       </div>
 
