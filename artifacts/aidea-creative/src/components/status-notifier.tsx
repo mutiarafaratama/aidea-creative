@@ -54,7 +54,7 @@ const PESANAN_LABEL: Record<string, string> = {
 
 function usePelangganPoller(active: boolean) {
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const bookingRef = useRef<Map<string, { status: string; statusPembayaran: string }>>(new Map());
   const pesananRef = useRef<Map<string, string>>(new Map());
@@ -119,16 +119,20 @@ function usePelangganPoller(active: boolean) {
                     soundStatusUpdate();
                     toast({
                       title: "Status booking diperbarui",
-                      description: `${b.kodeBooking}: ${BOOKING_LABEL[b.status] ?? b.status}`,
+                      description: `${b.kodeBooking}: ${BOOKING_LABEL[b.status] ?? b.status} — Ketuk untuk lihat`,
                       duration: 7000,
-                    });
+                      className: "cursor-pointer",
+                      onClick: () => setLocation("/profil"),
+                    } as any);
                   } else if (p.statusPembayaran !== b.statusPembayaran) {
                     soundStatusUpdate();
                     toast({
                       title: "Status pembayaran booking diperbarui",
-                      description: `${b.kodeBooking}: ${BAYAR_LABEL[b.statusPembayaran] ?? b.statusPembayaran}`,
+                      description: `${b.kodeBooking}: ${BAYAR_LABEL[b.statusPembayaran] ?? b.statusPembayaran} — Ketuk untuk lihat`,
                       duration: 7000,
-                    });
+                      className: "cursor-pointer",
+                      onClick: () => setLocation("/profil"),
+                    } as any);
                   }
                 }
               });
@@ -154,9 +158,11 @@ function usePelangganPoller(active: boolean) {
                   soundStatusUpdate();
                   toast({
                     title: "Status pesanan diperbarui",
-                    description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status}`,
+                    description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status} — Ketuk untuk lihat`,
                     duration: 7000,
-                  });
+                    className: "cursor-pointer",
+                    onClick: () => setLocation("/profil"),
+                  } as any);
                 }
               });
             }
@@ -175,7 +181,7 @@ function usePelangganPoller(active: boolean) {
 
 function useAdminPoller(active: boolean) {
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
 
   const bookingRef = useRef<Map<string, { status: string; statusPembayaran: string }>>(new Map());
   const pesananRef = useRef<Map<string, string>>(new Map());
@@ -237,9 +243,11 @@ function useAdminPoller(active: boolean) {
               if (newBookings.length > 0) {
                 toast({
                   title: `${newBookings.length} booking baru masuk`,
-                  description: newBookings.map((b: any) => b.kodeBooking ?? b.namaPemesan).join(", "),
+                  description: `${newBookings.map((b: any) => b.kodeBooking ?? b.namaPemesan).join(", ")} — Ketuk untuk lihat`,
                   duration: 8000,
-                });
+                  className: "cursor-pointer",
+                  onClick: () => setLocation("/dashboard/booking"),
+                } as any);
               }
               // Status berubah
               bookings.forEach((b) => {
@@ -248,9 +256,11 @@ function useAdminPoller(active: boolean) {
                   if (p.statusPembayaran !== b.statusPembayaran && b.statusPembayaran === "lunas") {
                     toast({
                       title: "Pembayaran diterima!",
-                      description: `${b.kodeBooking ?? b.namaPemesan} telah melunasi pembayaran.`,
+                      description: `${b.kodeBooking ?? b.namaPemesan} telah melunasi pembayaran. — Ketuk untuk lihat`,
                       duration: 8000,
-                    });
+                      className: "cursor-pointer",
+                      onClick: () => setLocation("/dashboard/booking"),
+                    } as any);
                   }
                 }
               });
@@ -275,9 +285,11 @@ function useAdminPoller(active: boolean) {
               if (newOrders.length > 0) {
                 toast({
                   title: `${newOrders.length} pesanan baru masuk`,
-                  description: newOrders.map((p: any) => p.kodePesanan).join(", "),
+                  description: `${newOrders.map((p: any) => p.kodePesanan).join(", ")} — Ketuk untuk lihat`,
                   duration: 8000,
-                });
+                  className: "cursor-pointer",
+                  onClick: () => setLocation("/dashboard/pesanan"),
+                } as any);
               }
               // Status berubah
               pesanan.forEach((p) => {
@@ -285,9 +297,11 @@ function useAdminPoller(active: boolean) {
                 if (prevStatus && prevStatus !== p.status) {
                   toast({
                     title: "Status pesanan berubah",
-                    description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status}`,
+                    description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status} — Ketuk untuk lihat`,
                     duration: 7000,
-                  });
+                    className: "cursor-pointer",
+                    onClick: () => setLocation("/dashboard/pesanan"),
+                  } as any);
                 }
               });
             }
