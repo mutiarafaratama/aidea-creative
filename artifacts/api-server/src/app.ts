@@ -40,11 +40,10 @@ app.use(cookieParser());
 app.use(express.json({ limit: "30mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files (legacy local fallback — new uploads go to Supabase Storage)
+// Serve uploaded files from local filesystem
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "1d" }));
-// Note: gambar baru diunggah ke Supabase Storage via /api/upload/supabase
 
 // Pastikan semua respons API tidak di-cache browser — penting untuk polling realtime
 app.use("/api", (_req, res, next) => {

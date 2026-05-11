@@ -128,25 +128,6 @@ export default defineConfig({
             urlPattern: /\/api\/(pesanan|booking|me|auth)/,
             handler: "NetworkOnly",
           },
-          {
-            // Supabase Storage images (gambar produk, paket, pricelist, avatar)
-            urlPattern: /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "supabase-storage-images",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "cloudinary-images",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
         ],
       },
     }),
