@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { useListPaket, useListKategori, useAiRecommend } from "@workspace/api-client-react";
 import { Clock, Check, Sparkles, Loader2, Camera, ImageIcon, ChevronRight, Star, X, List } from "lucide-react";
@@ -8,73 +8,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { PricelistSection } from "@/components/pricelist-section";
 
-const PAKET_BTN_POS_KEY = "aidea_paket_ai_btn_pos";
-
 function MobilAiButton({ onOpen }: { onOpen: () => void }) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(() => {
-    try { const s = localStorage.getItem(PAKET_BTN_POS_KEY); if (s) return JSON.parse(s); } catch {}
-    return null;
-  });
-  const dragRef = useRef<{ startX: number; startY: number; btnX: number; btnY: number; moved: boolean } | null>(null);
-
-  const defaultPos = () => ({ x: 16, y: window.innerHeight - 80 });
-  const curPos = pos ?? defaultPos();
-
-  const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    dragRef.current = { startX: e.clientX, startY: e.clientY, btnX: curPos.x, btnY: curPos.y, moved: false };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return;
-    const dx = e.clientX - dragRef.current.startX;
-    const dy = e.clientY - dragRef.current.startY;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragRef.current.moved = true;
-    if (dragRef.current.moved) {
-      const nx = Math.max(4, Math.min(window.innerWidth - 64, dragRef.current.btnX + dx));
-      const ny = Math.max(4, Math.min(window.innerHeight - 64, dragRef.current.btnY + dy));
-      setPos({ x: nx, y: ny });
-      try { localStorage.setItem(PAKET_BTN_POS_KEY, JSON.stringify({ x: nx, y: ny })); } catch {}
-    }
-  };
-
-  const onUp = () => {
-    const didMove = dragRef.current?.moved ?? false;
-    dragRef.current = null;
-    if (!didMove) onOpen();
-  };
-
-  const onClickFallback = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpen();
-  };
-
-  const btnStyle: React.CSSProperties = { position: "fixed", left: curPos.x, top: curPos.y, touchAction: "none" };
-
   return (
-    <div
-      className="lg:hidden z-40 flex flex-col items-center gap-1 cursor-grab active:cursor-grabbing select-none"
-      style={btnStyle}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      onClick={onClickFallback}
-      role="button"
+    <button
+      type="button"
+      onClick={onOpen}
       aria-label="Buka Asisten Cerdas"
+      className="lg:hidden fixed bottom-6 left-5 z-40 flex flex-col items-center gap-1 group"
     >
-      <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap pointer-events-none">
+      <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">
         Asisten AI
       </span>
-      <div
-        className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center pointer-events-none"
-      >
+      <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center group-active:scale-95 transition-transform">
         <Sparkles size={20} />
       </div>
-    </div>
+    </button>
   );
 }
 

@@ -83,7 +83,7 @@ define(['./workbox-a03d2376'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.j5ffpnhsoig"
+    "revision": "0.q3h7svtcofs"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -114,23 +114,5 @@ define(['./workbox-a03d2376'], (function (workbox) { 'use strict';
     })]
   }), 'GET');
   workbox.registerRoute(/\/api\/(pesanan|booking|me|auth)/, new workbox.NetworkOnly(), 'GET');
-  workbox.registerRoute(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/.*/i, new workbox.CacheFirst({
-    "cacheName": "supabase-storage-images",
-    plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 200,
-      maxAgeSeconds: 2592000
-    }), new workbox.CacheableResponsePlugin({
-      statuses: [0, 200]
-    })]
-  }), 'GET');
-  workbox.registerRoute(/^https:\/\/res\.cloudinary\.com\/.*/i, new workbox.CacheFirst({
-    "cacheName": "cloudinary-images",
-    plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 100,
-      maxAgeSeconds: 2592000
-    }), new workbox.CacheableResponsePlugin({
-      statuses: [0, 200]
-    })]
-  }), 'GET');
 
 }));
