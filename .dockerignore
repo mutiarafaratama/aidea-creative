@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+**/.turbo
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+uploads
+attached_assets
+.local
+scripts/dev-proxy.mjs
