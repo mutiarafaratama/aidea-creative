@@ -213,8 +213,11 @@ function formatTanggal(str: string) {
 
 function fmtPhone(raw?: string) {
   if (!raw) return "";
-  const s = raw.trim();
-  return s.startsWith("+") ? s : `+${s}`;
+  const s = raw.trim().replace(/[\s\-().]/g, "");
+  if (s.startsWith("+")) return s;
+  if (s.startsWith("62")) return `+${s}`;
+  if (s.startsWith("0")) return `+62${s.slice(1)}`;
+  return `+${s}`;
 }
 
 function printInvoicePesanan(p: PesananRow, settings?: SiteSettings) {
