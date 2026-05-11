@@ -1059,12 +1059,12 @@ export default function Profil() {
     const pesan = [
       `Halo Admin, saya ingin melakukan *pembayaran booking* sesi foto:`,
       ``,
-      `📋 *Kode Booking:* ${b.kode_booking}`,
-      `📦 *Paket:* ${paketNama}`,
-      `📅 *Tanggal:* ${tanggal} pukul ${b.jam_sesi}`,
-      `💰 *Total:* ${total}`,
+      `*Kode Booking:* ${b.kode_booking}`,
+      `*Paket:* ${paketNama}`,
+      `*Tanggal:* ${tanggal} pukul ${b.jam_sesi}`,
+      `*Total:* ${total}`,
       ``,
-      `Mohon informasi rekening/cara pembayaran. Terima kasih! 🙏`,
+      `Mohon informasi rekening/cara pembayaran. Terima kasih!`,
     ].join("\n");
     const url = `https://wa.me/${adminWa}?text=${encodeURIComponent(pesan)}`;
     window.open(url, "_blank", "noopener,noreferrer");
@@ -1674,14 +1674,14 @@ export default function Profil() {
 
               {selectedPesanan.status === "siap_ambil" && (
                 <div className="rounded-lg border border-purple-300 bg-purple-50 px-4 py-3 flex gap-2.5">
-                  <div className="h-4 w-4 text-purple-600 shrink-0 mt-0.5 text-base leading-none">📦</div>
+                  <ClipboardList className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <p className="text-xs font-semibold text-purple-800">Pesanan siap diambil!</p>
                     <p className="text-xs text-purple-700">
                       Produk Anda sudah siap. Silakan datang ke studio dan tunjukkan invoice ini saat pengambilan.
                     </p>
                     <p className="text-xs text-purple-600 mt-1 font-medium">
-                      📍 Jl. A. Yani No. 12, Pringsewu, Lampung
+                      Jl. A. Yani No. 12, Pringsewu, Lampung
                     </p>
                   </div>
                 </div>
@@ -2178,7 +2178,7 @@ export default function Profil() {
                 <div className="px-6 py-5 space-y-4">
                   {paySuccessDialog.type === "booking" && (
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 text-center space-y-1">
-                      <p className="text-sm font-semibold text-emerald-800">Harap datang ke studio sesuai jadwal booking foto-mu 📸</p>
+                      <p className="text-sm font-semibold text-emerald-800">Harap datang ke studio sesuai jadwal booking foto Anda.</p>
                       {paySuccessDialog.tanggal && (
                         <p className="text-xs text-emerald-700">
                           {formatTanggal(paySuccessDialog.tanggal)}

@@ -98,7 +98,7 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
           onSuccess: async () => {
             await verifyPayment();
             clearCart();
-            toast({ title: "Pembayaran berhasil! 🎉", description: `Kode pesanan: ${data.kodePesanan}` });
+            toast({ title: "Pembayaran berhasil!", description: `Kode pesanan: ${data.kodePesanan}` });
             setLocation("/profil");
           },
           onPending: async () => {
@@ -170,7 +170,7 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
             <Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Catatan tambahan..." className="resize-none" rows={2} />
           </div>
           <div className="rounded-md bg-muted/50 border border-border px-3 py-2.5 text-xs text-muted-foreground">
-            🏪 Pengambilan di studio — Jl. A. Yani No.12, Pringsewu, Lampung
+            Pengambilan di studio — Jl. A. Yani No.12, Pringsewu, Lampung
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (

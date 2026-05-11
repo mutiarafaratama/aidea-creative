@@ -822,15 +822,15 @@ export default function Home() {
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-40 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute top-3 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300">
                     <div className="bg-white/20 backdrop-blur-sm rounded-full p-1.5">
                       <ZoomIn className="h-4 w-4 text-white" />
                     </div>
                   </div>
                   {img.label && (
-                    <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <span className="inline-flex items-center gap-1.5 text-white font-semibold text-sm">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-0 sm:translate-y-4 sm:group-hover:translate-y-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-300">
+                      <span className="inline-flex items-center gap-1.5 text-white font-semibold text-sm drop-shadow">
                         {img.label} <ArrowUpRight className="h-4 w-4" />
                       </span>
                     </div>

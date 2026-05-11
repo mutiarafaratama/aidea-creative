@@ -30,24 +30,24 @@ function authHeaders(): Record<string, string> {
 
 const BOOKING_LABEL: Record<string, string> = {
   menunggu: "Menunggu Konfirmasi",
-  dikonfirmasi: "Dikonfirmasi ✅",
-  selesai: "Selesai 🎉",
-  dibatalkan: "Dibatalkan ❌",
+  dikonfirmasi: "Dikonfirmasi",
+  selesai: "Selesai",
+  dibatalkan: "Dibatalkan",
 };
 
 const BAYAR_LABEL: Record<string, string> = {
   belum_bayar: "Belum Bayar",
   dp: "DP / Uang Muka",
-  lunas: "Lunas ✅",
+  lunas: "Lunas",
 };
 
 const PESANAN_LABEL: Record<string, string> = {
   diproses: "Diproses",
-  dikerjakan: "Sedang Dikerjakan 🔧",
-  siap_ambil: "Siap Diambil 📦",
-  dikirim: "Dikirim 🚚",
-  selesai: "Selesai 🎉",
-  dibatalkan: "Dibatalkan ❌",
+  dikerjakan: "Sedang Dikerjakan",
+  siap_ambil: "Siap Diambil",
+  dikirim: "Dikirim",
+  selesai: "Selesai",
+  dibatalkan: "Dibatalkan",
 };
 
 // ── Pelanggan poller ─────────────────────────────────────────────────────────
@@ -118,14 +118,14 @@ function usePelangganPoller(active: boolean) {
                   if (p.status !== b.status) {
                     soundStatusUpdate();
                     toast({
-                      title: "📋 Status booking diperbarui",
+                      title: "Status booking diperbarui",
                       description: `${b.kodeBooking}: ${BOOKING_LABEL[b.status] ?? b.status}`,
                       duration: 7000,
                     });
                   } else if (p.statusPembayaran !== b.statusPembayaran) {
                     soundStatusUpdate();
                     toast({
-                      title: "💳 Status pembayaran diperbarui",
+                      title: "Status pembayaran booking diperbarui",
                       description: `${b.kodeBooking}: ${BAYAR_LABEL[b.statusPembayaran] ?? b.statusPembayaran}`,
                       duration: 7000,
                     });
@@ -153,7 +153,7 @@ function usePelangganPoller(active: boolean) {
                 if (prevStatus && prevStatus !== p.status) {
                   soundStatusUpdate();
                   toast({
-                    title: "📦 Status pesanan diperbarui",
+                    title: "Status pesanan diperbarui",
                     description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status}`,
                     duration: 7000,
                   });
@@ -236,7 +236,7 @@ function useAdminPoller(active: boolean) {
               const newBookings = bookings.filter((b) => !prev.has(b.id));
               if (newBookings.length > 0) {
                 toast({
-                  title: `🔔 ${newBookings.length} booking baru masuk`,
+                  title: `${newBookings.length} booking baru masuk`,
                   description: newBookings.map((b: any) => b.kodeBooking ?? b.namaPemesan).join(", "),
                   duration: 8000,
                 });
@@ -247,7 +247,7 @@ function useAdminPoller(active: boolean) {
                 if (p) {
                   if (p.statusPembayaran !== b.statusPembayaran && b.statusPembayaran === "lunas") {
                     toast({
-                      title: "💳 Pembayaran diterima!",
+                      title: "Pembayaran diterima!",
                       description: `${b.kodeBooking ?? b.namaPemesan} telah melunasi pembayaran.`,
                       duration: 8000,
                     });
@@ -274,7 +274,7 @@ function useAdminPoller(active: boolean) {
               const newOrders = pesanan.filter((p) => !prev.has(p.id));
               if (newOrders.length > 0) {
                 toast({
-                  title: `🛍️ ${newOrders.length} pesanan baru masuk`,
+                  title: `${newOrders.length} pesanan baru masuk`,
                   description: newOrders.map((p: any) => p.kodePesanan).join(", "),
                   duration: 8000,
                 });
@@ -284,7 +284,7 @@ function useAdminPoller(active: boolean) {
                 const prevStatus = prev.get(p.id);
                 if (prevStatus && prevStatus !== p.status) {
                   toast({
-                    title: "📦 Status pesanan berubah",
+                    title: "Status pesanan berubah",
                     description: `${p.kodePesanan}: ${PESANAN_LABEL[p.status] ?? p.status}`,
                     duration: 7000,
                   });
