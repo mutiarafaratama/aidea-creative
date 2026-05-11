@@ -251,7 +251,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn:hover{opacity:.88}
 .btn-ghost{background:transparent;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit}
 .wrap{max-width:680px;margin:20px auto 48px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
-.head{background:#1d4ed8;color:#fff;padding:24px 28px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.head{background:#1d4ed8;color:#fff;padding:18px 16px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px}
 .brand{font-size:17px;font-weight:700;letter-spacing:-.2px}
 .brand-sub{font-size:8px;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-top:2px}
 .brand-info{font-size:11px;opacity:.65;margin-top:12px;line-height:1.8}
@@ -263,7 +263,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pill{padding:3px 10px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 .body{padding:20px 28px}
 .section-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:8px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.info-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:20px}
 .info-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px}
 .inf-label{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .inf-val{font-size:12px;font-weight:500;color:#1e293b;word-break:break-word}
@@ -285,24 +285,23 @@ td.bold{font-weight:600}
 .total-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.8}
 .total-amt{font-size:20px;font-weight:800;letter-spacing:-.5px}
 ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#64748b;line-height:1.7;margin-bottom:18px}` : ""}
-.foot{border-top:1px solid #e2e8f0;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;gap:12px}
+.foot{border-top:1px solid #e2e8f0;padding:12px 16px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;background:#f8fafc;gap:12px}
 .foot-l{font-size:10px;color:#94a3b8;line-height:1.8}
 .foot-r{text-align:right;flex-shrink:0}
 .foot-thanks{font-size:12px;font-weight:700;color:#1d4ed8}
 .foot-sub{font-size:10px;color:#94a3b8;margin-top:1px}
-@media (max-width:600px){
-  .wrap{margin:0;border-radius:0;box-shadow:none}
-  .head{flex-direction:column;gap:10px;padding:18px 16px}
-  .inv-right{text-align:left}
-  .status-row{padding:8px 16px}
-  .body{padding:14px 16px}
-  .info-grid{grid-template-columns:1fr}
-  .foot{flex-direction:column;align-items:flex-start;padding:12px 16px}
-  .foot-r{text-align:left}
-  table{font-size:11px}
-  td{padding:7px 8px;font-size:11px}
-  thead th{padding:7px 8px;font-size:9px}
-  .total-amt{font-size:17px}
+@media (min-width:600px){
+  .wrap{margin:20px auto 48px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+  .head{padding:24px 28px}
+  .inv-right{text-align:right}
+  .status-row{padding:8px 28px}
+  .body{padding:20px 28px}
+  .info-grid{grid-template-columns:1fr 1fr}
+  .foot{padding:14px 28px;align-items:center}
+  .foot-r{text-align:right}
+  td{padding:9px 10px;font-size:12px}
+  thead th{padding:8px 10px}
+  .total-amt{font-size:20px}
 }
 @media print{body{background:#fff}.toolbar{display:none!important}.wrap{margin:0;border-radius:0;box-shadow:none;max-width:100%}}
 </style>
@@ -392,7 +391,7 @@ ${p.catatan ? `.note{border:1.5px dashed #cbd5e1;border-radius:8px;padding:10px 
 </body>
 </html>`;
 
-  const w = window.open("", "_blank", "width=780,height=900,scrollbars=yes,resizable=yes");
+  const w = window.open("", "_blank");
   if (w) { w.document.write(html); w.document.close(); }
 }
 
@@ -422,7 +421,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-print:hover{opacity:.85}
 .btn-close{background:transparent;color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.35);padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
 .page{max-width:740px;margin:28px auto 48px;background:white;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.13)}
-.header{background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 60%,#2563eb 100%);color:white;padding:30px 36px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.header{background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 60%,#2563eb 100%);color:white;padding:18px 16px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:16px}
 .brand-name{font-size:19px;font-weight:700;letter-spacing:-.3px}
 .brand-sub{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;opacity:.65;margin-top:3px}
 .brand-contact{font-size:11px;opacity:.7;margin-top:14px;line-height:1.9}
@@ -434,9 +433,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .status-bar{padding:10px 36px;background:#f8fafc;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pill{padding:3px 11px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
 .divider{width:1px;height:16px;background:#d1d5db}
-.body{padding:28px 36px}
+.body{padding:16px 16px}
 .sec-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#9ca3af;margin-bottom:10px}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.info-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:24px}
 .info-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px}
 .inf-label{font-size:9px;color:#9ca3af;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
 .inf-value{font-size:12.5px;font-weight:500;color:#111827}
@@ -455,29 +454,28 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
 .total-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;opacity:.8}
 .total-amt{font-size:22px;font-weight:800;letter-spacing:-.5px}
 .note-box{border:1.5px dashed #d1d5db;border-radius:10px;padding:12px 14px;font-size:11.5px;color:#6b7280;line-height:1.7;margin-bottom:22px}
-.footer{border-top:1px solid #e5e7eb;padding:18px 36px;display:flex;justify-content:space-between;align-items:flex-end;background:#f8fafc;gap:12px}
+.footer{border-top:1px solid #e5e7eb;padding:14px 16px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;background:#f8fafc;gap:12px}
 .foot-l{font-size:10px;color:#9ca3af;line-height:1.8}
 .foot-r{text-align:right;flex-shrink:0}
 .foot-thanks{font-size:13px;font-weight:700;color:#1e40af}
 .foot-sub{font-size:10px;color:#9ca3af;margin-top:2px}
 .watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:72px;font-weight:900;text-transform:uppercase;letter-spacing:6px;opacity:.035;pointer-events:none;white-space:nowrap;color:#1e3a8a}
 .page-body{position:relative}
-@media (max-width:600px){
-  .page{margin:0;border-radius:0;box-shadow:none}
-  .header{flex-direction:column;gap:10px;padding:18px 16px}
-  .inv-meta{text-align:left}
-  .inv-title{font-size:26px}
-  .status-bar{padding:8px 16px}
-  .body{padding:16px 16px}
-  .info-grid{grid-template-columns:1fr}
-  .footer{flex-direction:column;align-items:flex-start;padding:14px 16px}
-  .foot-r{text-align:left}
-  .no-print{padding:10px 14px}
-  .btn-print,.btn-close{padding:8px 14px;font-size:13px}
-  table{font-size:11px}
-  tbody td{padding:8px 10px;font-size:11px}
-  thead th{padding:7px 10px}
-  .total-amt{font-size:18px}
+@media (min-width:600px){
+  .page{margin:28px auto 48px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.13)}
+  .header{padding:30px 36px}
+  .inv-meta{text-align:right}
+  .inv-title{font-size:34px}
+  .status-bar{padding:10px 36px}
+  .body{padding:28px 36px}
+  .info-grid{grid-template-columns:1fr 1fr}
+  .footer{padding:18px 36px;align-items:flex-end}
+  .foot-r{text-align:right}
+  .no-print{padding:12px 20px}
+  .btn-print,.btn-close{padding:10px 18px;font-size:14px}
+  tbody td{padding:11px 13px;font-size:12.5px}
+  thead th{padding:9px 13px}
+  .total-amt{font-size:22px}
 }
 @media print{
   body{background:white}
@@ -583,7 +581,7 @@ tbody td:last-child{text-align:right;font-weight:600;white-space:nowrap}
 </body>
 </html>`;
 
-  const w = window.open("", "_blank", "width=840,height=940,scrollbars=yes,resizable=yes");
+  const w = window.open("", "_blank");
   if (w) {
     w.document.write(html);
     w.document.close();
@@ -1062,6 +1060,31 @@ export default function Profil() {
       `*Kode Booking:* ${b.kode_booking}`,
       `*Paket:* ${paketNama}`,
       `*Tanggal:* ${tanggal} pukul ${b.jam_sesi}`,
+      `*Total:* ${total}`,
+      ``,
+      `Mohon informasi rekening/cara pembayaran. Terima kasih!`,
+    ].join("\n");
+    const url = `https://wa.me/${adminWa}?text=${encodeURIComponent(pesan)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const payPesananViaWA = (p: PesananRow) => {
+    const adminWa = (siteSettings?.contactWhatsapp ?? "").replace(/\D/g, "").replace(/^0/, "62");
+    if (!adminWa) {
+      toast({ title: "Nomor WhatsApp admin tidak tersedia", variant: "destructive" });
+      return;
+    }
+    const kodePesanan = p.kodePesanan || p.kode_pesanan;
+    const total = `Rp ${(p.totalHarga ?? p.total_harga).toLocaleString("id-ID")}`;
+    const itemList = (p.items ?? []).map((item, i) =>
+      `${i + 1}. ${item.namaProduk} x${item.jumlah} = Rp ${item.subtotal.toLocaleString("id-ID")}`
+    ).join("\n");
+    const pesan = [
+      `Halo Admin, saya ingin melakukan *pembayaran pesanan produk*:`,
+      ``,
+      `*Kode Pesanan:* ${kodePesanan}`,
+      `*Item Pesanan:*`,
+      itemList,
       `*Total:* ${total}`,
       ``,
       `Mohon informasi rekening/cara pembayaran. Terima kasih!`,
@@ -1738,14 +1761,24 @@ export default function Profil() {
               <div className="flex flex-col gap-2 pt-1">
                 {(selectedPesanan.status_pembayaran === "belum_bayar" || selectedPesanan.statusPembayaran === "belum_bayar") &&
                   selectedPesanan.status !== "dibatalkan" && (
-                  <Button
-                    className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    disabled={snapLoading}
-                    onClick={() => payPesanan(selectedPesanan)}
-                  >
-                    {snapLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                    Bayar Sekarang
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      disabled={snapLoading}
+                      onClick={() => payPesanan(selectedPesanan)}
+                    >
+                      {snapLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                      Bayar Sekarang
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                      onClick={() => payPesananViaWA(selectedPesanan)}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Bayar via WhatsApp
+                    </Button>
+                  </div>
                 )}
                 <Button
                   className="w-full gap-2"
