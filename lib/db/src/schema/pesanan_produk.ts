@@ -12,7 +12,7 @@ export const pesananProdukTable = pgTable("pesanan_produk", {
   namaPemesan: text("nama_pemesan").notNull(),
   email: text("email").notNull(),
   telepon: text("telepon").notNull(),
-  status: pesananStatusEnum("status").notNull().default("diproses"),
+  status: pesananStatusEnum("status").notNull().default("menunggu"),
   totalHarga: integer("total_harga").notNull(),
   alamatPengiriman: text("alamat_pengiriman"),
   catatan: text("catatan"),

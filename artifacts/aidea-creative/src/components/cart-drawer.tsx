@@ -172,11 +172,14 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
           <div className="rounded-md bg-muted/50 border border-border px-3 py-2.5 text-xs text-muted-foreground">
             Pengambilan di studio — Jl. A. Yani No.12, Pringsewu, Lampung
           </div>
+          <div className="rounded-md bg-blue-50 border border-blue-200 px-3 py-2.5 text-xs text-blue-700">
+            Pesanan akan menunggu konfirmasi admin sebelum bisa dibayar. Anda akan diberitahu melalui notifikasi.
+          </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Memproses...</>
             ) : (
-              "Bayar Sekarang"
+              "Buat Pesanan"
             )}
           </Button>
         </form>

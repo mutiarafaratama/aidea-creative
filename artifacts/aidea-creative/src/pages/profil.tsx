@@ -156,12 +156,14 @@ const STATUS_BAYAR: Record<string, { label: string; className: string }> = {
 };
 
 const STATUS_PESANAN: Record<string, { label: string; className: string }> = {
-  diproses:   { label: "Diproses",     className: "bg-amber-100 text-amber-800 border border-amber-200" },
-  dikerjakan: { label: "Dikerjakan",   className: "bg-blue-100 text-blue-800 border border-blue-200" },
-  siap_ambil: { label: "Siap Diambil", className: "bg-purple-100 text-purple-800 border border-purple-200" },
-  dikirim:    { label: "Dikirim",      className: "bg-violet-100 text-violet-800 border border-violet-200" },
-  selesai:    { label: "Selesai",      className: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
-  dibatalkan: { label: "Dibatalkan",   className: "bg-red-100 text-red-800 border border-red-200" },
+  menunggu:     { label: "Menunggu",     className: "bg-amber-100 text-amber-800 border border-amber-200" },
+  dikonfirmasi: { label: "Dikonfirmasi", className: "bg-blue-100 text-blue-800 border border-blue-200" },
+  diproses:     { label: "Diproses",     className: "bg-amber-100 text-amber-800 border border-amber-200" },
+  dikerjakan:   { label: "Dikerjakan",   className: "bg-blue-100 text-blue-800 border border-blue-200" },
+  siap_ambil:   { label: "Siap Diambil", className: "bg-purple-100 text-purple-800 border border-purple-200" },
+  dikirim:      { label: "Dikirim",      className: "bg-violet-100 text-violet-800 border border-violet-200" },
+  selesai:      { label: "Selesai",      className: "bg-emerald-100 text-emerald-800 border border-emerald-200" },
+  dibatalkan:   { label: "Dibatalkan",   className: "bg-red-100 text-red-800 border border-red-200" },
 };
 
 function StatusBadge({
@@ -797,6 +799,8 @@ export default function Profil() {
   useEffect(() => {
     if (!user) return;
     const STATUS_LABEL_MAP: Record<string, string> = {
+      menunggu: "Menunggu Konfirmasi Admin",
+      dikonfirmasi: "Dikonfirmasi — Silakan Bayar",
       diproses: "Diproses",
       dikerjakan: "Sedang Dikerjakan",
       siap_ambil: "Siap Diambil",
@@ -921,18 +925,17 @@ export default function Profil() {
     setSnapLoading(true);
     try {
       const token = localStorage.getItem("auth_token");
-      let snapToken = p.midtransSnapToken;
 
-      if (!snapToken) {
-        const res = await fetch(`/api/pesanan/${p.kode_pesanan ?? p.kodePesanan}/payment-token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          snapToken = data.snapToken;
-        }
+      const payRes = await fetch(`/api/pesanan/${p.id}/payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!payRes.ok) {
+        const body = await payRes.json().catch(() => ({}));
+        toast({ title: "Pembayaran tidak tersedia", description: body.error ?? "Hubungi admin untuk konfirmasi pembayaran.", variant: "destructive" });
+        return;
       }
+      const { snapToken } = await payRes.json();
 
       if (!snapToken || !MIDTRANS_CLIENT_KEY) {
         toast({ title: "Pembayaran tidak tersedia", description: "Hubungi admin untuk konfirmasi pembayaran.", variant: "destructive" });
@@ -941,17 +944,15 @@ export default function Profil() {
 
       await loadSnapScript();
 
-      // Close the dialog BEFORE opening Snap — the Radix overlay blocks Snap clicks otherwise
       setSelectedPesanan(null);
       await new Promise((r) => setTimeout(r, 300));
 
       const kodePesanan = p.kodePesanan || p.kode_pesanan;
       const verifyPayment = async () => {
         try {
-          const res = await fetch("/api/pesanan/verify", {
+          const res = await fetch(`/api/pesanan/${p.id}/verify-payment`, {
             method: "POST",
             headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ kodePesanan }),
           });
           if (res.ok) {
             const updated = await res.json();
@@ -960,13 +961,8 @@ export default function Profil() {
               statusPembayaran: updated.statusPembayaran,
               status_pembayaran: updated.statusPembayaran,
             } : x));
-            setSelectedPesanan((prev) => prev?.id === p.id ? {
-              ...prev,
-              statusPembayaran: updated.statusPembayaran,
-              status_pembayaran: updated.statusPembayaran,
-            } : prev);
           }
-        } catch { /* ignore */ }
+        } catch { }
       };
 
       (window as any).snap.pay(snapToken, {
@@ -1649,14 +1645,17 @@ export default function Profil() {
               </div>
 
               {/* Progress tracker */}
-              {(selectedPesanan.status === "diproses" || selectedPesanan.status === "dikerjakan" || selectedPesanan.status === "siap_ambil" || selectedPesanan.status === "selesai") && (() => {
+              {(selectedPesanan.status === "menunggu" || selectedPesanan.status === "dikonfirmasi" || selectedPesanan.status === "diproses" || selectedPesanan.status === "dikerjakan" || selectedPesanan.status === "siap_ambil" || selectedPesanan.status === "selesai") && (() => {
                 const steps = [
-                  { key: "diproses",   label: "Diproses" },
-                  { key: "dikerjakan", label: "Dikerjakan" },
-                  { key: "siap_ambil", label: "Siap Diambil" },
-                  { key: "selesai",    label: "Selesai" },
+                  { key: "menunggu",     label: "Menunggu" },
+                  { key: "dikonfirmasi", label: "Dikonfirmasi" },
+                  { key: "dikerjakan",   label: "Dikerjakan" },
+                  { key: "siap_ambil",   label: "Siap Diambil" },
+                  { key: "selesai",      label: "Selesai" },
                 ];
-                const currentIdx = steps.findIndex((s) => s.key === selectedPesanan.status);
+                const legacyMap: Record<string, string> = { diproses: "dikonfirmasi" };
+                const effectiveStatus = legacyMap[selectedPesanan.status] ?? selectedPesanan.status;
+                const currentIdx = steps.findIndex((s) => s.key === effectiveStatus);
                 return (
                   <div className="flex items-center justify-between gap-1 py-1">
                     {steps.map((step, i) => {
@@ -1685,6 +1684,30 @@ export default function Profil() {
                   </div>
                 );
               })()}
+
+              {selectedPesanan.status === "menunggu" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-amber-700">Menunggu konfirmasi admin</p>
+                    <p className="text-xs text-amber-700">
+                      Pesanan Anda telah diterima dan sedang menunggu konfirmasi dari admin. Tombol bayar akan muncul setelah admin mengonfirmasi pesanan Anda.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {selectedPesanan.status === "dikonfirmasi" && (selectedPesanan.status_pembayaran === "belum_bayar" || selectedPesanan.statusPembayaran === "belum_bayar") && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 flex gap-2.5">
+                  <CreditCard className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-blue-700">Pesanan dikonfirmasi — silakan bayar</p>
+                    <p className="text-xs text-blue-700">
+                      Admin telah mengonfirmasi pesanan Anda. Silakan lakukan pembayaran untuk mulai proses produksi.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {selectedPesanan.status === "dikerjakan" && (
                 <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 flex gap-2.5">
@@ -1762,8 +1785,8 @@ export default function Profil() {
               )}
 
               <div className="flex flex-col gap-2 pt-1">
-                {(selectedPesanan.status_pembayaran === "belum_bayar" || selectedPesanan.statusPembayaran === "belum_bayar") &&
-                  selectedPesanan.status !== "dibatalkan" && (
+                {selectedPesanan.status === "dikonfirmasi" &&
+                  (selectedPesanan.status_pembayaran === "belum_bayar" || selectedPesanan.statusPembayaran === "belum_bayar") && (
                   <div className="space-y-2">
                     <Button
                       className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"

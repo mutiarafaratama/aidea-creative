@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Eye, MessageCircle, Package, Phone, Mail, Check, X, Wallet, Trash2, PackageCheck } from "lucide-react";
+import { Search, Eye, MessageCircle, Package, Phone, Mail, Check, X, Wallet, Trash2, PackageCheck, ShieldCheck } from "lucide-react";
 import { AdminLayout } from "@/components/admin-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import { adminFetch } from "@/lib/admin-api";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
-const STATUSES = ["semua", "diproses", "dikerjakan", "siap_ambil", "selesai", "dibatalkan"] as const;
+const STATUSES = ["semua", "menunggu", "dikonfirmasi", "dikerjakan", "siap_ambil", "selesai", "dibatalkan"] as const;
 type StatusFilter = (typeof STATUSES)[number];
 
 type ItemPesanan = {
@@ -53,6 +53,8 @@ function toWANumber(telepon: string): string {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  menunggu: "Menunggu",
+  dikonfirmasi: "Dikonfirmasi",
   diproses: "Diproses",
   dikerjakan: "Dikerjakan",
   siap_ambil: "Siap Diambil",
@@ -68,8 +70,10 @@ const BAYAR_LABELS: Record<string, string> = {
 
 function statusBadge(s: string) {
   const map: Record<string, string> = {
+    menunggu: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+    dikonfirmasi: "bg-blue-500/10 text-blue-700 border-blue-500/20",
     diproses: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-    dikerjakan: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+    dikerjakan: "bg-indigo-500/10 text-indigo-700 border-indigo-500/20",
     siap_ambil: "bg-purple-500/10 text-purple-700 border-purple-500/20",
     selesai: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
     dibatalkan: "bg-red-500/10 text-red-700 border-red-500/20",
@@ -155,7 +159,38 @@ export default function AdminPesanan() {
     return () => clearInterval(interval);
   }, []);
 
-  // Realtime updates handled by polling or future websocket integration
+  const konfirmasiPesanan = async (id: string) => {
+    setIsUpdating(true);
+    try {
+      const updated = await adminFetch<Pesanan>(`/api/pesanan/${id}/konfirmasi`, {
+        method: "POST",
+      });
+      setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      setDetail((prev) => (prev?.id === id ? updated : prev));
+      toast({ title: "Pesanan dikonfirmasi", description: "Pelanggan kini dapat melakukan pembayaran." });
+    } catch {
+      toast({ title: "Gagal mengonfirmasi pesanan", variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const updateBayar = async (id: string, statusPembayaran: "belum_bayar" | "dp" | "lunas") => {
+    setIsUpdating(true);
+    try {
+      const updated = await adminFetch<Pesanan>(`/api/pesanan/${id}/bayar`, {
+        method: "PUT",
+        body: JSON.stringify({ statusPembayaran }),
+      });
+      setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      setDetail((prev) => (prev?.id === id ? updated : prev));
+      toast({ title: "Status pembayaran diperbarui", description: BAYAR_LABELS[statusPembayaran] });
+    } catch {
+      toast({ title: "Gagal memperbarui pembayaran", variant: "destructive" });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const proseskanPesanan = async (id: string) => {
     setIsUpdating(true);
@@ -167,8 +202,8 @@ export default function AdminPesanan() {
       setPesanan((prev) => prev.map((p) => (p.id === id ? updated : p)));
       setDetail((prev) => (prev?.id === id ? updated : prev));
       toast({ title: "Pesanan sedang dikerjakan" });
-    } catch {
-      toast({ title: "Gagal memperbarui status", variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: "Gagal memperbarui status", description: e.message ?? "Pastikan pembayaran sudah lunas.", variant: "destructive" });
     } finally {
       setIsUpdating(false);
     }
@@ -237,9 +272,11 @@ export default function AdminPesanan() {
       <Card className="mb-4">
         <CardContent className="p-4 flex flex-col md:flex-row gap-3 md:items-center justify-between">
           <Tabs value={filter} onValueChange={(v) => setFilter(v as StatusFilter)}>
-            <TabsList>
+            <TabsList className="flex-wrap h-auto gap-1">
               {STATUSES.map((s) => (
-                <TabsTrigger key={s} value={s} className="capitalize">{s === "semua" ? "Semua" : STATUS_LABELS[s]}</TabsTrigger>
+                <TabsTrigger key={s} value={s} className="capitalize">
+                  {s === "semua" ? "Semua" : STATUS_LABELS[s] ?? s}
+                </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
@@ -411,21 +448,58 @@ export default function AdminPesanan() {
 
                 <Separator />
 
+                {/* ── Update Status Pembayaran (admin) ── */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Update Pembayaran</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["belum_bayar", "dp", "lunas"] as const).map((s) => (
+                      <Button
+                        key={s}
+                        size="sm"
+                        variant={detail.statusPembayaran === s ? "default" : "outline"}
+                        className={
+                          detail.statusPembayaran === s
+                            ? "font-semibold"
+                            : s === "lunas"
+                            ? "text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                            : s === "dp"
+                            ? "text-sky-700 border-sky-200 hover:bg-sky-50"
+                            : "text-orange-700 border-orange-200 hover:bg-orange-50"
+                        }
+                        disabled={isUpdating || detail.statusPembayaran === s}
+                        onClick={() => updateBayar(detail.id, s)}
+                      >
+                        {BAYAR_LABELS[s]}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* ── Aksi Status Pesanan ── */}
                 <div className="space-y-2">
                   <a href={`https://wa.me/${toWANumber(detail.telepon)}`} target="_blank" rel="noopener noreferrer">
                     <Button className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700">
                       <MessageCircle className="h-4 w-4" /> Hubungi via WhatsApp
                     </Button>
                   </a>
-                  {detail.status === "diproses" && (
+
+                  {/* Konfirmasi: menunggu → dikonfirmasi */}
+                  {detail.status === "menunggu" && (
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         variant="outline"
                         className="text-blue-700 border-blue-200 hover:bg-blue-50"
                         disabled={isUpdating}
-                        onClick={() => proseskanPesanan(detail.id)}
+                        onClick={() => konfirmasiPesanan(detail.id)}
                       >
-                        <Check className="h-4 w-4 mr-1" /> Kerjakan
+                        {isUpdating ? (
+                          <span className="h-4 w-4 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin mr-1" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4 mr-1" />
+                        )}
+                        Konfirmasi
                       </Button>
                       <Button
                         variant="outline"
@@ -436,6 +510,38 @@ export default function AdminPesanan() {
                       </Button>
                     </div>
                   )}
+
+                  {/* Dikonfirmasi: info bayar dulu */}
+                  {detail.status === "dikonfirmasi" && (
+                    <div className="space-y-2">
+                      {detail.statusPembayaran !== "lunas" && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                          <p className="font-semibold mb-0.5">Menunggu pembayaran pelanggan</p>
+                          <p>Pesanan hanya bisa dikerjakan setelah pembayaran <strong>Lunas</strong>. Ubah status pembayaran di atas setelah menerima transfer/bukti bayar.</p>
+                        </div>
+                      )}
+                      {detail.statusPembayaran === "lunas" && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            className="text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                            disabled={isUpdating}
+                            onClick={() => proseskanPesanan(detail.id)}
+                          >
+                            <Check className="h-4 w-4 mr-1" /> Kerjakan
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="text-red-700 border-red-200 hover:bg-red-50"
+                            onClick={() => setBatalDialog({ pesanan: detail, alasan: "" })}
+                          >
+                            <X className="h-4 w-4 mr-1" /> Batalkan
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {detail.status === "dikerjakan" && (
                     <div className="grid grid-cols-2 gap-2">
                       <Button
@@ -460,6 +566,7 @@ export default function AdminPesanan() {
                       </Button>
                     </div>
                   )}
+
                   {detail.status === "siap_ambil" && (
                     <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 flex gap-2.5">
                       <PackageCheck className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
@@ -469,6 +576,7 @@ export default function AdminPesanan() {
                       </div>
                     </div>
                   )}
+
                   <Button
                     variant="outline"
                     className="w-full gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
