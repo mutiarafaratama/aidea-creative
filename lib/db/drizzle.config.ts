@@ -1,10 +1,10 @@
 import { defineConfig } from "drizzle-kit";
 import path from "path";
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.SUPABASE_DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("DATABASE_URL harus diisi. Pastikan database Replit sudah terhubung.");
+  throw new Error("SUPABASE_DATABASE_URL harus diisi. Tambahkan di Replit Secrets.");
 }
 
 export default defineConfig({
