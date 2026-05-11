@@ -99,13 +99,13 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
             await verifyPayment();
             clearCart();
             toast({ title: "Pembayaran berhasil!", description: `Kode pesanan: ${data.kodePesanan}` });
-            setLocation("/profil");
+            setLocation("/profil?tab=pesanan");
           },
           onPending: async () => {
             await verifyPayment();
             clearCart();
             toast({ title: "Pembayaran tertunda", description: "Selesaikan pembayaran sesuai instruksi yang dikirim." });
-            setLocation("/profil");
+            setLocation("/profil?tab=pesanan");
           },
           onError: () => {
             toast({ title: "Pembayaran gagal", description: "Coba lagi atau hubungi admin.", variant: "destructive" });
@@ -113,12 +113,14 @@ function CheckoutDialog({ open, onClose }: { open: boolean; onClose: () => void 
           onClose: () => {},
         });
       } else {
-        // Tanpa Midtrans (snap token tidak tersedia): tampilkan toast & redirect
+        // Tanpa Midtrans: tutup modal dulu, tunggu Radix selesai cleanup
+        // scroll-lock, BARU navigate — mencegah blank screen di mobile.
         clearCart();
         onClose();
         setCartOpen(false);
-        toast({ title: "Pesanan berhasil dibuat!", description: `Kode: ${data.kodePesanan} — Hubungi admin untuk konfirmasi pembayaran.` });
-        setLocation("/profil");
+        toast({ title: "Pesanan berhasil dibuat!", description: `Kode: ${data.kodePesanan} — Tunggu konfirmasi admin sebelum bisa bayar.` });
+        // Delay 120ms agar Radix UI selesai restore overflow:hidden sebelum navigate
+        setTimeout(() => setLocation("/profil?tab=pesanan"), 120);
       }
     } catch (err: any) {
       toast({ title: "Gagal checkout", description: err.message, variant: "destructive" });
